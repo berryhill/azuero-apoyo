@@ -620,7 +620,7 @@ func (a *App) routes() http.Handler {
 		switch r.URL.Path {
 		case "/", "/index.html":
 			name = "index.html"
-		case "/admin.html", "/leaflet.css", "/leaflet.js":
+		case "/admin.html", "/camp.html", "/leaflet.css", "/leaflet.js":
 			name = strings.TrimPrefix(r.URL.Path, "/")
 		default:
 			http.NotFound(w, r)
