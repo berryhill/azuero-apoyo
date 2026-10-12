@@ -5,7 +5,8 @@
     "image",
     "replicaCount",
     "containerPort",
-    "ingress"
+    "ingress",
+    "persistence"
   ],
   "properties": {
     "replicaCount": {
@@ -94,6 +95,21 @@
             "minLength": 1
           }
         }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "required": ["enabled", "mountPath", "size", "accessModes"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "existingClaim": { "type": "string" },
+        "mountPath": { "type": "string", "pattern": "^/[^\\s]+$" },
+        "size": { "type": "string", "pattern": "^[1-9][0-9]*(Mi|Gi|Ti)$" },
+        "accessModes": {
+          "type": "array", "minItems": 1,
+          "items": { "enum": ["ReadWriteOnce", "ReadWriteOncePod", "ReadWriteMany"] }
+        },
+        "storageClassName": { "type": "string" }
       }
     },
     "existingEnvSecret": {

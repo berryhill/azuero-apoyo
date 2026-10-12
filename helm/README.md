@@ -6,6 +6,8 @@ The current directory contains a static HTML generator; it does not yet have a c
 
 Default ingress is disabled because the Azuero relief domain/DNS/TLS secret are not established. To enable it, set `ingress.enabled=true`, `ingress.host`, and `ingress.tls.secretName` (or disable TLS explicitly). The cert-manager issuer and nginx ingress controller must already exist; adjust `ingress.annotations` to match the cluster. `existingEnvSecret` and `imagePullSecrets` reference pre-existing namespaced secrets only.
 
+Persistence is enabled by default: the chart creates a 1Gi ReadWriteOnce PVC and mounts it read-write at `/data`. The single replica uses a Recreate rollout to avoid multi-attach conflicts (brief downtime during upgrades). The cluster must have a default StorageClass; otherwise set `persistence.storageClassName` or provide `persistence.existingClaim` for a claim you manage separately. For multiple replicas, provision ReadWriteMany-capable storage and set `persistence.accessModes={ReadWriteMany}`. Set `persistence.enabled=false` only if persistent data is not needed. The `/tmp` emptyDir remains ephemeral. A PVC does not populate data or make it web-accessible by itself; the container image must explicitly read or write `/data`. The chart-created PVC has Helm's `keep` annotation to retain it on uninstall; manage and back up that retained claim explicitly.
+
 Offline validation:
 
     helm lint ./helm --set image.tag=test

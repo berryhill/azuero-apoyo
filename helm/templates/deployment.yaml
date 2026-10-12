@@ -1,3 +1,5 @@
+{{- if and .Values.persistence.enabled (or (eq .Values.persistence.mountPath "/tmp") (hasPrefix "/tmp/" .Values.persistence.mountPath)) }}{{ fail "persistence.mountPath must not overlap /tmp" }}{{- end }}
+{{- if and .Values.persistence.enabled (gt (int .Values.replicaCount) 1) (not (has "ReadWriteMany" .Values.persistence.accessModes)) }}{{ fail "replicaCount > 1 with persistence requires ReadWriteMany storage" }}{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8,10 +10,14 @@ spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 3
   strategy:
+    {{- if and .Values.persistence.enabled (not (has "ReadWriteMany" .Values.persistence.accessModes)) }}
+    type: Recreate
+    {{- else }}
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 0
       maxSurge: 1
+    {{- end }}
   selector:
     matchLabels:
       {{- include "azuero-relief.selectorLabels" . | nindent 6 }}
@@ -77,10 +83,19 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath | quote }}
+            {{- end }}
       volumes:
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-data" (include "azuero-relief.fullname" .)) .Values.persistence.existingClaim | quote }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -1,4 +1,4 @@
-replicaCount: 2
+replicaCount: 1
 image:
   repository: ghcr.io/berryhill/azuero-relief
   # Set an immutable build tag or digest; no image is published by this chart.
@@ -27,6 +27,17 @@ ingress:
     secretName: ""
 # Reference an existing Secret; never place credential values in Helm values.
 existingEnvSecret: ""
+# Persistent data volume. A single replica with Recreate avoids multi-attach
+# failures on clusters whose default storage class provides ReadWriteOnce disks.
+persistence:
+  enabled: true
+  existingClaim: ""
+  mountPath: /data
+  size: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  # Empty uses the cluster's default StorageClass.
+  storageClassName: ""
 resources:
   requests:
     cpu: 100m
