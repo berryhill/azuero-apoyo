@@ -1,0 +1,14 @@
+# Generated from relief checkpoint data; may contain sensitive locations/counts.
+/index.html
+*.csv
+
+# Local config, credentials, and Python artifacts.
+.env
+.env.*
+!.env.example
+*.kubeconfig
+*.pem
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
