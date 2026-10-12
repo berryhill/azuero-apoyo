@@ -1,0 +1,31 @@
+name: Rotate production admin password
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rotate:
+    runs-on: ubuntu-24.04
+    env:
+      CURRENT_PASSWORD: ${{ secrets.ADMIN_BOOTSTRAP_PASSWORD }}
+      NEW_PASSWORD: ${{ secrets.ADMIN_NEW_PASSWORD }}
+    steps:
+      - name: Rotate through authenticated API
+        run: |
+          python3 - <<'PY'
+          import http.cookiejar, json, os, urllib.request
+          base='https://azuero-apoyo.berryhill.dev'
+          old=os.environ['CURRENT_PASSWORD']
+          new=os.environ['NEW_PASSWORD']
+          if len(new)<12 or not old:
+              raise SystemExit('Missing credentials')
+          op=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+          def post(path, payload, csrf=''):
+              req=urllib.request.Request(base+path, data=json.dumps(payload).encode(), headers={'Content-Type':'application/json', **({'X-CSRF-Token':csrf} if csrf else {})})
+              with op.open(req, timeout=15) as r:
+                  return json.load(r)
+          auth=post('/api/admin/login',{'password':old})
+          post('/api/admin/password',{'password':new},auth['csrf'])
+          post('/api/admin/login',{'password':new})
+          print('Production admin password rotated and verified')
+          PY
