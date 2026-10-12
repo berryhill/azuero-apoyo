@@ -18,13 +18,13 @@ ingress:
   # Enable after DNS and TLS issuer are configured.
   enabled: false
   className: nginx
-  host: ""
+  host: azuero-apoyo.berryhill.dev
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-http
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
   tls:
     enabled: true
-    secretName: ""
+    secretName: azuero-apoyo-tls
 # Reference an existing Secret; never place credential values in Helm values.
 existingEnvSecret: ""
 # Persistent data volume. A single replica with Recreate avoids multi-attach
