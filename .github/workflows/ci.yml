@@ -1,0 +1,116 @@
+name: CI and deploy
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: azuero-apoyo-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go test ./...
+      - run: go build ./...
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - run: helm lint ./helm --set image.tag=ci
+      - run: helm template azuero-apoyo ./helm --set image.tag=ci --set ingress.enabled=true > /dev/null
+  publish:
+    if: github.repository == 'berryhill/azuero-apoyo' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
+    needs: test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Provide approved site snapshot
+        env:
+          INDEX_HTML_B64: ${{ secrets.INDEX_HTML_B64 }}
+        run: |
+          test -n "$INDEX_HTML_B64" || { echo 'Set INDEX_HTML_B64 before enabling deployment'; exit 1; }
+          printf '%s' "$INDEX_HTML_B64" | base64 --decode > index.html
+          test -s index.html
+          if grep -q '__CHECKPOINT_DATA__' index.html; then echo 'Snapshot is not generated'; exit 1; fi
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ghcr.io/berryhill/azuero-apoyo:${{ github.sha }}
+  deploy:
+    if: github.repository == 'berryhill/azuero-apoyo' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
+    needs: publish
+    runs-on: ubuntu-24.04
+    environment: production
+    permissions:
+      contents: read
+    env:
+      KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+      EXPECTED_KUBE_CONTEXT: ${{ vars.EXPECTED_KUBE_CONTEXT }}
+      ADMIN_BOOTSTRAP_PASSWORD: ${{ secrets.ADMIN_BOOTSTRAP_PASSWORD }}
+      GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+      IMAGE_DIGEST: ${{ needs.publish.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: v1.32.3
+      - name: Select and verify target cluster
+        run: |
+          test -n "$KUBECONFIG_B64" && test -n "$EXPECTED_KUBE_CONTEXT" && test -n "$ADMIN_BOOTSTRAP_PASSWORD" && test -n "$GHCR_READ_TOKEN" && test -n "$IMAGE_DIGEST" || { echo 'Missing deployment prerequisite'; exit 1; }
+          umask 077
+          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
+          printf '%s' "$KUBECONFIG_B64" | base64 --decode > "$KUBECONFIG"
+          test "$(kubectl config current-context)" = "$EXPECTED_KUBE_CONTEXT" || { echo 'Kubernetes context mismatch'; exit 1; }
+          kubectl get --raw=/readyz > /dev/null
+      - name: Provision namespaced credentials and deploy
+        env:
+          GHCR_USER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          umask 077
+          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
+          kubectl create namespace azuero-relief --dry-run=client -o yaml | kubectl apply -f -
+          printf '%s' "$ADMIN_BOOTSTRAP_PASSWORD" > "$RUNNER_TEMP/admin-password"
+          kubectl -n azuero-relief create secret generic azuero-relief-env --from-file=ADMIN_BOOTSTRAP_PASSWORD="$RUNNER_TEMP/admin-password" --dry-run=client -o yaml | kubectl apply -f -
+          rm -f "$RUNNER_TEMP/admin-password"
+          python3 -c 'import base64,json,os,pathlib; auth=base64.b64encode((os.environ["GHCR_USER"]+":"+os.environ["GHCR_READ_TOKEN"]).encode()).decode(); pathlib.Path(os.environ["RUNNER_TEMP"],"dockerconfig.json").write_text(json.dumps({"auths":{"ghcr.io":{"auth":auth}}}))'
+          kubectl -n azuero-relief create secret generic ghcr-pull --type=kubernetes.io/dockerconfigjson --from-file=.dockerconfigjson="$RUNNER_TEMP/dockerconfig.json" --dry-run=client -o yaml | kubectl apply -f -
+          rm -f "$RUNNER_TEMP/dockerconfig.json"
+          helm upgrade --install azuero-apoyo ./helm --namespace azuero-relief --atomic --wait --timeout 5m --reset-values \
+            --set image.repository=ghcr.io/berryhill/azuero-apoyo \
+            --set-string image.digest="$IMAGE_DIGEST" \
+            --set existingEnvSecret=azuero-relief-env \
+            --set imagePullSecrets[0].name=ghcr-pull \
+            --set ingress.enabled=true
+          kubectl -n azuero-relief rollout status deployment/azuero-apoyo-azuero-relief --timeout=2m

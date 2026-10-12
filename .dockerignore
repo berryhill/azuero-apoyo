@@ -1,0 +1,12 @@
+.git
+.github
+.env
+.env.*
+data/
+*.db
+*.db-*
+seed.json
+*.csv
+helm/
+README.md
+main_test.go

@@ -39,4 +39,5 @@ for n, row in enumerate(rows, 1):
         'gps':row[24].strip(),'coords':coords(row[24].strip())})
 html = TEMPLATE.read_text().replace('__CHECKPOINT_DATA__', json.dumps(records, ensure_ascii=False).replace('</', '<\\/'))
 OUT.write_text(html, encoding='utf-8')
+Path(__file__).with_name('seed.json').write_text(json.dumps(records, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 print(f'{len(records)} points, {sum(bool(r["coords"]) for r in records)} mapped, {sum(not r["coords"] for r in records)} unmapped -> {OUT}')

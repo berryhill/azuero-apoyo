@@ -1,0 +1,15 @@
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY main.go ./
+RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /app .
+FROM alpine:3.22
+RUN addgroup -S app && adduser -S -G app -u 10001 app && mkdir -p /data /app/static && chown -R app:app /data
+WORKDIR /app/static
+COPY --from=build /app /app/server
+COPY index.html admin.html leaflet.css leaflet.js ./
+USER app
+ENV DB_PATH=/data/relief.db STATIC_DIR=/app/static LISTEN_ADDR=:8080
+EXPOSE 8080
+CMD ["/app/server"]
