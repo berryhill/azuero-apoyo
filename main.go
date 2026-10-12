@@ -23,39 +23,60 @@ import (
 )
 
 type Point struct {
-	ID            string    `json:"id"`
-	Source        string    `json:"source,omitempty"`
-	Service       string    `json:"service,omitempty"`
-	ServiceNotes  string    `json:"serviceNotes,omitempty"`
-	Children      string    `json:"children,omitempty"`
-	Babies        string    `json:"babies,omitempty"`
-	Notes         string    `json:"notes,omitempty"`
-	Directions    string    `json:"directions,omitempty"`
-	Extra         string    `json:"extra,omitempty"`
-	GPS           string    `json:"gps,omitempty"`
-	Row           string    `json:"row,omitempty"`
-	Ordinal       string    `json:"ordinal,omitempty"`
-	Coordinator   string    `json:"coordinator,omitempty"`
-	Contact       string    `json:"contact,omitempty"`
-	Phone         string    `json:"phone,omitempty"`
-	Adults        string    `json:"adults,omitempty"`
-	OlderAdults   string    `json:"olderAdults,omitempty"`
-	Disabled      string    `json:"disabled,omitempty"`
-	SecondContact string    `json:"secondContact,omitempty"`
-	SecondPhone   string    `json:"secondPhone,omitempty"`
-	ThirdContact  string    `json:"thirdContact,omitempty"`
-	ThirdPhone    string    `json:"thirdPhone,omitempty"`
-	Generator     string    `json:"generator,omitempty"`
-	Code          string    `json:"code"`
-	Area          string    `json:"area"`
-	Place         string    `json:"place"`
-	Needs         string    `json:"needs"`
-	People        string    `json:"people"`
-	Coords        []float64 `json:"coords"`
-	Created       string    `json:"created"`
-	Status        string    `json:"status"`
-	Decided       string    `json:"decided,omitempty"`
+	ID             string    `json:"id"`
+	Source         string    `json:"source,omitempty"`
+	Service        string    `json:"service,omitempty"`
+	ServiceNotes   string    `json:"serviceNotes,omitempty"`
+	Children       string    `json:"children,omitempty"`
+	Babies         string    `json:"babies,omitempty"`
+	Notes          string    `json:"notes,omitempty"`
+	Directions     string    `json:"directions,omitempty"`
+	Extra          string    `json:"extra,omitempty"`
+	GPS            string    `json:"gps,omitempty"`
+	Row            string    `json:"row,omitempty"`
+	Ordinal        string    `json:"ordinal,omitempty"`
+	Coordinator    string    `json:"coordinator,omitempty"`
+	Contact        string    `json:"contact,omitempty"`
+	Phone          string    `json:"phone,omitempty"`
+	Adults         string    `json:"adults,omitempty"`
+	OlderAdults    string    `json:"olderAdults,omitempty"`
+	Disabled       string    `json:"disabled,omitempty"`
+	SecondContact  string    `json:"secondContact,omitempty"`
+	SecondPhone    string    `json:"secondPhone,omitempty"`
+	ThirdContact   string    `json:"thirdContact,omitempty"`
+	ThirdPhone     string    `json:"thirdPhone,omitempty"`
+	Generator      string    `json:"generator,omitempty"`
+	Code           string    `json:"code"`
+	Area           string    `json:"area"`
+	Place          string    `json:"place"`
+	Needs          string    `json:"needs"`
+	People         string    `json:"people"`
+	Coords         []float64 `json:"coords"`
+	Created        string    `json:"created"`
+	Status         string    `json:"status"`
+	Decided        string    `json:"decided,omitempty"`
+	Note           string    `json:"note,omitempty"`
+	CampStatus     string    `json:"campStatus,omitempty"`
+	HighestUrgency string    `json:"highestUrgency,omitempty"`
 }
+
+type Runner struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Telephone string `json:"telephone"`
+}
+type CampNeed struct {
+	ID       string `json:"id"`
+	CampID   string `json:"campId"`
+	Need     string `json:"need"`
+	Status   string `json:"status"`
+	Urgency  string `json:"urgency"`
+	RunnerID string `json:"runnerId,omitempty"`
+}
+
+var runnersBucket = []byte("runners")
+var needsBucket = []byte("camp_needs")
+
 type session struct {
 	csrf    string
 	expires time.Time
@@ -124,6 +145,7 @@ func parseMapLink(link string) ([]float64, error) {
 	return []float64{lat, lon}, nil
 }
 func publicPoint(p Point) Point {
+	p.Note = ""
 	p.Contact = ""
 	p.Phone = ""
 	p.SecondContact = ""
@@ -177,6 +199,12 @@ func openApp(path, static string) (*App, error) {
 	a := &App{db: db, static: static, sessions: map[string]session{}, attempts: map[string]attempt{}}
 	err = db.Update(func(tx *bolt.Tx) error {
 		if _, e := tx.CreateBucketIfNotExists(submissions); e != nil {
+			return e
+		}
+		if _, e := tx.CreateBucketIfNotExists(runnersBucket); e != nil {
+			return e
+		}
+		if _, e := tx.CreateBucketIfNotExists(needsBucket); e != nil {
 			return e
 		}
 		b, e := tx.CreateBucketIfNotExists(meta)
@@ -245,6 +273,121 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request) bool {
 	}
 	return true
 }
+func decodeFields(w http.ResponseWriter, r *http.Request, allowed map[string]int) (map[string]json.RawMessage, bool) {
+	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		fail(w, 415, "JSON required")
+		return nil, false
+	}
+	if origin := r.Header.Get("Origin"); origin != "" {
+		u, e := url.Parse(origin)
+		if e != nil || u.Host != r.Host {
+			fail(w, 403, "origin mismatch")
+			return nil, false
+		}
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 32768)
+	d := json.NewDecoder(r.Body)
+	var fields map[string]json.RawMessage
+	if err := d.Decode(&fields); err != nil || fields == nil {
+		fail(w, 400, "invalid JSON object")
+		return nil, false
+	}
+	var extra any
+	if d.Decode(&extra) != io.EOF {
+		fail(w, 400, "one JSON object required")
+		return nil, false
+	}
+	for key, v := range fields {
+		limit, ok := allowed[key]
+		if !ok {
+			failField(w, 400, key, "unknown field")
+			return nil, false
+		}
+		if limit > 0 {
+			var text string
+			if json.Unmarshal(v, &text) != nil || len(strings.TrimSpace(text)) > limit {
+				failField(w, 400, key, "invalid or too long")
+				return nil, false
+			}
+		}
+	}
+	return fields, true
+}
+func fieldText(fields map[string]json.RawMessage, key string) string {
+	var s string
+	json.Unmarshal(fields[key], &s)
+	return strings.TrimSpace(s)
+}
+func validStatus(s string) bool {
+	return s == "OPEN" || s == "IN_PROGRESS" || s == "COMPLETED" || s == "DELETED"
+}
+func validUrgency(s string) bool {
+	return s == "Today" || s == "Urgent" || s == "Tomorrow" || s == "Eventually"
+}
+func putJSON(b *bolt.Bucket, key string, value any) error {
+	data, e := json.Marshal(value)
+	if e != nil {
+		return e
+	}
+	return b.Put([]byte(key), data)
+}
+func (a *App) campExists(tx *bolt.Tx, id string) bool {
+	v := tx.Bucket(submissions).Get([]byte(id))
+	if v == nil {
+		return false
+	}
+	var p Point
+	return json.Unmarshal(v, &p) == nil && p.Status == "approved"
+}
+func (a *App) adminWrite(w http.ResponseWriter, r *http.Request) bool {
+	if !a.admin(w, r) {
+		return false
+	}
+	if r.Method == http.MethodPatch {
+		c, _ := r.Cookie("relief_session")
+		a.mu.Lock()
+		s := a.sessions[c.Value]
+		a.mu.Unlock()
+		if r.Header.Get("X-CSRF-Token") != s.csrf {
+			fail(w, 403, "CSRF token required")
+			return false
+		}
+	}
+	return true
+}
+func aggregateCamp(tx *bolt.Tx, id string) (string, string, error) {
+	status := "NO_NEEDS"
+	urgency := ""
+	rank := map[string]int{"Eventually": 1, "Tomorrow": 2, "Urgent": 3, "Today": 4}
+	err := tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
+		var n CampNeed
+		if e := json.Unmarshal(v, &n); e != nil {
+			return e
+		}
+		if n.CampID != id || n.Status == "DELETED" {
+			return nil
+		}
+		switch n.Status {
+		case "OPEN":
+			status = "OPEN"
+		case "IN_PROGRESS":
+			if status != "OPEN" {
+				status = "IN_PROGRESS"
+			}
+		case "COMPLETED":
+			if status == "NO_NEEDS" {
+				status = "COMPLETED"
+			}
+		}
+		if n.Status == "OPEN" || n.Status == "IN_PROGRESS" {
+			if rank[n.Urgency] > rank[urgency] {
+				urgency = n.Urgency
+			}
+		}
+		return nil
+	})
+	return status, urgency, err
+}
 func (a *App) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { response(w, 200, map[string]string{"status": "ok"}) })
@@ -257,6 +400,12 @@ func (a *App) routes() http.Handler {
 					return e
 				}
 				if p.Status == "approved" {
+					status, urgency, e := aggregateCamp(tx, p.ID)
+					if e != nil {
+						return e
+					}
+					p.CampStatus = status
+					p.HighestUrgency = urgency
 					points = append(points, publicPoint(p))
 				} else if p.Status == "archived" && p.Source == "sheet" {
 					// Hide bundled snapshot rows that were archived after deployment.
@@ -503,6 +652,7 @@ func (a *App) routes() http.Handler {
 					p.Status = previous.Status
 					p.Created = previous.Created
 					p.Decided = previous.Decided
+					p.Note = previous.Note
 					data, e := json.Marshal(p)
 					if e != nil {
 						return e
@@ -615,6 +765,7 @@ func (a *App) routes() http.Handler {
 		http.SetCookie(w, &http.Cookie{Name: "relief_session", Value: "", Path: "/api/admin", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
 		response(w, 200, map[string]string{"status": "logged out"})
 	})
+	a.campRoutes(mux)
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		name := ""
 		switch r.URL.Path {
@@ -630,6 +781,284 @@ func (a *App) routes() http.Handler {
 		http.ServeFile(w, r, filepath.Join(a.static, name))
 	})
 	return mux
+}
+func (a *App) campRoutes(mux *http.ServeMux) {
+	runnerFields := map[string]int{"name": 120, "telephone": 40}
+	needFields := map[string]int{"need": 8192, "status": 32, "urgency": 32, "runnerId": 128}
+	mux.HandleFunc("GET /api/admin/runners", func(w http.ResponseWriter, r *http.Request) {
+		if !a.admin(w, r) {
+			return
+		}
+		list := []Runner{}
+		err := a.db.View(func(tx *bolt.Tx) error {
+			return tx.Bucket(runnersBucket).ForEach(func(_, v []byte) error {
+				var item Runner
+				if e := json.Unmarshal(v, &item); e != nil {
+					return e
+				}
+				list = append(list, item)
+				return nil
+			})
+		})
+		if err != nil {
+			fail(w, 500, "database error")
+			return
+		}
+		response(w, 200, list)
+	})
+	mux.HandleFunc("POST /api/admin/runners", func(w http.ResponseWriter, r *http.Request) {
+		if !a.adminWrite(w, r) {
+			return
+		}
+		f, ok := decodeFields(w, r, runnerFields)
+		if !ok {
+			return
+		}
+		name, telephone := fieldText(f, "name"), fieldText(f, "telephone")
+		if name == "" || telephone == "" {
+			fail(w, 400, "name and telephone required")
+			return
+		}
+		item := Runner{ID: randomToken(), Name: name, Telephone: telephone}
+		if a.db.Update(func(tx *bolt.Tx) error { return putJSON(tx.Bucket(runnersBucket), item.ID, item) }) != nil {
+			fail(w, 500, "database error")
+			return
+		}
+		response(w, 201, item)
+	})
+	mux.HandleFunc("PATCH /api/admin/runners/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if !a.adminWrite(w, r) {
+			return
+		}
+		f, ok := decodeFields(w, r, runnerFields)
+		if !ok {
+			return
+		}
+		id := r.PathValue("id")
+		var item Runner
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(runnersBucket)
+			v := b.Get([]byte(id))
+			if v == nil {
+				return errMissing
+			}
+			if e := json.Unmarshal(v, &item); e != nil {
+				return e
+			}
+			if _, yes := f["name"]; yes {
+				item.Name = fieldText(f, "name")
+			}
+			if _, yes := f["telephone"]; yes {
+				item.Telephone = fieldText(f, "telephone")
+			}
+			if item.Name == "" || item.Telephone == "" {
+				return errInvalid
+			}
+			return putJSON(b, id, item)
+		})
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 200, item)
+	})
+	mux.HandleFunc("GET /api/admin/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
+		if !a.admin(w, r) {
+			return
+		}
+		a.listNeeds(w, r.PathValue("id"), false)
+	})
+	mux.HandleFunc("GET /api/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) { a.listNeeds(w, r.PathValue("id"), true) })
+	mux.HandleFunc("POST /api/admin/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
+		if !a.adminWrite(w, r) {
+			return
+		}
+		f, ok := decodeFields(w, r, needFields)
+		if !ok {
+			return
+		}
+		n := CampNeed{ID: randomToken(), CampID: r.PathValue("id"), Need: fieldText(f, "need"), Status: "OPEN", Urgency: fieldText(f, "urgency"), RunnerID: fieldText(f, "runnerId")}
+		if _, yes := f["status"]; yes {
+			n.Status = fieldText(f, "status")
+		}
+		if n.Urgency == "" {
+			n.Urgency = "Eventually"
+		}
+		if n.Need == "" || !validStatus(n.Status) || !validUrgency(n.Urgency) {
+			fail(w, 400, "invalid need, status or urgency")
+			return
+		}
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			if !a.campExists(tx, n.CampID) {
+				return errMissing
+			}
+			if n.RunnerID != "" && tx.Bucket(runnersBucket).Get([]byte(n.RunnerID)) == nil {
+				return errInvalid
+			}
+			return putJSON(tx.Bucket(needsBucket), n.ID, n)
+		})
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 201, n)
+	})
+	mux.HandleFunc("PATCH /api/admin/needs/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if !a.adminWrite(w, r) {
+			return
+		}
+		f, ok := decodeFields(w, r, needFields)
+		if !ok {
+			return
+		}
+		var n CampNeed
+		id := r.PathValue("id")
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(needsBucket)
+			v := b.Get([]byte(id))
+			if v == nil {
+				return errMissing
+			}
+			if e := json.Unmarshal(v, &n); e != nil {
+				return e
+			}
+			if _, yes := f["need"]; yes {
+				n.Need = fieldText(f, "need")
+			}
+			if _, yes := f["status"]; yes {
+				n.Status = fieldText(f, "status")
+			}
+			if _, yes := f["urgency"]; yes {
+				n.Urgency = fieldText(f, "urgency")
+			}
+			if _, yes := f["runnerId"]; yes {
+				n.RunnerID = fieldText(f, "runnerId")
+			}
+			if n.Need == "" || !validStatus(n.Status) || !validUrgency(n.Urgency) || n.RunnerID != "" && tx.Bucket(runnersBucket).Get([]byte(n.RunnerID)) == nil {
+				return errInvalid
+			}
+			return putJSON(b, id, n)
+		})
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 200, n)
+	})
+	mux.HandleFunc("PATCH /api/admin/camps/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if !a.adminWrite(w, r) {
+			return
+		}
+		allowed := map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": 8192, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200}
+		f, ok := decodeFields(w, r, allowed)
+		if !ok {
+			return
+		}
+		for _, key := range []string{"source", "status", "id", "created", "decided", "campStatus", "highestUrgency"} {
+			if _, yes := f[key]; yes {
+				failField(w, 400, key, "read-only field")
+				return
+			}
+		}
+		var coords []float64
+		if raw, yes := f["coords"]; yes {
+			if json.Unmarshal(raw, &coords) != nil || len(coords) != 0 && (len(coords) != 2 || coords[0] < 6 || coords[0] > 10 || coords[1] < -83 || coords[1] > -78) {
+				failField(w, 400, "coords", "invalid coordinates")
+				return
+			}
+		}
+		id := r.PathValue("id")
+		var p Point
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(submissions)
+			v := b.Get([]byte(id))
+			if v == nil {
+				return errMissing
+			}
+			if e := json.Unmarshal(v, &p); e != nil {
+				return e
+			}
+			if p.Status != "approved" {
+				return errMissing
+			}
+			data, e := json.Marshal(p)
+			if e != nil {
+				return e
+			}
+			var obj map[string]json.RawMessage
+			if e = json.Unmarshal(data, &obj); e != nil {
+				return e
+			}
+			for key, val := range f {
+				obj[key] = val
+			}
+			data, e = json.Marshal(obj)
+			if e != nil {
+				return e
+			}
+			if e = json.Unmarshal(data, &p); e != nil {
+				return errInvalid
+			}
+			p.Code = strings.TrimSpace(p.Code)
+			p.Area = strings.TrimSpace(p.Area)
+			if p.Code == "" || p.Area == "" {
+				return errInvalid
+			}
+			if _, yes := f["gps"]; yes {
+				if _, explicit := f["coords"]; !explicit {
+					if p.GPS == "" {
+						p.Coords = nil
+					} else {
+						p.Coords, _ = parseMapLink(p.GPS)
+					}
+				}
+			}
+			return putJSON(b, id, p)
+		})
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 200, p)
+	})
+}
+
+var errMissing = errors.New("not found")
+var errInvalid = errors.New("invalid fields or runner")
+
+func serviceError(w http.ResponseWriter, err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, errMissing) {
+		fail(w, 404, err.Error())
+	} else if errors.Is(err, errInvalid) {
+		fail(w, 400, err.Error())
+	} else {
+		fail(w, 500, "database error")
+	}
+	return true
+}
+func (a *App) listNeeds(w http.ResponseWriter, id string, public bool) {
+	list := []CampNeed{}
+	err := a.db.View(func(tx *bolt.Tx) error {
+		if !a.campExists(tx, id) {
+			return errMissing
+		}
+		return tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
+			var n CampNeed
+			if e := json.Unmarshal(v, &n); e != nil {
+				return e
+			}
+			if n.CampID == id && n.Status != "DELETED" {
+				if public {
+					n.RunnerID = ""
+				}
+				list = append(list, n)
+			}
+			return nil
+		})
+	})
+	if serviceError(w, err) {
+		return
+	}
+	response(w, 200, list)
 }
 func main() {
 	path := os.Getenv("DB_PATH")
