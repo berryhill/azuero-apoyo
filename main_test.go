@@ -121,6 +121,57 @@ func TestApprovalFlow(t *testing.T) {
 	if private.Contact != "Private Admin Contact" {
 		t.Fatalf("admin point incomplete: %s %v", full.Body.String(), err)
 	}
+	archive := func(id, decision string) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(map[string]string{"id": id, "decision": decision})
+		return call("POST", "/api/admin/decisions", string(body), cookie, auth["csrf"])
+	}
+	if got := archive(private.ID, "archived"); got.Code != 200 {
+		t.Fatalf("archive admin point: %d %s", got.Code, got.Body.String())
+	}
+	if got := call("GET", "/api/points", "", nil, ""); bytes.Contains(got.Body.Bytes(), []byte("ADMIN-2")) {
+		t.Fatalf("archived admin point public: %s", got.Body.String())
+	}
+	if got := archive(private.ID, "approved"); got.Code != 200 {
+		t.Fatalf("restore admin point: %d %s", got.Code, got.Body.String())
+	}
+	if got := call("GET", "/api/points", "", nil, ""); !bytes.Contains(got.Body.Bytes(), []byte("ADMIN-2")) {
+		t.Fatalf("restored admin point missing: %s", got.Body.String())
+	}
+	seed := `[{"code":"S-1","area":"Cañas","contact":"Seed Private"}]`
+	if got := call("POST", "/api/admin/seed", seed, cookie, auth["csrf"]); got.Code != 200 {
+		t.Fatalf("seed: %d %s", got.Code, got.Body.String())
+	}
+	if got := archive("seed:s-1", "archived"); got.Code != 200 {
+		t.Fatalf("archive seed: %d %s", got.Code, got.Body.String())
+	}
+	got := call("GET", "/api/points", "", nil, "")
+	var visible []Point
+	if err := json.Unmarshal(got.Body.Bytes(), &visible); err != nil {
+		t.Fatal(err)
+	}
+	var tombstone Point
+	for _, p := range visible {
+		if p.Code == "S-1" {
+			tombstone = p
+		}
+	}
+	if tombstone.Status != "archived" || tombstone.Source != "sheet" || tombstone.Contact != "" || tombstone.Area != "" {
+		t.Fatalf("seed tombstone: %s", got.Body.String())
+	}
+	if got := call("POST", "/api/admin/seed", seed, cookie, auth["csrf"]); got.Code != 200 {
+		t.Fatalf("reseed: %d %s", got.Code, got.Body.String())
+	}
+	full = call("GET", "/api/admin/points", "", cookie, "")
+	var afterSeed []Point
+	json.Unmarshal(full.Body.Bytes(), &afterSeed)
+	for _, p := range afterSeed {
+		if p.Code == "S-1" && p.Status != "archived" {
+			t.Fatal("reseed restored archived row")
+		}
+	}
+	if got := archive("seed:s-1", "approved"); got.Code != 200 {
+		t.Fatalf("restore seed: %d %s", got.Code, got.Body.String())
+	}
 	rotated := call("POST", "/api/admin/password", `{"password":"rotated-test-only-45678"}`, cookie, auth["csrf"])
 	if rotated.Code != 200 {
 		t.Fatalf("rotate: %d %s", rotated.Code, rotated.Body.String())
@@ -147,7 +198,7 @@ func TestApprovalFlow(t *testing.T) {
 	again.routes().ServeHTTP(persisted, httptest.NewRequest("GET", "/api/points", nil))
 	var check []Point
 	json.Unmarshal(persisted.Body.Bytes(), &check)
-	if len(check) != 2 {
+	if len(check) != 3 {
 		t.Fatalf("not persisted: %s", persisted.Body.String())
 	}
 }

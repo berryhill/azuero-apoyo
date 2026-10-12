@@ -249,6 +249,9 @@ func (a *App) routes() http.Handler {
 				}
 				if p.Status == "approved" {
 					points = append(points, publicPoint(p))
+				} else if p.Status == "archived" && p.Source == "sheet" {
+					// Hide bundled snapshot rows that were archived after deployment.
+					points = append(points, Point{Code: p.Code, Source: "sheet", Status: "archived"})
 				}
 				return nil
 			})
@@ -532,7 +535,7 @@ func (a *App) routes() http.Handler {
 			Decision string `json:"decision"`
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, 1024)
-		if json.NewDecoder(r.Body).Decode(&in) != nil || len(in.ID) != 64 || (in.Decision != "approved" && in.Decision != "rejected") {
+		if json.NewDecoder(r.Body).Decode(&in) != nil || len(in.ID) == 0 || len(in.ID) > 120 || (in.Decision != "approved" && in.Decision != "rejected" && in.Decision != "archived") {
 			fail(w, 400, "invalid decision")
 			return
 		}
@@ -546,7 +549,10 @@ func (a *App) routes() http.Handler {
 			if e := json.Unmarshal(v, &p); e != nil {
 				return e
 			}
-			if p.Status != "pending" {
+			if (p.Status == "pending" && in.Decision != "approved" && in.Decision != "rejected") ||
+				(p.Status == "approved" && in.Decision != "archived") ||
+				(p.Status == "archived" && in.Decision != "approved") ||
+				(p.Status != "pending" && p.Status != "approved" && p.Status != "archived") {
 				return errors.New("already decided")
 			}
 			p.Status = in.Decision
