@@ -1,9 +1,20 @@
-# Claude Code handoff
+# Claude Code — Azuero Apoyo
 
-Read [AGENTS.md](AGENTS.md) before making changes. Its operational boundaries apply here too; this file is the short entry point for Claude Code.
+Read [AGENTS.md](AGENTS.md) first. This repo is an active emergency-relief tool, not a prototype or a generic camp-management SaaS. Your job is to help field workers submit imperfect reports quickly, help admins turn them into trustworthy public camp data and track service needs, and keep operators able to log in. Work from the user's **current** request; do not invent a roadmap.
 
-- Work from the user's latest request, not an inferred roadmap. Inspect `git status -sb`, relevant source, and tests; leave unrelated or concurrent edits alone. Prefer a small working change over an architecture rewrite.
-- Main code: `main.go` (Go/bbolt API), `template.html` (public map snapshot template), `camp.html` (public detail), `admin.html` (admin dashboard and `/admin.html?camp=<id>` needs view). The generated `index.html` and `seed.json` are ignored. `build_data.py` needs a local CSV that may not exist in a new checkout.
-- Run `go test ./...`, `go vet ./...`, `go build ./...`, and `node --test feature_ui_test.mjs`; verify the actual UI path in a browser against a disposable local DB when behavior changes. Do not use production to create test records.
-- Keep private contacts and runner phone numbers off public pages. Do not change or rotate the live password, modify login restrictions, or deploy unrelated work. Do not commit or push without authorization: pushing `main` may deploy to production.
-- If blocked by unavailable source data, credentials, or deployment access, say exactly what is missing instead of guessing. Report whether work is only local or verified live.
+## First inspection
+
+1. Run `git status -sb` and check the current branch. The production branch may auto-deploy on push; do not commit/push unless explicitly asked. Preserve concurrent edits.
+2. Read the exact user path in code: public map/list and intake in `template.html`; public camp review in `camp.html`; admin review, runners, and per-camp needs at `/admin.html?camp=<id>` in `admin.html`; storage/API/auth in `main.go`. The generated public `index.html` and seed data are ignored and are not guaranteed to exist in a fresh clone.
+3. Trace the relevant tests before editing. Match existing Spanish labels and project conventions rather than adding a framework or dependencies for a small change.
+
+## Definition of done for common requests
+
+- Submission fix: a sparse report actually saves to the pending queue, gives a useful error when malformed, and does not appear publicly before approval. Verify with a disposable DB, not a fake live camp.
+- Camp/need UI: the admin can open the **right** camp, see its saved needs above the form, create one, see it in the refreshed list, and reload the deep link without losing that list. Pending reports still show full review data. The public detail is separate and shows no private contacts or runner phone numbers.
+- Map/location: unmapped camps remain in the list; the camp detail links to the external device-appropriate Maps app without embedding another map. A place-name search with no GPS is labeled approximate.
+- Release: only when asked, verify Go and UI tests, CI test/publish/deploy conclusions, and the exact live click path. A successful push is not evidence of a working production page.
+
+Run `go test ./...`, `go vet ./...`, `go build ./...`, and `node --test feature_ui_test.mjs`. Use a throwaway local bbolt file for write-path browser checks; never write test needs to production. If source CSV or generated snapshot is absent, do not fabricate it. Do not print or change credentials, run the password-rotation workflow, or add IP-wide login restrictions. `ADMIN_BOOTSTRAP_PASSWORD` initializes a new DB; it does not reset the existing hash.
+
+End with a short factual handoff: changed files, exercised path, test result, live vs local status, and what's blocked. If a deployment or credential operation was not explicitly authorized, stop before it.
