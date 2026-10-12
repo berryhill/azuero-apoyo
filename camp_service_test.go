@@ -227,3 +227,17 @@ func TestCampServicePersists(t *testing.T) {
 		t.Fatalf("persisted: %d %s", w.Code, w.Body.String())
 	}
 }
+func TestAdminNeedsListAllCamps(t *testing.T) {
+	s := newServiceHarness(t)
+	if w := s.call("GET", "/api/admin/needs", "", false); w.Code != 401 {
+		t.Fatalf("unauthenticated: %d", w.Code)
+	}
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","status":"OPEN","urgency":"Tomorrow"}`, 201)
+	gone := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Old","status":"OPEN","urgency":"Today"}`, 201)
+	s.expect("PATCH", "/api/admin/needs/"+gone["id"].(string), `{"status":"DELETED"}`, 200)
+	w := s.call("GET", "/api/admin/needs", "", true)
+	var list []CampNeed
+	if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil || len(list) != 1 || list[0].CampID != s.camp || list[0].Urgency != "Tomorrow" {
+		t.Fatalf("needs: %d %s", w.Code, w.Body.String())
+	}
+}

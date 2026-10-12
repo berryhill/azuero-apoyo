@@ -18,3 +18,9 @@ test('admin camp page lists saved needs before creation and keeps edits collapse
 test('public camp detail has a rendered service need list target', () => {
   assert.match(camp, /id="serviceNeeds"/);
 });
+test('admin toolbar filters camps by service need urgency', () => {
+  const toolbar = admin.slice(admin.indexOf('class="toolbar"'), admin.indexOf('id="mapCount"'));
+  assert.match(toolbar, /id="needFilter"/);
+  for (const [value, label] of [['', 'Sin filtro de necesidades'], ['Today', 'Hoy'], ['Urgent', 'Urgente'], ['Tomorrow', 'Mañana'], ['Eventually', 'Eventualmente']]) assert.ok(toolbar.includes(`<option value="${value}">${label}</option>`), label);
+  assert.match(admin, /\/api\/admin\/needs/);
+});

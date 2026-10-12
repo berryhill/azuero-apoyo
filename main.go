@@ -867,6 +867,28 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		}
 		a.listNeeds(w, r.PathValue("id"), false)
 	})
+	mux.HandleFunc("GET /api/admin/needs", func(w http.ResponseWriter, r *http.Request) {
+		if !a.admin(w, r) {
+			return
+		}
+		list := []CampNeed{}
+		err := a.db.View(func(tx *bolt.Tx) error {
+			return tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
+				var n CampNeed
+				if e := json.Unmarshal(v, &n); e != nil {
+					return e
+				}
+				if n.Status != "DELETED" {
+					list = append(list, n)
+				}
+				return nil
+			})
+		})
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 200, list)
+	})
 	mux.HandleFunc("GET /api/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) { a.listNeeds(w, r.PathValue("id"), true) })
 	mux.HandleFunc("POST /api/admin/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
 		if !a.adminWrite(w, r) {
