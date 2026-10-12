@@ -82,6 +82,45 @@ func TestApprovalFlow(t *testing.T) {
 	if err := json.Unmarshal(points.Body.Bytes(), &list); err != nil || len(list) != 1 || list[0].Status != "approved" || list[0].Contact != "" || list[0].Phone != "" || list[0].SecondContact != "" || list[0].GPS == "" {
 		t.Fatalf("published: %s %v", points.Body.String(), err)
 	}
+	adminPoint := `{"code":"ADMIN-2","area":"Cañas","needs":"Insulina","gps":"https://maps.google.com/?q=7.46,-80.36","contact":"Private Admin Contact","status":"rejected","coords":[7,78]}`
+	if got := call("POST", "/api/admin/points", adminPoint, nil, ""); got.Code != 401 {
+		t.Fatalf("unauthenticated admin create: %d", got.Code)
+	}
+	if got := call("POST", "/api/admin/points", adminPoint, cookie, ""); got.Code != 403 {
+		t.Fatalf("admin create without CSRF: %d", got.Code)
+	}
+	if got := call("POST", "/api/admin/points", adminPoint, cookie, auth["csrf"]); got.Code != 201 {
+		t.Fatalf("admin create: %d %s", got.Code, got.Body.String())
+	}
+	if got := call("POST", "/api/admin/points", adminPoint, cookie, auth["csrf"]); got.Code != 409 {
+		t.Fatalf("duplicate code accepted: %d", got.Code)
+	}
+	points = call("GET", "/api/points", "", nil, "")
+	if err := json.Unmarshal(points.Body.Bytes(), &list); err != nil || len(list) != 2 {
+		t.Fatalf("admin point missing: %s %v", points.Body.String(), err)
+	}
+	var published Point
+	for _, p := range list {
+		if p.Code == "ADMIN-2" {
+			published = p
+		}
+	}
+	if published.Source != "admin" || published.Status != "approved" || published.Contact != "" || len(published.Coords) != 2 || published.Coords[0] != 7.46 {
+		t.Fatalf("admin point not public or leaked: %s %v", points.Body.String(), err)
+	}
+	full = call("GET", "/api/admin/points", "", cookie, "")
+	if err := json.Unmarshal(full.Body.Bytes(), &all); err != nil || len(all) != 2 {
+		t.Fatalf("admin point incomplete: %s %v", full.Body.String(), err)
+	}
+	var private Point
+	for _, p := range all {
+		if p.Code == "ADMIN-2" {
+			private = p
+		}
+	}
+	if private.Contact != "Private Admin Contact" {
+		t.Fatalf("admin point incomplete: %s %v", full.Body.String(), err)
+	}
 	rotated := call("POST", "/api/admin/password", `{"password":"rotated-test-only-45678"}`, cookie, auth["csrf"])
 	if rotated.Code != 200 {
 		t.Fatalf("rotate: %d %s", rotated.Code, rotated.Body.String())
@@ -108,7 +147,7 @@ func TestApprovalFlow(t *testing.T) {
 	again.routes().ServeHTTP(persisted, httptest.NewRequest("GET", "/api/points", nil))
 	var check []Point
 	json.Unmarshal(persisted.Body.Bytes(), &check)
-	if len(check) != 1 {
+	if len(check) != 2 {
 		t.Fatalf("not persisted: %s", persisted.Body.String())
 	}
 }

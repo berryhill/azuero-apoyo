@@ -259,8 +259,8 @@ func (a *App) routes() http.Handler {
 		}
 		response(w, 200, points)
 	})
-	mux.HandleFunc("POST /api/submissions", func(w http.ResponseWriter, r *http.Request) {
-		if !a.guard(w, r) {
+	createPoint := func(w http.ResponseWriter, r *http.Request, reviewed bool) {
+		if !a.guard(w, r) || (reviewed && !a.admin(w, r)) {
 			return
 		}
 		var p Point
@@ -313,13 +313,43 @@ func (a *App) routes() http.Handler {
 		p.Created = time.Now().UTC().Format(time.RFC3339)
 		p.Status = "pending"
 		p.Decided = ""
+		if reviewed {
+			p.Source = "admin"
+			p.Status = "approved"
+			p.Decided = p.Created
+		}
 		data, _ := json.Marshal(p)
-		if err := a.db.Update(func(tx *bolt.Tx) error { return tx.Bucket(submissions).Put([]byte(p.ID), data) }); err != nil {
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(submissions)
+			if reviewed {
+				errDuplicate := errors.New("duplicate code")
+				if err := b.ForEach(func(_, v []byte) error {
+					var existing Point
+					if err := json.Unmarshal(v, &existing); err != nil {
+						return err
+					}
+					if existing.Status != "rejected" && strings.EqualFold(existing.Code, p.Code) {
+						return errDuplicate
+					}
+					return nil
+				}); err != nil {
+					return err
+				}
+			}
+			return b.Put([]byte(p.ID), data)
+		})
+		if err != nil {
+			if err.Error() == "duplicate code" {
+				fail(w, 409, "code already exists")
+				return
+			}
 			fail(w, 500, "database error")
 			return
 		}
 		response(w, 201, map[string]string{"id": p.ID, "status": p.Status})
-	})
+	}
+	mux.HandleFunc("POST /api/submissions", func(w http.ResponseWriter, r *http.Request) { createPoint(w, r, false) })
+	mux.HandleFunc("POST /api/admin/points", func(w http.ResponseWriter, r *http.Request) { createPoint(w, r, true) })
 	mux.HandleFunc("POST /api/admin/login", func(w http.ResponseWriter, r *http.Request) {
 		if !a.guard(w, r) {
 			return
