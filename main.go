@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -157,6 +158,9 @@ func response(w http.ResponseWriter, status int, value any) {
 func fail(w http.ResponseWriter, status int, msg string) {
 	response(w, status, map[string]string{"error": msg})
 }
+func failField(w http.ResponseWriter, status int, field, msg string) {
+	response(w, status, map[string]string{"field": field, "error": msg})
+}
 func openApp(path, static string) (*App, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, err
@@ -269,13 +273,24 @@ func (a *App) routes() http.Handler {
 		var p Point
 		r.Body = http.MaxBytesReader(w, r.Body, 32768)
 		d := json.NewDecoder(r.Body)
-		if d.Decode(&p) != nil {
-			fail(w, 400, "invalid JSON")
+		if err := d.Decode(&p); err != nil {
+			var max *http.MaxBytesError
+			var field *json.UnmarshalTypeError
+			switch {
+			case errors.As(err, &max):
+				fail(w, 413, "El reporte supera 32 KB. Divide el texto en notas más cortas.")
+			case errors.As(err, &field):
+				failField(w, 400, field.Field, "Formato incorrecto para «"+field.Field+"». Envíalo como texto.")
+			case errors.Is(err, io.EOF):
+				fail(w, 400, "El reporte está vacío. Agrega al menos un dato.")
+			default:
+				fail(w, 400, "El reporte no es JSON válido. Revisa el formato y vuelve a intentar.")
+			}
 			return
 		}
 		var rest any
-		if d.Decode(&rest) == nil {
-			fail(w, 400, "multiple JSON objects")
+		if err := d.Decode(&rest); err != io.EOF {
+			fail(w, 400, "Envía un solo objeto JSON sin contenido adicional.")
 			return
 		}
 		p.Code = strings.TrimSpace(p.Code)
@@ -292,7 +307,7 @@ func (a *App) routes() http.Handler {
 			}
 		}
 		if len(p.Coords) != 0 && (len(p.Coords) != 2 || p.Coords[0] < 6 || p.Coords[0] > 10 || p.Coords[1] < -83 || p.Coords[1] > -78) {
-			fail(w, 400, "invalid coordinates")
+			failField(w, 400, "coords", "Coordenadas fuera de Azuero o incompletas. Omite coords si no tienes ubicación.")
 			return
 		}
 		p.ID = randomToken()
@@ -333,7 +348,7 @@ func (a *App) routes() http.Handler {
 		})
 		if err != nil {
 			if err.Error() == "duplicate code" {
-				fail(w, 409, "code already exists")
+				failField(w, 409, "code", "Este código ya existe. Usa otro o deja el campo vacío para asignar uno automáticamente.")
 				return
 			}
 			fail(w, 500, "database error")

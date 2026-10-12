@@ -43,3 +43,36 @@ func TestSparsePointSubmission(t *testing.T) {
 		t.Fatalf("sparse data lost: %s %v", records.Body.String(), err)
 	}
 }
+
+func TestPointSubmissionErrorsIdentifyTheProblem(t *testing.T) {
+	t.Setenv("ADMIN_BOOTSTRAP_PASSWORD", "test-password-only-12345")
+	app, err := openApp(filepath.Join(t.TempDir(), "relief.db"), ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer app.db.Close()
+	call := func(body string) (int, map[string]string) {
+		r := httptest.NewRequest("POST", "/api/submissions", strings.NewReader(body))
+		r.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		app.routes().ServeHTTP(w, r)
+		var result map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatal(err)
+		}
+		return w.Code, result
+	}
+	longNeeds, _ := json.Marshal(map[string]string{"code": "AB-5", "area": "Agua Buena", "needs": strings.Repeat("Suministros y apoyo de salud. ", 100)})
+	if status, result := call(string(longNeeds)); status != 201 {
+		t.Fatalf("long needs rejected: %d %v", status, result)
+	}
+	if status, result := call(`{"people":34}`); status != 400 || result["field"] != "people" || result["error"] == "invalid JSON" {
+		t.Fatalf("type error not actionable: %d %v", status, result)
+	}
+	if status, result := call(`{"coords":[0]}`); status != 400 || result["field"] != "coords" {
+		t.Fatalf("coordinate error not actionable: %d %v", status, result)
+	}
+	if status, result := call(`{"needs":"` + strings.Repeat("a", 40000) + `"}`); status != 413 || !strings.Contains(result["error"], "32 KB") {
+		t.Fatalf("oversize error not actionable: %d %v", status, result)
+	}
+}
