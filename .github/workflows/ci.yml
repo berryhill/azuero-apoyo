@@ -22,6 +22,10 @@ jobs:
           cache: true
       - run: go test ./...
       - run: go build ./...
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test feature_ui_test.mjs
       - uses: azure/setup-helm@v4
         with:
           version: v3.17.3
