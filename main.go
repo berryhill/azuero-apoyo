@@ -375,10 +375,6 @@ func (a *App) routes() http.Handler {
 		at := a.attempts[ip]
 		blocked := at.count >= 5 && time.Now().Before(at.until)
 		a.mu.Unlock()
-		if blocked {
-			fail(w, 429, "try later")
-			return
-		}
 		var in struct {
 			Password string `json:"password"`
 		}
@@ -387,7 +383,12 @@ func (a *App) routes() http.Handler {
 			fail(w, 400, "invalid JSON")
 			return
 		}
-		if !a.passwordValid(in.Password) {
+		valid := a.passwordValid(in.Password)
+		if blocked && !valid {
+			fail(w, 429, "Demasiados intentos incorrectos desde esta red. La contraseña correcta todavía permite entrar.")
+			return
+		}
+		if !valid {
 			a.mu.Lock()
 			at = a.attempts[ip]
 			if time.Now().After(at.until) {
@@ -397,7 +398,7 @@ func (a *App) routes() http.Handler {
 			at.until = time.Now().Add(10 * time.Minute)
 			a.attempts[ip] = at
 			a.mu.Unlock()
-			fail(w, 401, "invalid password")
+			fail(w, 401, "Contraseña incorrecta. Vuelve a intentarlo.")
 			return
 		}
 		a.mu.Lock()
