@@ -130,6 +130,15 @@ func publicPoint(p Point) Point {
 	p.ThirdContact = ""
 	p.ThirdPhone = ""
 	p.Coordinator = ""
+	digits := 0
+	for _, c := range p.Generator {
+		if c >= '0' && c <= '9' {
+			digits++
+		}
+	}
+	if digits >= 7 {
+		p.Generator = ""
+	}
 	return p
 }
 func randomToken() string {
