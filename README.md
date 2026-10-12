@@ -12,15 +12,17 @@ Environment:
 Use one replica with an RWO volume. bbolt is a single-file embedded DB; do not run multiple pods against the same file. Put TLS at the ingress; admin password and session must not cross plaintext public HTTP. Back up the DB file with a consistent snapshot, not a live file copy.
 
 API:
-- `POST /api/submissions` JSON `{code,area,place,needs,people,coords:[lat,lon]}` → 201 `{id,status:"pending"}`. No account required.
+- `POST /api/submissions` JSON with the sheet fields (`code,area,place,needs,gps,people,adults,children,babies,olderAdults,disabled,notes,directions,coordinator,contact,phone,secondContact,secondPhone,thirdContact,thirdPhone,service,serviceNotes,generator,extra,row,ordinal`) → 201 `{id,status:"pending"}`. `gps` is an HTTPS Google Maps link; coordinates are derived server-side when present. No account required. Contact fields are retained for the admin view but omitted from the public API.
+- `GET /api/admin/points` → all stored points with full sheet fields, including contacts; session required. The admin page defaults to this full register and has a pending-only tab.
 - `GET /api/points` → approved submissions and seeded checkpoints (the original sheet snapshot is also bundled into index.html as fallback; the UI deduplicates by code).
 - `POST /api/admin/login` JSON `{password}` → HttpOnly session cookie + JSON `{csrf}`.
 - `GET /api/admin/submissions` → pending queue; session required.
 - `POST /api/admin/seed` + session cookie + `X-CSRF-Token`: JSON array of checkpoint objects (`code,area,place,needs,people,coords,service,...`). Seeds as approved, idempotent by code; returns `{added,skipped}`. Generate the local `seed.json` from the sheet export with `python3 build_data.py` and POST its JSON body after admin login. Do not expose `seed.json` publicly.
 - `POST /api/admin/decisions` JSON `{id,decision:"approved"|"rejected"}` + `X-CSRF-Token`; session required.
+- `POST /api/admin/password` JSON `{password}` + session cookie + `X-CSRF-Token` → bcrypt-hashes the new password in BoltDB and invalidates all sessions. Use the masked form at `/admin.html`; do not send passwords in chat or commit them.
 - `POST /api/admin/logout` + `X-CSRF-Token`.
 
-The sheet snapshot remains static; submission approvals persist in BoltDB and refresh in browsers every 30 seconds. Data is not written back to Google Sheets. No names/phone fields are accepted by the submission API.
+The sheet snapshot remains static; submission approvals persist in BoltDB and refresh in browsers every 30 seconds. Data is not written back to Google Sheets. Contact names and phone numbers are available only in the authenticated admin API, not the public API or bundled HTML.
 
 GitHub Actions runs Go tests/build and Helm lint/render on every push and pull request. Image publication and deployment are gated by repository variable `DEPLOY_ENABLED=true` on `main`; leave it unset until all prerequisites are ready. The repository is public, but generated `index.html`, `seed.json`, CSVs, and the database are git-ignored. Do not commit them. The production image embeds the snapshot and may expose its contents to anyone with image access. Review the snapshot and GHCR package visibility before enabling publication.
 

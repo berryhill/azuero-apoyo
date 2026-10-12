@@ -31,13 +31,18 @@ for n, row in enumerate(rows, 1):
     if not (row[1].strip() or row[2].strip() or row[9].strip()): continue
     if not (row[2].strip() or row[11].strip()): continue
     code = row[2].strip() or f'S/C-{len([r for r in records if r["code"].startswith("S/C-")])+1}'
-    records.append({'code':code,'area':row[3].strip() or 'Sin ubicación',
+    records.append({'row':row[0].strip(),'ordinal':row[4].strip(),'code':code,'area':row[3].strip() or 'Sin ubicación',
         'place':row[5].strip(),'directions':row[7].strip(),
         'needs':row[1].strip(),'notes':row[6].strip(), 'extra':row[25].strip(),
-        'people':row[11].strip(),'children':row[13].strip(),'babies':row[14].strip(),
-        'service':row[21].strip(),'serviceNotes':row[22].strip(),
+        'coordinator':row[8].strip(),'contact':row[9].strip(),'phone':row[10].strip(),
+        'people':row[11].strip(),'adults':row[12].strip(),'children':row[13].strip(),'babies':row[14].strip(),
+        'olderAdults':row[15].strip(),'disabled':row[16].strip(),
+        'secondContact':row[17].strip(),'secondPhone':row[18].strip(),
+        'thirdContact':row[19].strip(),'thirdPhone':row[20].strip(),
+        'service':row[21].strip(),'serviceNotes':row[22].strip(),'generator':row[23].strip(),
         'gps':row[24].strip(),'coords':coords(row[24].strip())})
-html = TEMPLATE.read_text().replace('__CHECKPOINT_DATA__', json.dumps(records, ensure_ascii=False).replace('</', '<\\/'))
+public_records = [{k:v for k,v in r.items() if k not in {'coordinator','contact','phone','secondContact','secondPhone','thirdContact','thirdPhone'}} for r in records]
+html = TEMPLATE.read_text().replace('__CHECKPOINT_DATA__', json.dumps(public_records, ensure_ascii=False).replace('</', '<\\/'))
 OUT.write_text(html, encoding='utf-8')
 Path(__file__).with_name('seed.json').write_text(json.dumps(records, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 print(f'{len(records)} points, {sum(bool(r["coords"]) for r in records)} mapped, {sum(not r["coords"] for r in records)} unmapped -> {OUT}')

@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,25 +22,38 @@ import (
 )
 
 type Point struct {
-	ID           string    `json:"id"`
-	Source       string    `json:"source,omitempty"`
-	Service      string    `json:"service,omitempty"`
-	ServiceNotes string    `json:"serviceNotes,omitempty"`
-	Children     string    `json:"children,omitempty"`
-	Babies       string    `json:"babies,omitempty"`
-	Notes        string    `json:"notes,omitempty"`
-	Directions   string    `json:"directions,omitempty"`
-	Extra        string    `json:"extra,omitempty"`
-	GPS          string    `json:"gps,omitempty"`
-	Code         string    `json:"code"`
-	Area         string    `json:"area"`
-	Place        string    `json:"place"`
-	Needs        string    `json:"needs"`
-	People       string    `json:"people"`
-	Coords       []float64 `json:"coords"`
-	Created      string    `json:"created"`
-	Status       string    `json:"status"`
-	Decided      string    `json:"decided,omitempty"`
+	ID            string    `json:"id"`
+	Source        string    `json:"source,omitempty"`
+	Service       string    `json:"service,omitempty"`
+	ServiceNotes  string    `json:"serviceNotes,omitempty"`
+	Children      string    `json:"children,omitempty"`
+	Babies        string    `json:"babies,omitempty"`
+	Notes         string    `json:"notes,omitempty"`
+	Directions    string    `json:"directions,omitempty"`
+	Extra         string    `json:"extra,omitempty"`
+	GPS           string    `json:"gps,omitempty"`
+	Row           string    `json:"row,omitempty"`
+	Ordinal       string    `json:"ordinal,omitempty"`
+	Coordinator   string    `json:"coordinator,omitempty"`
+	Contact       string    `json:"contact,omitempty"`
+	Phone         string    `json:"phone,omitempty"`
+	Adults        string    `json:"adults,omitempty"`
+	OlderAdults   string    `json:"olderAdults,omitempty"`
+	Disabled      string    `json:"disabled,omitempty"`
+	SecondContact string    `json:"secondContact,omitempty"`
+	SecondPhone   string    `json:"secondPhone,omitempty"`
+	ThirdContact  string    `json:"thirdContact,omitempty"`
+	ThirdPhone    string    `json:"thirdPhone,omitempty"`
+	Generator     string    `json:"generator,omitempty"`
+	Code          string    `json:"code"`
+	Area          string    `json:"area"`
+	Place         string    `json:"place"`
+	Needs         string    `json:"needs"`
+	People        string    `json:"people"`
+	Coords        []float64 `json:"coords"`
+	Created       string    `json:"created"`
+	Status        string    `json:"status"`
+	Decided       string    `json:"decided,omitempty"`
 }
 type session struct {
 	csrf    string
@@ -60,6 +74,64 @@ type App struct {
 var submissions = []byte("submissions")
 var meta = []byte("meta")
 
+var latLon = regexp.MustCompile(`(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)`)
+var mapEmbed = regexp.MustCompile(`!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)`)
+
+func mapHost(host string) bool {
+	switch strings.ToLower(host) {
+	case "maps.app.goo.gl", "maps.google.com", "www.google.com", "google.com":
+		return true
+	}
+	return false
+}
+func parseMapLink(link string) ([]float64, error) {
+	if link == "" {
+		return nil, nil
+	}
+	if len(link) > 1000 {
+		return nil, errors.New("map link too long")
+	}
+	u, e := url.Parse(link)
+	if e != nil || u.Scheme != "https" || u.User != nil || u.Port() != "" || !mapHost(u.Hostname()) {
+		return nil, errors.New("use an HTTPS Google Maps link")
+	}
+	if u.Hostname() == "maps.app.goo.gl" {
+		client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) > 5 || req.URL.Scheme != "https" || !mapHost(req.URL.Hostname()) {
+				return http.ErrUseLastResponse
+			}
+			return nil
+		}}
+		if resp, err := client.Get(link); err == nil {
+			u = resp.Request.URL
+			resp.Body.Close()
+		}
+	}
+	text, _ := url.QueryUnescape(u.String())
+	match := mapEmbed.FindStringSubmatch(text)
+	if match == nil {
+		match = latLon.FindStringSubmatch(text)
+	}
+	if match == nil {
+		return nil, nil
+	} // Valid map link, but no coordinates: retain link for manual review.
+	lat, e1 := strconv.ParseFloat(match[1], 64)
+	lon, e2 := strconv.ParseFloat(match[2], 64)
+	if e1 != nil || e2 != nil || lat < 6 || lat > 10 || lon < -83 || lon > -78 {
+		return nil, errors.New("map location outside Azuero")
+	}
+	return []float64{lat, lon}, nil
+}
+func publicPoint(p Point) Point {
+	p.Contact = ""
+	p.Phone = ""
+	p.SecondContact = ""
+	p.SecondPhone = ""
+	p.ThirdContact = ""
+	p.ThirdPhone = ""
+	p.Coordinator = ""
+	return p
+}
 func randomToken() string {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
@@ -167,7 +239,7 @@ func (a *App) routes() http.Handler {
 					return e
 				}
 				if p.Status == "approved" {
-					points = append(points, p)
+					points = append(points, publicPoint(p))
 				}
 				return nil
 			})
@@ -183,7 +255,7 @@ func (a *App) routes() http.Handler {
 			return
 		}
 		var p Point
-		r.Body = http.MaxBytesReader(w, r.Body, 8192)
+		r.Body = http.MaxBytesReader(w, r.Body, 32768)
 		d := json.NewDecoder(r.Body)
 		d.DisallowUnknownFields()
 		if d.Decode(&p) != nil {
@@ -199,6 +271,19 @@ func (a *App) routes() http.Handler {
 		p.Area = strings.TrimSpace(p.Area)
 		p.Place = strings.TrimSpace(p.Place)
 		p.Needs = strings.TrimSpace(p.Needs)
+		p.GPS = strings.TrimSpace(p.GPS)
+		if p.GPS != "" {
+			coords, err := parseMapLink(p.GPS)
+			if err != nil {
+				fail(w, 400, err.Error())
+				return
+			}
+			p.Coords = coords
+		}
+		if len(p.Contact) > 120 || len(p.Phone) > 50 || len(p.SecondContact) > 120 || len(p.SecondPhone) > 50 || len(p.ThirdContact) > 120 || len(p.ThirdPhone) > 50 || len(p.Coordinator) > 160 || len(p.Notes) > 3000 || len(p.Directions) > 1000 || len(p.ServiceNotes) > 1500 || len(p.Extra) > 1500 {
+			fail(w, 400, "field too long")
+			return
+		}
 		if len(p.Code) == 0 || len(p.Code) > 45 || len(p.Area) == 0 || len(p.Area) > 80 || len(p.Place) > 180 || len(p.Needs) > 1200 {
 			fail(w, 400, "invalid point fields")
 			return
@@ -215,6 +300,7 @@ func (a *App) routes() http.Handler {
 			return
 		}
 		p.ID = randomToken()
+		p.Source = "submission"
 		p.Created = time.Now().UTC().Format(time.RFC3339)
 		p.Status = "pending"
 		p.Decided = ""
@@ -281,6 +367,27 @@ func (a *App) routes() http.Handler {
 		a.mu.Unlock()
 		response(w, 200, map[string]string{"csrf": s.csrf})
 	})
+	mux.HandleFunc("GET /api/admin/points", func(w http.ResponseWriter, r *http.Request) {
+		if !a.admin(w, r) {
+			return
+		}
+		points := []Point{}
+		err := a.db.View(func(tx *bolt.Tx) error {
+			return tx.Bucket(submissions).ForEach(func(_, v []byte) error {
+				var p Point
+				if e := json.Unmarshal(v, &p); e != nil {
+					return e
+				}
+				points = append(points, p)
+				return nil
+			})
+		})
+		if err != nil {
+			fail(w, 500, "database error")
+			return
+		}
+		response(w, 200, points)
+	})
 	mux.HandleFunc("GET /api/admin/submissions", func(w http.ResponseWriter, r *http.Request) {
 		if !a.admin(w, r) {
 			return
@@ -325,11 +432,34 @@ func (a *App) routes() http.Handler {
 			seen[strings.ToLower(p.Code)] = true
 		}
 		added := 0
+		updated := 0
 		err := a.db.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket(submissions)
 			for _, p := range rows {
 				key := []byte("seed:" + strings.ToLower(strings.TrimSpace(p.Code)))
-				if b.Get(key) != nil {
+				if old := b.Get(key); old != nil {
+					var previous Point
+					if e := json.Unmarshal(old, &previous); e != nil {
+						return e
+					}
+					if previous.Source != "sheet" {
+						continue
+					}
+					p.ID = previous.ID
+					p.Source = "sheet"
+					p.Status = previous.Status
+					p.Created = previous.Created
+					p.Decided = previous.Decided
+					data, e := json.Marshal(p)
+					if e != nil {
+						return e
+					}
+					if string(data) != string(old) {
+						if e = b.Put(key, data); e != nil {
+							return e
+						}
+						updated++
+					}
 					continue
 				}
 				p.ID = string(key)
@@ -352,7 +482,7 @@ func (a *App) routes() http.Handler {
 			fail(w, 500, "database error")
 			return
 		}
-		response(w, 200, map[string]int{"added": added, "skipped": len(rows) - added})
+		response(w, 200, map[string]int{"added": added, "updated": updated, "skipped": len(rows) - added - updated})
 	})
 	mux.HandleFunc("POST /api/admin/decisions", func(w http.ResponseWriter, r *http.Request) {
 		if !a.guard(w, r) || !a.admin(w, r) {
@@ -390,6 +520,33 @@ func (a *App) routes() http.Handler {
 			return
 		}
 		response(w, 200, map[string]string{"id": in.ID, "status": in.Decision})
+	})
+	mux.HandleFunc("POST /api/admin/password", func(w http.ResponseWriter, r *http.Request) {
+		if !a.guard(w, r) || !a.admin(w, r) {
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 1024)
+		var in struct {
+			Password string `json:"password"`
+		}
+		if json.NewDecoder(r.Body).Decode(&in) != nil || len(in.Password) < 12 || len(in.Password) > 72 {
+			fail(w, 400, "password must be 12–72 characters")
+			return
+		}
+		hash, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
+		if err != nil {
+			fail(w, 500, "hash error")
+			return
+		}
+		if err = a.db.Update(func(tx *bolt.Tx) error { return tx.Bucket(meta).Put([]byte("password_hash"), hash) }); err != nil {
+			fail(w, 500, "database error")
+			return
+		}
+		a.mu.Lock()
+		a.sessions = map[string]session{}
+		a.mu.Unlock()
+		http.SetCookie(w, &http.Cookie{Name: "relief_session", Value: "", Path: "/api/admin", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+		response(w, 200, map[string]string{"status": "password changed; sign in again"})
 	})
 	mux.HandleFunc("POST /api/admin/logout", func(w http.ResponseWriter, r *http.Request) {
 		if !a.guard(w, r) || !a.admin(w, r) {

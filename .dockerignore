@@ -10,3 +10,4 @@ seed.json
 helm/
 README.md
 main_test.go
+password
