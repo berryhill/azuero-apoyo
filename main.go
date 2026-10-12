@@ -269,7 +269,6 @@ func (a *App) routes() http.Handler {
 		var p Point
 		r.Body = http.MaxBytesReader(w, r.Body, 32768)
 		d := json.NewDecoder(r.Body)
-		d.DisallowUnknownFields()
 		if d.Decode(&p) != nil {
 			fail(w, 400, "invalid JSON")
 			return
@@ -285,26 +284,11 @@ func (a *App) routes() http.Handler {
 		p.Needs = strings.TrimSpace(p.Needs)
 		p.GPS = strings.TrimSpace(p.GPS)
 		if p.GPS != "" {
-			coords, err := parseMapLink(p.GPS)
-			if err != nil {
-				fail(w, 400, err.Error())
-				return
-			}
-			p.Coords = coords
-		}
-		if len(p.Contact) > 120 || len(p.Phone) > 50 || len(p.SecondContact) > 120 || len(p.SecondPhone) > 50 || len(p.ThirdContact) > 120 || len(p.ThirdPhone) > 50 || len(p.Coordinator) > 160 || len(p.Notes) > 3000 || len(p.Directions) > 1000 || len(p.ServiceNotes) > 1500 || len(p.Extra) > 1500 {
-			fail(w, 400, "field too long")
-			return
-		}
-		if len(p.Code) == 0 || len(p.Code) > 45 || len(p.Area) == 0 || len(p.Area) > 80 || len(p.Place) > 180 || len(p.Needs) > 1200 {
-			fail(w, 400, "invalid point fields")
-			return
-		}
-		if p.People != "" {
-			n, e := strconv.Atoi(p.People)
-			if e != nil || n < 0 || n > 100000 {
-				fail(w, 400, "invalid people count")
-				return
+			// Keep unrecognized map links for review; never fetch untrusted hosts.
+			if coords, err := parseMapLink(p.GPS); err == nil {
+				p.Coords = coords
+			} else {
+				p.Coords = nil
 			}
 		}
 		if len(p.Coords) != 0 && (len(p.Coords) != 2 || p.Coords[0] < 6 || p.Coords[0] > 10 || p.Coords[1] < -83 || p.Coords[1] > -78) {
@@ -312,6 +296,12 @@ func (a *App) routes() http.Handler {
 			return
 		}
 		p.ID = randomToken()
+		if p.Code == "" {
+			p.Code = "P-" + p.ID[:12]
+		}
+		if p.Area == "" {
+			p.Area = "Sin ubicación"
+		}
 		p.Source = "submission"
 		p.Created = time.Now().UTC().Format(time.RFC3339)
 		p.Status = "pending"
