@@ -130,14 +130,19 @@ func publicPoint(p Point) Point {
 	p.SecondPhone = ""
 	p.ThirdContact = ""
 	p.ThirdPhone = ""
-	p.Coordinator = ""
-	digits := 0
-	for _, c := range p.Generator {
-		if c >= '0' && c <= '9' {
-			digits++
+	containsPhone := func(text string) bool {
+		digits := 0
+		for _, c := range text {
+			if c >= '0' && c <= '9' {
+				digits++
+			}
 		}
+		return digits >= 7
 	}
-	if digits >= 7 {
+	if containsPhone(p.Coordinator) {
+		p.Coordinator = ""
+	}
+	if containsPhone(p.Generator) {
 		p.Generator = ""
 	}
 	return p

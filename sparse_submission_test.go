@@ -76,3 +76,13 @@ func TestPointSubmissionErrorsIdentifyTheProblem(t *testing.T) {
 		t.Fatalf("oversize error not actionable: %d %v", status, result)
 	}
 }
+
+func TestPublicCoordinatorWithoutPrivateContacts(t *testing.T) {
+	p := publicPoint(Point{Code: "CAMP-1", Coordinator: "Coordinación Agua Buena", Contact: "Contacto privado", Phone: "6670-0000", SecondPhone: "6492-0000"})
+	if p.Coordinator != "Coordinación Agua Buena" || p.Contact != "" || p.Phone != "" || p.SecondPhone != "" {
+		t.Fatalf("public coordinator projection: %+v", p)
+	}
+	if got := publicPoint(Point{Coordinator: "Contacto 6670-0000"}); got.Coordinator != "" {
+		t.Fatal("phone leaked through coordinator")
+	}
+}
