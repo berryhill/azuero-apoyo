@@ -9,6 +9,7 @@ RUN addgroup -S app && adduser -S -G app -u 10001 app && mkdir -p /data /app/sta
 WORKDIR /app/static
 COPY --from=build /app /app/server
 COPY index.html admin.html camp.html runner.html leaflet.css leaflet.js ./
+COPY report/ ./report/
 USER app
 ENV DB_PATH=/data/relief.db STATIC_DIR=/app/static LISTEN_ADDR=:8080
 EXPOSE 8080

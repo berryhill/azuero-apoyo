@@ -85,6 +85,7 @@ func nowStamp() string { return time.Now().UTC().Format(time.RFC3339) }
 
 var runnersBucket = []byte("runners")
 var needsBucket = []byte("camp_needs")
+var boletinesBucket = []byte("boletines")
 
 type session struct {
 	csrf    string
@@ -215,6 +216,9 @@ func openApp(path, static string) (*App, error) {
 			return e
 		}
 		if _, e := tx.CreateBucketIfNotExists(needsBucket); e != nil {
+			return e
+		}
+		if _, e := tx.CreateBucketIfNotExists(boletinesBucket); e != nil {
 			return e
 		}
 		b, e := tx.CreateBucketIfNotExists(meta)
@@ -802,12 +806,13 @@ func (a *App) routes() http.Handler {
 	})
 	a.campRoutes(mux)
 	a.runnerRoutes(mux)
+	a.boletinRoutes(mux)
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		name := ""
 		switch r.URL.Path {
 		case "/", "/index.html":
 			name = "index.html"
-		case "/admin.html", "/camp.html", "/runner.html", "/leaflet.css", "/leaflet.js":
+		case "/admin.html", "/camp.html", "/runner.html", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
 			name = strings.TrimPrefix(r.URL.Path, "/")
 		default:
 			http.NotFound(w, r)
@@ -1364,6 +1369,137 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			return
 		}
 		response(w, 201, map[string]string{"id": n.ID, "status": n.Status})
+	})
+}
+
+// Boletín: cada corte guarda una copia pública (sin contactos ni teléfonos) de los puntos aprobados.
+type BoletinPoint struct {
+	ID          string    `json:"id"`
+	Code        string    `json:"code"`
+	Area        string    `json:"area"`
+	People      string    `json:"people,omitempty"`
+	Adults      string    `json:"adults,omitempty"`
+	Children    string    `json:"children,omitempty"`
+	Babies      string    `json:"babies,omitempty"`
+	OlderAdults string    `json:"olderAdults,omitempty"`
+	Disabled    string    `json:"disabled,omitempty"`
+	Needs       string    `json:"needs,omitempty"`
+	Notes       string    `json:"notes,omitempty"`
+	Service     string    `json:"service,omitempty"`
+	GPS         string    `json:"gps,omitempty"`
+	Coords      []float64 `json:"coords,omitempty"`
+}
+type Boletin struct {
+	N        int            `json:"n"`
+	Cut      string         `json:"cut"`
+	Records  int            `json:"records"`
+	People   int            `json:"people"`
+	Attended int            `json:"attended"`
+	Donor    string         `json:"donor,omitempty"`
+	Points   []BoletinPoint `json:"points,omitempty"`
+}
+
+var firstNumber = regexp.MustCompile(`\d+`)
+
+// countOf toma el primer número del texto reportado; sin número no se suma.
+func countOf(text string) int {
+	n, _ := strconv.Atoi(firstNumber.FindString(text))
+	return n
+}
+func attendedService(s string) bool {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "yes", "sí", "si":
+		return true
+	}
+	return false
+}
+func (a *App) boletinRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /api/admin/boletines", func(w http.ResponseWriter, r *http.Request) {
+		if !a.adminWrite(w, r) {
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"donor": 2000})
+		if !ok {
+			return
+		}
+		b := Boletin{Cut: nowStamp(), Donor: fieldText(f, "donor"), Points: []BoletinPoint{}}
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			if e := tx.Bucket(submissions).ForEach(func(_, v []byte) error {
+				var p Point
+				if e := json.Unmarshal(v, &p); e != nil {
+					return e
+				}
+				if p.Status != "approved" {
+					return nil
+				}
+				p = publicPoint(p)
+				b.Points = append(b.Points, BoletinPoint{ID: p.ID, Code: p.Code, Area: p.Area, People: p.People, Adults: p.Adults, Children: p.Children, Babies: p.Babies, OlderAdults: p.OlderAdults, Disabled: p.Disabled, Needs: p.Needs, Notes: p.Notes, Service: p.Service, GPS: p.GPS, Coords: p.Coords})
+				b.Records++
+				b.People += countOf(p.People)
+				if attendedService(p.Service) {
+					b.Attended += countOf(p.People)
+				}
+				return nil
+			}); e != nil {
+				return e
+			}
+			sort.Slice(b.Points, func(i, j int) bool { return b.Points[i].Code < b.Points[j].Code })
+			bucket := tx.Bucket(boletinesBucket)
+			seq, e := bucket.NextSequence()
+			if e != nil {
+				return e
+			}
+			b.N = int(seq)
+			return putJSON(bucket, fmt.Sprintf("%08d", b.N), b)
+		})
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 201, map[string]any{"n": b.N, "cut": b.Cut})
+	})
+	mux.HandleFunc("GET /api/boletines", func(w http.ResponseWriter, r *http.Request) {
+		list := []Boletin{}
+		err := a.db.View(func(tx *bolt.Tx) error {
+			return tx.Bucket(boletinesBucket).ForEach(func(_, v []byte) error {
+				var b Boletin
+				if e := json.Unmarshal(v, &b); e != nil {
+					return e
+				}
+				b.Points, b.Donor = nil, ""
+				list = append(list, b)
+				return nil
+			})
+		})
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 200, list)
+	})
+	mux.HandleFunc("GET /api/boletines/{n}", func(w http.ResponseWriter, r *http.Request) {
+		var raw []byte
+		err := a.db.View(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket(boletinesBucket)
+			if r.PathValue("n") == "latest" {
+				_, raw = bucket.Cursor().Last()
+			} else if n, e := strconv.Atoi(r.PathValue("n")); e == nil {
+				raw = bucket.Get([]byte(fmt.Sprintf("%08d", n)))
+			}
+			if raw == nil {
+				return errMissing
+			}
+			raw = append([]byte(nil), raw...)
+			return nil
+		})
+		if errors.Is(err, errMissing) {
+			fail(w, 404, "Todavía no hay un boletín con ese número.")
+			return
+		}
+		if serviceError(w, err) {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		w.Write(raw)
 	})
 }
 
