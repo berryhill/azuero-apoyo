@@ -2,7 +2,7 @@
 
 Adapted from the chart in `berryhill/elementa` at commit `e28747d` (the closest matching repository to “elemate”). This copies the Deployment, Service, ServiceAccount and optional Ingress patterns, not Elementa's Next.js application, MongoDB credentials or production release workflow.
 
-The Go API and Dockerfile serve the generated map and admin UI on port 8080. The generated `index.html` and database stay out of git. CI tests/builds the Go code and validates Helm; publication and deployment require the approved site snapshot as `INDEX_HTML_B64` and other secrets described in the root README.
+The Go API and Dockerfile serve the tracked `index.html` map and admin UI on port 8080. The database stays out of git. CI builds the committed page directly; deployment credentials are described in the root README.
 
 The intended hostname is `azuero-apoyo.berryhill.dev` (configured in `ingress.host` with TLS secret `azuero-apoyo-tls`). Ingress remains disabled until DNS, the target cluster, and TLS issuer are confirmed; enable it with `ingress.enabled=true` when ready. The cert-manager issuer and nginx ingress controller must already exist; adjust `ingress.annotations` to match the cluster. `existingEnvSecret` and `imagePullSecrets` reference pre-existing namespaced secrets only.
 

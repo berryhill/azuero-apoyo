@@ -1,6 +1,6 @@
 # Azuero relief app — API handoff
 
-Build locally (with the generated, git-ignored `index.html` present): `docker build -t venao-relief:local .`
+Build locally (with the tracked `index.html`): `docker build -t venao-relief:local .`
 
 Server: port 8080; serves map at `/`, curation at `/admin.html`, health at `/health`.
 
@@ -17,13 +17,13 @@ API:
 - `GET /api/points` → approved submissions and seeded checkpoints (the original sheet snapshot is also bundled into index.html as fallback; the UI deduplicates by code).
 - `POST /api/admin/login` JSON `{password}` → HttpOnly session cookie + JSON `{csrf}`.
 - `GET /api/admin/submissions` → pending queue; session required.
-- `POST /api/admin/seed` + session cookie + `X-CSRF-Token`: JSON array of checkpoint objects (`code,area,place,needs,people,coords,service,...`). Seeds as approved, idempotent by code; returns `{added,skipped}`. Generate the local `seed.json` from the sheet export with `python3 build_data.py` and POST its JSON body after admin login. Do not expose `seed.json` publicly.
+- `POST /api/admin/seed` + session cookie + `X-CSRF-Token`: JSON array of checkpoint objects (`code,area,place,needs,people,coords,service,...`). Seeds as approved, idempotent by code; returns `{added,skipped}`. This admin-only API does not run during deployment. Do not expose private records publicly.
 - `POST /api/admin/decisions` JSON `{id,decision:"approved"|"rejected"}` + `X-CSRF-Token`; session required.
 - `POST /api/admin/password` JSON `{password}` + session cookie + `X-CSRF-Token` → bcrypt-hashes the new password in BoltDB and invalidates all sessions. Use the masked form at `/admin.html`; do not send passwords in chat or commit them.
 - `POST /api/admin/logout` + `X-CSRF-Token`.
 
 The sheet snapshot remains static; submission approvals persist in BoltDB and refresh in browsers every 30 seconds. Data is not written back to Google Sheets. Contact names and phone numbers are available only in the authenticated admin API, not the public API or bundled HTML.
 
-GitHub Actions runs Go tests/build and Helm lint/render on every push and pull request. Image publication and deployment are gated by repository variable `DEPLOY_ENABLED=true` on `main`; leave it unset until all prerequisites are ready. The repository is public, but generated `index.html`, `seed.json`, CSVs, and the database are git-ignored. Do not commit them. The production image embeds the snapshot and may expose its contents to anyone with image access. Review the snapshot and GHCR package visibility before enabling publication.
+GitHub Actions runs Go tests/build, UI checks, and Helm lint/render on every push and pull request. Image publication and deployment are gated by repository variable `DEPLOY_ENABLED=true` on `main`. The repository tracks and deploys `index.html` directly; edit it for public UI changes. Its bundled historical snapshot is public, so review changes for private data. `seed.json`, CSVs, and the database remain ignored and must not be committed.
 
-To enable CD, configure production environment secrets `KUBECONFIG_B64` (base64 of a narrowly scoped kubeconfig whose current context points to the intended cluster), `ADMIN_BOOTSTRAP_PASSWORD` (12+ characters), and `GHCR_READ_TOKEN` (durable read:packages token); repository secret `INDEX_HTML_B64` (base64 of an approved generated `index.html`); repository variable `EXPECTED_KUBE_CONTEXT` (exact kubeconfig current-context); then set repository variable `DEPLOY_ENABLED=true`. The workflow verifies the context, provisions namespaced secrets, deploys an immutable image digest into `azuero-relief`, and enables ingress at `azuero-apoyo.berryhill.dev`. Verify DNS and cluster identity before enabling. Environment approval rules are recommended. No kubeconfig or admin password is stored in git.
+To enable CD, configure production environment secrets `KUBECONFIG_B64` (base64 of a narrowly scoped kubeconfig whose current context points to the intended cluster), `ADMIN_BOOTSTRAP_PASSWORD` (12+ characters), and `GHCR_READ_TOKEN` (durable read:packages token); repository variable `EXPECTED_KUBE_CONTEXT` (exact kubeconfig current-context); then set repository variable `DEPLOY_ENABLED=true`. The workflow verifies the context, provisions namespaced secrets, deploys an immutable image digest into `azuero-relief`, and enables ingress at `azuero-apoyo.berryhill.dev`. Verify DNS and cluster identity before enabling. Environment approval rules are recommended. No kubeconfig or admin password is stored in git.

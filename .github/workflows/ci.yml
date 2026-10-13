@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: '22'
       - run: node --test feature_ui_test.mjs
-      - run: python3 -m unittest render_index_test.py ci_index_test.py
+      - run: python3 -m unittest ci_index_test.py
       - uses: azure/setup-helm@v4
         with:
           version: v3.17.3

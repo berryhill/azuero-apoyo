@@ -11,6 +11,9 @@ class CIIndexTests(unittest.TestCase):
         self.assertIn('test -s index.html', workflow)
         page = (ROOT / 'index.html').read_text()
         self.assertNotIn('__CHECKPOINT_DATA__', page)
+        self.assertFalse((ROOT / 'template.html').exists())
+        self.assertFalse((ROOT / 'build_data.py').exists())
+        self.assertFalse((ROOT / 'render_index.py').exists())
 
 if __name__ == '__main__':
     unittest.main()
