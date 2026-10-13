@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
 const camp = readFileSync(new URL('./camp.html', import.meta.url), 'utf8');
 const template = readFileSync(new URL('./template.html', import.meta.url), 'utf8');
+const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
 test('admin camp detail is adjacent to the camp list rather than after runner management', () => {
   assert.ok(admin.indexOf('id="campEditor"') < admin.indexOf('id="items"'));
 });
@@ -52,4 +53,8 @@ test('public map has an opt-in "my location" control with a distinct person pin 
   const src = template.match(/function locateUser\(\)[^\n]*/)[0];
   assert.match(src, /navigator\.geolocation\.watchPosition/);
   assert.doesNotMatch(src, /fetch\(/);
+});
+test('runner top nav links to the public Agregar punto form, which opens from #agregar', () => {
+  assert.match(runner, /<header class="top">[\s\S]*?<a class="add" href="\/#agregar">\+ Agregar punto<\/a>[\s\S]*?<\/header>/);
+  assert.match(template, /location\.hash==='#agregar'[^\n]*\$\('#addBtn'\)\.click\(\)/);
 });
