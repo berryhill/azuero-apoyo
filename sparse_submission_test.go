@@ -16,7 +16,7 @@ func TestSparsePointSubmission(t *testing.T) {
 	}
 	defer app.db.Close()
 	h := app.routes()
-	req := httptest.NewRequest("POST", "/api/submissions", strings.NewReader(`{"needs":"Insulina","gps":"https://maps.apple.com/?q=7.45,-80.35","unexpected":"ignored"}`))
+	req := httptest.NewRequest("POST", "/api/submissions", strings.NewReader(`{"needs":"Insulina","secondPhone":"6555-1234","gps":"https://maps.apple.com/?q=7.45,-80.35","unexpected":"ignored"}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -62,7 +62,7 @@ func TestPointSubmissionErrorsIdentifyTheProblem(t *testing.T) {
 		}
 		return w.Code, result
 	}
-	longNeeds, _ := json.Marshal(map[string]string{"code": "AB-5", "area": "Agua Buena", "needs": strings.Repeat("Suministros y apoyo de salud. ", 100)})
+	longNeeds, _ := json.Marshal(map[string]string{"code": "AB-5", "area": "Agua Buena", "phone": "6555-1234", "needs": strings.Repeat("Suministros y apoyo de salud. ", 100)})
 	if status, result := call(string(longNeeds)); status != 201 {
 		t.Fatalf("long needs rejected: %d %v", status, result)
 	}
@@ -71,6 +71,14 @@ func TestPointSubmissionErrorsIdentifyTheProblem(t *testing.T) {
 	}
 	if status, result := call(`{"coords":[0]}`); status != 400 || result["field"] != "coords" {
 		t.Fatalf("coordinate error not actionable: %d %v", status, result)
+	}
+	for _, body := range []string{`{"needs":"Agua"}`, `{"needs":"Agua","phone":"  ","secondPhone":"12-34"}`} {
+		if status, result := call(body); status != 400 || result["field"] != "phone" || !strings.Contains(result["error"], "teléfono") {
+			t.Fatalf("missing contact phone accepted: %s → %d %v", body, status, result)
+		}
+	}
+	if status, result := call(`{"needs":"Agua","thirdPhone":"+507 6555 1234"}`); status != 201 {
+		t.Fatalf("any one contact phone must be enough: %d %v", status, result)
 	}
 	if status, result := call(`{"needs":"` + strings.Repeat("a", 40000) + `"}`); status != 413 || !strings.Contains(result["error"], "32 KB") {
 		t.Fatalf("oversize error not actionable: %d %v", status, result)

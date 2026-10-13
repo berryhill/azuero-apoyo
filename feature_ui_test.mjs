@@ -78,3 +78,12 @@ test('runner name gate also requires a phone number and sends it with the sessio
   assert.match(runner, /JSON\.stringify\(\{name,telephone\}\)/);
   assert.match(runner, /startSession\(e\.target\.elements\.name\.value,e\.target\.elements\.telephone\.value\)/);
 });
+test('Agregar punto blocks submit until any one of the three contact phones has 7+ digits', () => {
+  const validPhone = new Function(`${template.match(/const validPhone=[^\n]*/)[0]};return validPhone`)();
+  assert.equal(validPhone('6555-1234'), true);
+  assert.equal(validPhone('+507 6555 1234'), true);
+  assert.equal(validPhone('12-34'), false);
+  assert.equal(validPhone(''), false);
+  assert.match(template, /\['phone','secondPhone','thirdPhone'\]\.some\(n=>validPhone\(v\(n\)\)\)/);
+  assert.match(template, /id="phoneHint"/);
+});

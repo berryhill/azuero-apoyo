@@ -327,6 +327,17 @@ func decodeFields(w http.ResponseWriter, r *http.Request, allowed map[string]int
 	}
 	return fields, true
 }
+
+// validPhone acepta cualquier formato con al menos 7 dígitos (números de Panamá).
+func validPhone(s string) bool {
+	digits := 0
+	for _, c := range s {
+		if c >= '0' && c <= '9' {
+			digits++
+		}
+	}
+	return digits >= 7
+}
 func fieldText(fields map[string]json.RawMessage, key string) string {
 	var s string
 	json.Unmarshal(fields[key], &s)
@@ -501,6 +512,10 @@ func (a *App) routes() http.Handler {
 		}
 		if len(p.Coords) != 0 && (len(p.Coords) != 2 || p.Coords[0] < 6 || p.Coords[0] > 10 || p.Coords[1] < -83 || p.Coords[1] > -78) {
 			failField(w, 400, "coords", "Coordenadas fuera de Azuero o incompletas. Omite coords si no tienes ubicación.")
+			return
+		}
+		if !reviewed && !validPhone(p.Phone) && !validPhone(p.SecondPhone) && !validPhone(p.ThirdPhone) {
+			failField(w, 400, "phone", "Agrega al menos un teléfono de contacto (7 dígitos o más).")
 			return
 		}
 		p.ID = randomToken()
@@ -1161,13 +1176,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			return
 		}
 		telephone := strings.Join(strings.Fields(fieldText(f, "telephone")), " ")
-		digits := 0
-		for _, c := range telephone {
-			if c >= '0' && c <= '9' {
-				digits++
-			}
-		}
-		if digits < 7 {
+		if !validPhone(telephone) {
 			failField(w, 400, "telephone", "Escribe tu número de teléfono.")
 			return
 		}

@@ -45,7 +45,7 @@ func TestApprovalFlow(t *testing.T) {
 		h.ServeHTTP(w, r)
 		return w
 	}
-	p := `{"code":"TEST-1","area":"Cañas","place":"Escuela","needs":"Agua","people":"12","gps":"https://maps.google.com/?q=7.45,-80.35","contact":"Private Person","phone":"0000","adults":"6","children":"4","babies":"2","olderAdults":"1","disabled":"1","secondContact":"Backup","serviceNotes":"Revisar"}`
+	p := `{"code":"TEST-1","area":"Cañas","place":"Escuela","needs":"Agua","people":"12","gps":"https://maps.google.com/?q=7.45,-80.35","contact":"Private Person","phone":"6000-0000","adults":"6","children":"4","babies":"2","olderAdults":"1","disabled":"1","secondContact":"Backup","serviceNotes":"Revisar"}`
 	sub := call("POST", "/api/submissions", p, nil, "")
 	if sub.Code != 201 {
 		t.Fatalf("submit %d %s", sub.Code, sub.Body.String())
