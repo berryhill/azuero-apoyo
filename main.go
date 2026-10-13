@@ -74,7 +74,14 @@ type CampNeed struct {
 	Status   string `json:"status"`
 	Urgency  string `json:"urgency"`
 	RunnerID string `json:"runnerId,omitempty"`
+	// Marcas de tiempo UTC fijadas por el servidor; el navegador las muestra en hora local.
+	CreatedAt   string `json:"createdAt,omitempty"`
+	CompletedAt string `json:"completedAt,omitempty"`
+	ReleasedAt  string `json:"releasedAt,omitempty"`
+	ReleasedBy  string `json:"releasedBy,omitempty"`
 }
+
+func nowStamp() string { return time.Now().UTC().Format(time.RFC3339) }
 
 var runnersBucket = []byte("runners")
 var needsBucket = []byte("camp_needs")
@@ -927,7 +934,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		if !ok {
 			return
 		}
-		n := CampNeed{ID: randomToken(), CampID: r.PathValue("id"), Need: fieldText(f, "need"), Status: "OPEN", Urgency: fieldText(f, "urgency"), RunnerID: fieldText(f, "runnerId")}
+		n := CampNeed{ID: randomToken(), CampID: r.PathValue("id"), Need: fieldText(f, "need"), Status: "OPEN", Urgency: fieldText(f, "urgency"), RunnerID: fieldText(f, "runnerId"), CreatedAt: nowStamp()}
 		if _, yes := f["status"]; yes {
 			n.Status = fieldText(f, "status")
 		}
@@ -937,6 +944,9 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		if n.Need == "" || !validStatus(n.Status) || !validUrgency(n.Urgency) {
 			fail(w, 400, "invalid need, status or urgency")
 			return
+		}
+		if n.Status == "COMPLETED" {
+			n.CompletedAt = n.CreatedAt
 		}
 		err := a.db.Update(func(tx *bolt.Tx) error {
 			if !a.campExists(tx, n.CampID) {
@@ -975,7 +985,13 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 				n.Need = fieldText(f, "need")
 			}
 			if _, yes := f["status"]; yes {
-				n.Status = fieldText(f, "status")
+				status := fieldText(f, "status")
+				if status == "COMPLETED" && n.Status != "COMPLETED" {
+					n.CompletedAt = nowStamp()
+				} else if status != "COMPLETED" {
+					n.CompletedAt = ""
+				}
+				n.Status = status
 			}
 			if _, yes := f["urgency"]; yes {
 				n.Urgency = fieldText(f, "urgency")
@@ -1081,6 +1097,7 @@ type runnerCamp struct {
 	Code        string    `json:"code"`
 	Area        string    `json:"area"`
 	Place       string    `json:"place,omitempty"`
+	People      string    `json:"people,omitempty"`
 	Directions  string    `json:"directions,omitempty"`
 	Coordinator string    `json:"coordinator,omitempty"`
 	GPS         string    `json:"gps,omitempty"`
@@ -1215,7 +1232,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 				}
 				if p.Status == "approved" {
 					p = publicPoint(p)
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords}
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords}
 				}
 				return nil
 			}); e != nil {
@@ -1308,7 +1325,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			if n.RunnerID != s.runnerID || n.Status != "IN_PROGRESS" {
 				return errNotYours
 			}
-			n.Status = "COMPLETED"
+			n.Status, n.CompletedAt = "COMPLETED", nowStamp()
 			return nil
 		})
 	})
@@ -1317,7 +1334,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			if n.RunnerID != s.runnerID || n.Status != "IN_PROGRESS" {
 				return errNotYours
 			}
-			n.RunnerID, n.Status = "", "OPEN"
+			n.RunnerID, n.Status, n.ReleasedAt, n.ReleasedBy = "", "OPEN", nowStamp(), s.runnerID
 			return nil
 		})
 	})
@@ -1329,7 +1346,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 		if !ok {
 			return
 		}
-		n := CampNeed{ID: randomToken(), CampID: r.PathValue("id"), Need: fieldText(f, "need"), Status: "OPEN", Urgency: fieldText(f, "urgency")}
+		n := CampNeed{ID: randomToken(), CampID: r.PathValue("id"), Need: fieldText(f, "need"), Status: "OPEN", Urgency: fieldText(f, "urgency"), CreatedAt: nowStamp()}
 		if n.Urgency == "" {
 			n.Urgency = "Eventually"
 		}
@@ -1379,7 +1396,7 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool) {
 			}
 			if n.CampID == id && n.Status != "DELETED" {
 				if public {
-					n.RunnerID = ""
+					n.RunnerID, n.ReleasedBy = "", ""
 				}
 				list = append(list, n)
 			}
