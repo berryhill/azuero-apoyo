@@ -2,6 +2,8 @@
 let csrf='',points=[],allNeeds=[],view='all';const $=s=>document.querySelector(s);const clean=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={row:'N.º fila',ordinal:'Orden',code:'Código',area:'Área',place:'Ubicación',needs:'Necesidades',notes:'Notas del grupo',directions:'Dirección',coordinator:'Coordinador',contact:'Contacto principal',phone:'Teléfono',people:'Personas',adults:'Adultos',children:'Niños',babies:'Bebés',olderAdults:'Adultos mayores',disabled:'Con discapacidad',secondContact:'Segundo contacto',secondPhone:'Segundo teléfono',thirdContact:'Tercer contacto',thirdPhone:'Tercer teléfono',service:'Servicio reportado',serviceNotes:'Notas de servicio',generator:'Generador',gps:'Enlace de Google Maps',extra:'Otras notas'};
 let fieldsLoaded=false;
+$('#allTab').insertAdjacentHTML('afterend','<button id="needsTab" type="button">Necesidades de servicio</button>');
+$('#items').insertAdjacentHTML('afterend','<section id="allNeedList" hidden aria-label="Lista de necesidades de servicio"></section>');
 function openCamp(p){window.open('/camp.html?id='+encodeURIComponent(p.id),'_blank','noopener')}
 function coordinatorOptions(){const select=$('#coordinatorFilter'),selected=select.value;const names=[...new Set(points.map(p=>(p.coordinator||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));select.innerHTML='<option value="">Todos los coordinadores</option>'+names.map(n=>`<option value="${clean(n.toLocaleLowerCase())}">${clean(n)}</option>`).join('')+'<option value="__none__">Sin coordinador</option>';select.value=selected}$('#coordinatorFilter').onchange=render;$('#needFilter').onchange=render;
 // Filtra los campamentos que tienen alguna necesidad de servicio en ese estado.
@@ -17,6 +19,38 @@ $('#items').onclick=async e=>{const copy=e.target.closest('button[data-copy-id]'
 // Operación privada: todos los cambios pasan por la sesión y su token CSRF.
 let runners=[],activeCamp=null,campNeeds=[],editingRunner=null,editingNeed=null;
 const needStates={OPEN:'Abierta',IN_PROGRESS:'En curso',COMPLETED:'Completada',DELETED:'Eliminada'};
+function renderAllNeeds(){
+  const q=$('#search').value.toLocaleLowerCase().trim(),coord=$('#coordinatorFilter').value,status=$('#needFilter').value;
+  const rows=allNeeds.filter(n=>{
+    const p=points.find(p=>n.campId===p.id);
+    if(n.status==='DELETED'||(status&&n.status!==status))return false;
+    if(coord&&(coord==='__none__'?p?.coordinator:((p?.coordinator||'').trim().toLocaleLowerCase()!==coord)))return false;
+    return !q||[n.need,p?.code,p?.area,p?.place,p?.coordinator].join(' ').toLocaleLowerCase().includes(q);
+  }).sort((a,b)=>(points.find(p=>p.id===a.campId)?.code||'').localeCompare(points.find(p=>p.id===b.campId)?.code||'','es'));
+  $('#count').textContent=`${rows.length} ${rows.length===1?'necesidad de servicio':'necesidades de servicio'}`;
+  $('#allNeedList').innerHTML=rows.length?rows.map(n=>{
+    const p=points.find(p=>n.campId===p.id);
+    return `<article class="need-card"><b>${clean(p?.code||'Punto no disponible')} · ${clean(p?.area||'Sin área')}</b>${p?.status==='archived'?' <span class="status archived">Archivado</span>':''}<p>${clean(n.need)}</p><small>${clean(needStates[n.status]||n.status)} · ${clean(n.urgency)} · ${n.runnerId?'Corredor: '+clean(runners.find(r=>r.id===n.runnerId)?.name||'Asignado'):'Sin asignar'}</small>${p?.status==='approved'?`<div><a href="/admin.html?camp=${encodeURIComponent(n.campId)}">Gestionar punto y necesidades</a></div>`:''}</article>`;
+  }).join(''):'<p>No hay necesidades de servicio en esta vista.</p>';
+}
+const renderPoints=render;
+render=function(){
+  const needsView=view==='needs';
+  for(const selector of ['#mapCount','#adminMap','#items','#operations','#changePassword'])$(selector).hidden=needsView;
+  $('#allNeedList').hidden=!needsView;
+  if(needsView)renderAllNeeds();else renderPoints();
+};
+$('#coordinatorFilter').onchange=render;$('#needFilter').onchange=render;$('#search').oninput=render;
+async function selectView(next){
+  view=next;$('#search').placeholder=next==='needs'?'Buscar necesidad, código o zona…':'Buscar código, zona o contacto…';
+  for(const [name,id] of [['pending','pendingTab'],['all','allTab'],['needs','needsTab']])$('#'+id).classList.toggle('active',name===view);
+  render();
+  if(next!=='needs')return;
+  $('#count').textContent='Cargando necesidades…';$('#allNeedList').textContent='';
+  try{allNeeds=await adminRequest('/api/admin/needs');if(view==='needs')render()}
+  catch(err){if(view==='needs'){$('#count').textContent='No se pudieron cargar las necesidades';$('#allNeedList').textContent='Vuelve a intentar: '+err.message}}
+}
+$('#pendingTab').onclick=()=>selectView('pending');$('#allTab').onclick=()=>selectView('all');$('#needsTab').onclick=()=>selectView('needs');
 async function adminRequest(url,method='GET',data){const r=await fetch(url,{method,credentials:'same-origin',cache:'no-store',headers:data===undefined?{}:{'Content-Type':'application/json','X-CSRF-Token':csrf},...(data===undefined?{}:{body:JSON.stringify(data)})});const body=await r.json().catch(()=>({}));if(!r.ok)throw Error(body.error||`Error HTTP ${r.status}`);return body}
 function runnerOptions(){const el=$('#needRunner'),value=el.value;el.innerHTML='<option value="">Sin asignar</option>'+runners.map(r=>`<option value="${clean(r.id)}">${clean(r.name)}</option>`).join('');el.value=value}
 async function loadRunners(){runners=await adminRequest('/api/admin/runners');$('#runnerList').innerHTML=runners.length?runners.map(r=>`<div class="need-card"><b>${clean(r.name)}</b> · ${clean(r.telephone)} <button type="button" data-runner="${clean(r.id)}">Editar</button></div>`).join(''):'<p class="muted">No hay corredores registrados.</p>';runnerOptions()}

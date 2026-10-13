@@ -27,6 +27,15 @@ test('admin toolbar filters camps by service need status, not urgency', () => {
   assert.doesNotMatch(toolbar, /Today|Hoy/);
   assert.match(admin, /\/api\/admin\/needs/);
 });
+test('admin needs tab lists needs across camps and links back to private camp management', () => {
+  assert.match(admin, /id="needsTab"[^>]*>Necesidades de servicio/);
+  assert.match(admin, /id="allNeedList"/);
+  assert.match(admin, /allNeeds\.filter\(/);
+  assert.match(admin, /n\.campId===p\.id/);
+  assert.match(admin, /admin\.html\?camp=/);
+  assert.match(admin, /clean\(n\.need\)/);
+  assert.match(admin, /needStates\[n\.status\]/);
+});
 test('public map and list filter camps by service need status without an urgency filter', () => {
   for (const id of ['mapCampStatus', 'listCampStatus']) {
     const start = template.indexOf(`id="${id}"`);
