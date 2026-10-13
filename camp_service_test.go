@@ -282,7 +282,43 @@ func TestPublicNeedReportRequiresRequesterAndOpensImmediately(t *testing.T) {
 		t.Fatalf("public list: %s", public)
 	}
 	runner := s.runnerLogin("Luis")
-	if _, available, raw := runner.needs(); len(available) != 1 || !strings.Contains(raw, `"requesterPhone":"6555-1234"`) {
+	if _, available, raw := runner.needs(); len(available) != 1 || !strings.Contains(raw, `"requesterPhone":"6555-1234"`) || available[0].CreatedAt == "" {
 		t.Fatalf("runner list: %s", raw)
+	}
+}
+
+func TestNewPointNeedsBecomeOpenCampNeedOnceLive(t *testing.T) {
+	s := newServiceHarness(t)
+	needsOf := func(id string) []CampNeed {
+		var list []CampNeed
+		json.Unmarshal(s.call("GET", "/api/admin/camps/"+id+"/needs", "", true).Body.Bytes(), &list)
+		return list
+	}
+	sub := s.call("POST", "/api/submissions", `{"needs":"  Agua y pañales ","contact":"Privada","phone":"6555-1234"}`, false)
+	var created map[string]string
+	json.Unmarshal(sub.Body.Bytes(), &created)
+	if all := s.call("GET", "/api/admin/needs", "", true).Body.String(); strings.Contains(all, "pañales") {
+		t.Fatalf("pending point must not create a need yet: %s", all)
+	}
+	decide := func(decision string) {
+		s.expect("POST", "/api/admin/decisions", `{"id":"`+created["id"]+`","decision":"`+decision+`"}`, 200)
+	}
+	decide("approved")
+	list := needsOf(created["id"])
+	if len(list) != 1 || list[0].Need != "Agua y pañales" || list[0].Status != "OPEN" || list[0].Urgency != "Eventually" || list[0].RequesterPhone != "" {
+		t.Fatalf("approved point need: %+v", list)
+	}
+	decide("archived")
+	decide("approved")
+	if list := needsOf(created["id"]); len(list) != 1 {
+		t.Fatalf("re-approval duplicated need: %+v", list)
+	}
+	admin := s.expect("POST", "/api/admin/points", `{"code":"ADM-1","needs":"Colchones"}`, 201)
+	if list := needsOf(admin["id"].(string)); len(list) != 1 || list[0].Need != "Colchones" {
+		t.Fatalf("admin point need: %+v", list)
+	}
+	empty := s.expect("POST", "/api/admin/points", `{"code":"ADM-2"}`, 201)
+	if list := needsOf(empty["id"].(string)); len(list) != 0 {
+		t.Fatalf("point without needs created one: %+v", list)
 	}
 }

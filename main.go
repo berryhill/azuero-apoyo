@@ -359,6 +359,16 @@ func putJSON(b *bolt.Bucket, key string, value any) error {
 	}
 	return b.Put([]byte(key), data)
 }
+
+// needFromPoint convierte el texto «Necesidades» de un punto recién aprobado en una necesidad abierta.
+// Los contactos del punto son privados, por eso no se copian como solicitante.
+func needFromPoint(tx *bolt.Tx, p Point) error {
+	if strings.TrimSpace(p.Needs) == "" {
+		return nil
+	}
+	n := CampNeed{ID: randomToken(), CampID: p.ID, Need: strings.TrimSpace(p.Needs), Status: "OPEN", Urgency: "Eventually", CreatedAt: nowStamp()}
+	return putJSON(tx.Bucket(needsBucket), n.ID, n)
+}
 func (a *App) campExists(tx *bolt.Tx, id string) bool {
 	v := tx.Bucket(submissions).Get([]byte(id))
 	if v == nil {
@@ -555,7 +565,10 @@ func (a *App) routes() http.Handler {
 					return err
 				}
 			}
-			return b.Put([]byte(p.ID), data)
+			if e := b.Put([]byte(p.ID), data); e != nil || !reviewed {
+				return e
+			}
+			return needFromPoint(tx, p)
 		})
 		if err != nil {
 			if err.Error() == "duplicate code" {
@@ -773,10 +786,14 @@ func (a *App) routes() http.Handler {
 				(p.Status != "pending" && p.Status != "approved" && p.Status != "archived") {
 				return errors.New("already decided")
 			}
+			firstApproval := p.Status == "pending" && in.Decision == "approved"
 			p.Status = in.Decision
 			p.Decided = time.Now().UTC().Format(time.RFC3339)
 			data, _ := json.Marshal(p)
-			return b.Put([]byte(in.ID), data)
+			if e := b.Put([]byte(in.ID), data); e != nil || !firstApproval {
+				return e
+			}
+			return needFromPoint(tx, p)
 		})
 		if err != nil {
 			fail(w, 409, err.Error())
@@ -1163,7 +1180,24 @@ type runnerCamp struct {
 	Coordinator string    `json:"coordinator,omitempty"`
 	GPS         string    `json:"gps,omitempty"`
 	Coords      []float64 `json:"coords,omitempty"`
+	// Contactos del punto para que el corredor llame antes de tomar la carrera; nunca en páginas públicas.
+	Contacts []runnerContact `json:"contacts,omitempty"`
 }
+type runnerContact struct {
+	Name  string `json:"name,omitempty"`
+	Phone string `json:"phone"`
+}
+
+func campContacts(p Point) []runnerContact {
+	list := []runnerContact{}
+	for _, c := range [][2]string{{p.Contact, p.Phone}, {p.SecondContact, p.SecondPhone}, {p.ThirdContact, p.ThirdPhone}} {
+		if phone := strings.TrimSpace(c[1]); phone != "" {
+			list = append(list, runnerContact{Name: strings.TrimSpace(c[0]), Phone: phone})
+		}
+	}
+	return list
+}
+
 type runnerNeed struct {
 	ID             string     `json:"id"`
 	Need           string     `json:"need"`
@@ -1171,6 +1205,7 @@ type runnerNeed struct {
 	Urgency        string     `json:"urgency"`
 	RequesterName  string     `json:"requesterName,omitempty"`
 	RequesterPhone string     `json:"requesterPhone,omitempty"`
+	CreatedAt      string     `json:"createdAt,omitempty"`
 	Camp           runnerCamp `json:"camp"`
 }
 
@@ -1307,8 +1342,9 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 					return e
 				}
 				if p.Status == "approved" {
+					contacts := campContacts(p)
 					p = publicPoint(p)
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords}
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts}
 				}
 				return nil
 			}); e != nil {
@@ -1323,7 +1359,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 				if !ok {
 					return nil
 				}
-				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, Camp: camp}
+				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, Camp: camp}
 				if n.RunnerID == s.runnerID && n.Status == "IN_PROGRESS" {
 					current = &item
 				} else if n.Status == "OPEN" && (n.RunnerID == "" || n.RunnerID == s.runnerID) {

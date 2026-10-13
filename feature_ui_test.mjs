@@ -112,3 +112,17 @@ test('admin dashboard shows need counts by state at the top and clicking filters
   assert.match(html, /data-stat="pending"><b>1<\/b><span>Puntos por revisar/);
   assert.match(admin, /\$\('#pendingTab'\)\.click\(\)/);
 });
+test('camp needs show their creation time in Spanish on admin, runner and public camp pages', () => {
+  assert.match(admin, /'Creada: '\+stamp\(n\.createdAt\)/);
+  assert.match(runner, /<b>Creada:<\/b> \$\{n\.createdAt\?clean\(stamp\(n\.createdAt\)\):'sin fecha registrada'\}/);
+  assert.match(runner, /const stamp=v=>v\?new Date\(v\)\.toLocaleString\('es-PA'/);
+  assert.match(camp, /Creada: \$\{n\.createdAt\?clean\(new Date\(n\.createdAt\)\.toLocaleString\('es-PA'/);
+});
+test('runner need card lists the camp contact phones as tap-to-call links', () => {
+  const grab = re => runner.match(re)[0];
+  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
+  const needDetails = new Function('apple', `${src};return needDetails`)(false);
+  const html = needDetails({id: 'n', need: 'Agua', urgency: 'Today', camp: {id: 'c', code: 'C-1', contacts: [{name: 'Ana', phone: '6555-1234'}, {phone: '+507 6000 0000'}]}});
+  assert.match(html, /Contactos del punto:<\/b> Ana · <a href="tel:65551234">6555-1234<\/a> · <a href="tel:\+50760000000">\+507 6000 0000<\/a>/);
+  assert.match(needDetails({id: 'n', need: 'Agua', urgency: 'Today', camp: {id: 'c', code: 'C-1'}}), /sin teléfono registrado/);
+});

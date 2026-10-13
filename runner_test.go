@@ -79,7 +79,7 @@ func TestRunnerTakeCompleteReleaseAndFollowup(t *testing.T) {
 	ana, luis := s.runnerLogin("Ana"), s.runnerLogin("Luis")
 
 	_, available, raw := ana.needs()
-	if len(available) != 2 || available[0].ID != n2 || available[0].Camp.Code != "C-1" || strings.Contains(raw, "6555-1234") || strings.Contains(raw, "Private camp") || strings.Contains(raw, "runnerId") {
+	if len(available) != 2 || available[0].ID != n2 || available[0].Camp.Code != "C-1" || !strings.Contains(raw, `"contacts":[{"name":"Private camp","phone":"6555-1234"}]`) || strings.Contains(raw, "runnerId") {
 		t.Fatalf("available: %s", raw)
 	}
 	if w := ana.call("POST", "/api/runner/needs/"+n1+"/take", "{}"); w.Code != 200 {
