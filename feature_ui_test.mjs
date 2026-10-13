@@ -33,14 +33,42 @@ test('admin filters camps by need status only through the stats counters, withou
   assert.match(admin, /needFilter=needFilter===b\.dataset\.stat\?'':b\.dataset\.stat;view='approved'\}render\(\)/);
   assert.match(admin, /\/api\/admin\/needs/);
 });
-test('public map and list filter camps by service need status without an urgency filter', () => {
-  for (const id of ['mapCampStatus', 'listCampStatus']) {
-    const start = template.indexOf(`id="${id}"`);
-    const select = template.slice(start, template.indexOf('</select>', start));
-    for (const [value, label] of needStatusOptions) assert.ok(select.includes(`<option value="${value}">${label}</option>`), `${id} ${label}`);
-  }
+test('public stats are static counts; only need-status and coordinator stat buttons filter, with no dropdowns or chips', () => {
+  assert.doesNotMatch(template, /mapCampStatus|listCampStatus|Sin filtro de necesidades|id="filters"|Por confirmar|data-filter="(all|mapped|unmapped)"/);
+  for (const [id, label] of [['total', 'TOTAL PUNTOS'], ['mapped', 'EN MAPA'], ['unmapped', 'SIN GPS']]) assert.match(template, new RegExp(`<div class="stat"><b id="${id}">—</b><span>${label}</span></div>`), label);
+  assert.match(template, /\$\('#total'\)\.textContent=everyRow\.length/);
+  for (const [value, label] of needStatusOptions.slice(1)) assert.match(template, new RegExp(`<button type="button" class="stat fstat" data-need="${value}"[^>]*><b id="need${value}">—</b><span>${label.toUpperCase()}</span>`), label);
   assert.doesNotMatch(template, /CampUrgency|Todas las urgencias/);
   assert.match(template, /needStatuses/);
+});
+test('public coordinator filter is a sidebar stat button with a searchable picker, not a map dropdown', () => {
+  assert.doesNotMatch(template, /mapCoordinator|listCoordinator|<select[^>]*coordinador/i);
+  assert.ok(template.indexOf('id="needStats"') < template.indexOf('id="coordOpen"'));
+  assert.match(template, /<button type="button" class="stat fstat coordbtn" id="coordOpen" aria-haspopup="listbox"[^>]*><b id="coordCount">—<\/b><span id="coordLabel">COORDINADOR: TODOS<\/span><\/button><div class="picker" id="coordPicker" hidden><input id="coordSearch"/);
+  const src = template.match(/const coordNames=[^\n]*\nfunction drawCoordList[^\n]*/)[0];
+  const els = {'#coordSearch': {value: 'mar'}, '#coordList': {innerHTML: ''}, '#coordLabel': {}, '#coordOpen': {classList: {toggle() {}}}};
+  const api = new Function('$', 'all', 'clean', 'selectedCoordinator', `${src};return {drawCoordList, coordLabel}`)(s => els[s], () => [{coordinator: 'Marta Ruiz'}, {coordinator: 'Luis'}, {coordinator: ' Marta Ruiz '}, {}], s => String(s), 'marta ruiz');
+  api.drawCoordList();
+  assert.equal((els['#coordList'].innerHTML.match(/data-coord=/g) || []).length, 1);
+  assert.match(els['#coordList'].innerHTML, /data-coord="marta ruiz" class="hl sel" aria-selected="true">Marta Ruiz \(2\)</);
+  assert.equal(api.coordLabel(), 'Marta Ruiz');
+});
+test('public need filter shows the matching saved needs with Spanish created / en ruta times', () => {
+  assert.match(template, /\$\{selectedCampStatus&&r\.id\?serviceNeedsHtml\(r\):/);
+  const src = template.match(/const activeNeeds=[^\n]*\nfunction loadNeeds[^\n]*\nfunction serviceNeedsHtml[^\n]*/)[0];
+  const render = new Function('clean', 'selectedCampStatus', 'fetch', 'renderFeed', `${src};campNeeds.set('c1',{gen:0,list:[{need:'Agua',status:'IN_PROGRESS',urgency:'Today',createdAt:'2026-10-13T13:00:00Z',enRouteAt:'2026-10-13T14:30:00Z'},{need:'Comida',status:'OPEN',createdAt:'2026-10-13T12:00:00Z'},{need:'Ropa',status:'COMPLETED',createdAt:'2026-10-13T11:00:00Z'}]});campNeeds.set('c2',{gen:0,list:[{need:'Ropa',status:'COMPLETED'}]});return (id,all)=>serviceNeedsHtml({id},...(all?[activeNeeds]:[]))`)(s => String(s), 'IN_PROGRESS', () => { throw Error('should use cache'); }, () => {});
+  const html = render('c1');
+  assert.match(html, /<b>En ruta · Hoy<\/b><span>Agua<\/span><small>Creada: [^<]+<br>En ruta: [^<]+<\/small>/);
+  assert.doesNotMatch(html, /Comida|Sin necesidades registradas/);
+  // Sin filtro: el punto muestra sus necesidades abiertas y en ruta (no completadas), más reciente primero.
+  assert.match(template, /\$\{r\.id&&activeNeeds\.some\(s=>hasNeed\(r,s\)\)\?serviceNeedsHtml\(r,activeNeeds\):''\}<div class="need">/);
+  const unfiltered = render('c1', true);
+  assert.match(unfiltered, /<b>En ruta · Hoy<\/b><span>Agua<\/span>[\s\S]*<b>Abierta<\/b><span>Comida<\/span>/);
+  assert.doesNotMatch(unfiltered, /Ropa/);
+  assert.equal(render('c2', true), '');
+});
+test('public page never labels points as "Aprobado"', () => {
+  assert.doesNotMatch(template, /'Aprobado'|<label>Aprobado<\/label>/);
 });
 test('public list has a Verifica GPS box that drops a distinct temporary pin from a Maps link', () => {
   assert.match(template, /id="gpsCheck"[^>]*placeholder="Verifica GPS/);

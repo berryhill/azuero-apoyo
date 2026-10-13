@@ -158,8 +158,10 @@ type CampNeed struct {
 	// Marcas de tiempo UTC fijadas por el servidor; el navegador las muestra en hora local.
 	CreatedAt   string `json:"createdAt,omitempty"`
 	CompletedAt string `json:"completedAt,omitempty"`
-	ReleasedAt  string `json:"releasedAt,omitempty"`
-	ReleasedBy  string `json:"releasedBy,omitempty"`
+	// Cuándo pasó a En curso (en ruta) por última vez; se borra si vuelve a Abierta.
+	EnRouteAt  string `json:"enRouteAt,omitempty"`
+	ReleasedAt string `json:"releasedAt,omitempty"`
+	ReleasedBy string `json:"releasedBy,omitempty"`
 	// Última escritura de la necesidad (crear, tomar, soltar, editar, completar); ordena la actividad reciente en el panel.
 	UpdatedAt string `json:"updatedAt,omitempty"`
 }
@@ -1127,6 +1129,9 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		if n.Status == "COMPLETED" {
 			n.CompletedAt = n.CreatedAt
 		}
+		if n.Status == "IN_PROGRESS" {
+			n.EnRouteAt = n.CreatedAt
+		}
 		err := a.db.Update(func(tx *bolt.Tx) error {
 			if !a.campExists(tx, n.CampID) {
 				return errMissing
@@ -1169,6 +1174,11 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 					n.CompletedAt = nowStamp()
 				} else if status != "COMPLETED" {
 					n.CompletedAt = ""
+				}
+				if status == "IN_PROGRESS" && n.Status != "IN_PROGRESS" {
+					n.EnRouteAt = nowStamp()
+				} else if status == "OPEN" {
+					n.EnRouteAt = ""
 				}
 				n.Status = status
 			}
@@ -1544,7 +1554,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			if busy {
 				return errBusy
 			}
-			n.RunnerID, n.Status = s.runnerID, "IN_PROGRESS"
+			n.RunnerID, n.Status, n.EnRouteAt = s.runnerID, "IN_PROGRESS", nowStamp()
 			return nil
 		})
 	})
@@ -1562,7 +1572,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			if n.RunnerID != s.runnerID || n.Status != "IN_PROGRESS" {
 				return errNotYours
 			}
-			n.RunnerID, n.Status, n.ReleasedAt, n.ReleasedBy = "", "OPEN", nowStamp(), s.runnerID
+			n.RunnerID, n.Status, n.EnRouteAt, n.ReleasedAt, n.ReleasedBy = "", "OPEN", "", nowStamp(), s.runnerID
 			return nil
 		})
 	})

@@ -139,7 +139,7 @@ func TestNeedTimestamps(t *testing.T) {
 	var list []CampNeed
 	list = nil
 	json.Unmarshal(s.call("GET", "/api/admin/needs", "", true).Body.Bytes(), &list)
-	if len(list) != 1 || list[0].CreatedAt == "" || list[0].ReleasedAt == "" || list[0].ReleasedBy == "" || list[0].CompletedAt != "" {
+	if len(list) != 1 || list[0].CreatedAt == "" || list[0].ReleasedAt == "" || list[0].ReleasedBy == "" || list[0].CompletedAt != "" || list[0].EnRouteAt != "" {
 		t.Fatalf("after release: %+v", list)
 	}
 	if pub := s.call("GET", "/api/camps/"+s.camp+"/needs", "", false).Body.String(); strings.Contains(pub, list[0].ReleasedBy) || strings.Contains(pub, "releasedBy") {
@@ -149,14 +149,18 @@ func TestNeedTimestamps(t *testing.T) {
 	ana.call("POST", "/api/runner/needs/"+id+"/complete", "{}")
 	list = nil
 	json.Unmarshal(s.call("GET", "/api/admin/needs", "", true).Body.Bytes(), &list)
-	if list[0].Status != "COMPLETED" || list[0].CompletedAt == "" {
+	if list[0].Status != "COMPLETED" || list[0].CompletedAt == "" || list[0].EnRouteAt == "" || list[0].EnRouteAt > list[0].CompletedAt {
 		t.Fatalf("after complete: %+v", list[0])
 	}
 	s.expect("PATCH", "/api/admin/needs/"+id, `{"status":"OPEN"}`, 200)
 	list = nil
 	json.Unmarshal(s.call("GET", "/api/admin/needs", "", true).Body.Bytes(), &list)
-	if list[0].CompletedAt != "" {
+	if list[0].CompletedAt != "" || list[0].EnRouteAt != "" {
 		t.Fatalf("reopened keeps completedAt: %+v", list[0])
+	}
+	s.expect("PATCH", "/api/admin/needs/"+id, `{"status":"IN_PROGRESS"}`, 200)
+	if pub := s.call("GET", "/api/camps/"+s.camp+"/needs", "", false).Body.String(); !strings.Contains(pub, `"enRouteAt":"20`) {
+		t.Fatalf("public needs should show when it went en ruta: %s", pub)
 	}
 	if w := s.call("PATCH", "/api/admin/needs/"+id, `{"createdAt":"2000-01-01T00:00:00Z"}`, true); w.Code != 400 {
 		t.Fatalf("timestamps must be server-set: %d", w.Code)
