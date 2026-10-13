@@ -58,6 +58,7 @@ type Point struct {
 	Note           string    `json:"note,omitempty"`
 	CampStatus     string    `json:"campStatus,omitempty"`
 	HighestUrgency string    `json:"highestUrgency,omitempty"`
+	NeedStatuses   []string  `json:"needStatuses,omitempty"`
 }
 
 type Runner struct {
@@ -355,6 +356,28 @@ func (a *App) adminWrite(w http.ResponseWriter, r *http.Request) bool {
 	}
 	return true
 }
+
+// campNeedStatuses lists which of OPEN, IN_PROGRESS and COMPLETED a camp's saved needs include.
+func campNeedStatuses(tx *bolt.Tx, id string) ([]string, error) {
+	seen := map[string]bool{}
+	err := tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
+		var n CampNeed
+		if e := json.Unmarshal(v, &n); e != nil {
+			return e
+		}
+		if n.CampID == id {
+			seen[n.Status] = true
+		}
+		return nil
+	})
+	statuses := []string{}
+	for _, s := range []string{"OPEN", "IN_PROGRESS", "COMPLETED"} {
+		if seen[s] {
+			statuses = append(statuses, s)
+		}
+	}
+	return statuses, err
+}
 func aggregateCamp(tx *bolt.Tx, id string) (string, string, error) {
 	status := "NO_NEEDS"
 	urgency := ""
@@ -406,6 +429,9 @@ func (a *App) routes() http.Handler {
 					}
 					p.CampStatus = status
 					p.HighestUrgency = urgency
+					if p.NeedStatuses, e = campNeedStatuses(tx, p.ID); e != nil {
+						return e
+					}
 					points = append(points, publicPoint(p))
 				} else if p.Status == "archived" && p.Source == "sheet" {
 					// Hide bundled snapshot rows that were archived after deployment.
@@ -968,12 +994,12 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		if !a.adminWrite(w, r) {
 			return
 		}
-		allowed := map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": 8192, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200}
+		allowed := map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": 8192, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "needStatuses": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200}
 		f, ok := decodeFields(w, r, allowed)
 		if !ok {
 			return
 		}
-		for _, key := range []string{"source", "status", "id", "created", "decided", "campStatus", "highestUrgency"} {
+		for _, key := range []string{"source", "status", "id", "created", "decided", "campStatus", "highestUrgency", "needStatuses"} {
 			if _, yes := f[key]; yes {
 				failField(w, 400, key, "read-only field")
 				return

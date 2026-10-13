@@ -241,3 +241,18 @@ func TestAdminNeedsListAllCamps(t *testing.T) {
 		t.Fatalf("needs: %d %s", w.Code, w.Body.String())
 	}
 }
+func TestPublicPointsListNeedStatuses(t *testing.T) {
+	s := newServiceHarness(t)
+	if points := s.call("GET", "/api/points", "", false).Body.String(); strings.Contains(points, "needStatuses") {
+		t.Fatalf("no needs: %s", points)
+	}
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","status":"OPEN","urgency":"Today"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Food","status":"COMPLETED","urgency":"Tomorrow"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Old","status":"DELETED","urgency":"Today"}`, 201)
+	if points := s.call("GET", "/api/points", "", false).Body.String(); !strings.Contains(points, `"needStatuses":["OPEN","COMPLETED"]`) {
+		t.Fatalf("statuses: %s", points)
+	}
+	if w := s.call("PATCH", "/api/admin/camps/"+s.camp, `{"needStatuses":["OPEN"]}`, true); w.Code != 400 {
+		t.Fatalf("read-only: %d %s", w.Code, w.Body.String())
+	}
+}

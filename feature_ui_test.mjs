@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
 const camp = readFileSync(new URL('./camp.html', import.meta.url), 'utf8');
+const template = readFileSync(new URL('./template.html', import.meta.url), 'utf8');
 test('admin camp detail is adjacent to the camp list rather than after runner management', () => {
   assert.ok(admin.indexOf('id="campEditor"') < admin.indexOf('id="items"'));
 });
@@ -18,9 +19,20 @@ test('admin camp page lists saved needs before creation and keeps edits collapse
 test('public camp detail has a rendered service need list target', () => {
   assert.match(camp, /id="serviceNeeds"/);
 });
-test('admin toolbar filters camps by service need urgency', () => {
+const needStatusOptions = [['', 'Sin filtro de necesidades'], ['OPEN', 'Abierto'], ['IN_PROGRESS', 'En curso'], ['COMPLETED', 'Completado']];
+test('admin toolbar filters camps by service need status, not urgency', () => {
   const toolbar = admin.slice(admin.indexOf('class="toolbar"'), admin.indexOf('id="mapCount"'));
   assert.match(toolbar, /id="needFilter"/);
-  for (const [value, label] of [['', 'Sin filtro de necesidades'], ['Today', 'Hoy'], ['Urgent', 'Urgente'], ['Tomorrow', 'Mañana'], ['Eventually', 'Eventualmente']]) assert.ok(toolbar.includes(`<option value="${value}">${label}</option>`), label);
+  for (const [value, label] of needStatusOptions) assert.ok(toolbar.includes(`<option value="${value}">${label}</option>`), label);
+  assert.doesNotMatch(toolbar, /Today|Hoy/);
   assert.match(admin, /\/api\/admin\/needs/);
+});
+test('public map and list filter camps by service need status without an urgency filter', () => {
+  for (const id of ['mapCampStatus', 'listCampStatus']) {
+    const start = template.indexOf(`id="${id}"`);
+    const select = template.slice(start, template.indexOf('</select>', start));
+    for (const [value, label] of needStatusOptions) assert.ok(select.includes(`<option value="${value}">${label}</option>`), `${id} ${label}`);
+  }
+  assert.doesNotMatch(template, /CampUrgency|Todas las urgencias/);
+  assert.match(template, /needStatuses/);
 });
