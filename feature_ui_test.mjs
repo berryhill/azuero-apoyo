@@ -36,3 +36,12 @@ test('public map and list filter camps by service need status without an urgency
   assert.doesNotMatch(template, /CampUrgency|Todas las urgencias/);
   assert.match(template, /needStatuses/);
 });
+test('public list has a Verifica GPS box that drops a distinct temporary pin from a Maps link', () => {
+  assert.match(template, /id="gpsCheck"[^>]*placeholder="Verifica GPS/);
+  const src = template.match(/function coordsFromMapLink[^\n]*?:null\}/)[0];
+  const coordsFromMapLink = new Function(`${src};return coordsFromMapLink`)();
+  assert.deepEqual(coordsFromMapLink('https://maps.google.com/maps?q=7.3845953941345215%2C-80.45873260498047&z=17&hl=en'), [7.3845953941345215, -80.45873260498047]);
+  assert.deepEqual(coordsFromMapLink('https://www.google.com/maps/place/X/@7.40,-80.30,17z/data=!8m2!3d7.4012345!4d-80.3123456'), [7.4012345, -80.3123456]);
+  assert.equal(coordsFromMapLink('https://maps.app.goo.gl/abc'), null);
+  assert.match(template, /className:'verifyicon'/);
+});
