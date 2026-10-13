@@ -318,6 +318,18 @@ func TestNewPointNeedsBecomeOpenCampNeedOnceLive(t *testing.T) {
 	if list := needsOf(created["id"]); len(list) != 1 {
 		t.Fatalf("re-approval duplicated need: %+v", list)
 	}
+	rej := s.call("POST", "/api/submissions", `{"needs":"Linternas","contact":"Privada","phone":"6555-4321"}`, false)
+	var rejected map[string]string
+	json.Unmarshal(rej.Body.Bytes(), &rejected)
+	s.expect("POST", "/api/admin/decisions", `{"id":"`+rejected["id"]+`","decision":"rejected"}`, 200)
+	if pub := s.call("GET", "/api/points", "", false).Body.String(); strings.Contains(pub, "Linternas") {
+		t.Fatalf("rejected point public: %s", pub)
+	}
+	s.expect("POST", "/api/admin/decisions", `{"id":"`+rejected["id"]+`","decision":"archived"}`, 409)
+	s.expect("POST", "/api/admin/decisions", `{"id":"`+rejected["id"]+`","decision":"approved"}`, 200)
+	if list := needsOf(rejected["id"]); len(list) != 1 || list[0].Need != "Linternas" {
+		t.Fatalf("approved rejected point need: %+v", list)
+	}
 	admin := s.expect("POST", "/api/admin/points", `{"code":"ADM-1","needs":"Colchones"}`, 201)
 	if list := needsOf(admin["id"].(string)); len(list) != 1 || list[0].Need != "Colchones" {
 		t.Fatalf("admin point need: %+v", list)

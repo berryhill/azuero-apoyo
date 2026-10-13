@@ -99,13 +99,16 @@ test('admin stats bar: need counters filter approved points; Puntos por revisar 
   const dash = admin.slice(admin.indexOf('id="dashboard"'));
   assert.ok(dash.indexOf('id="adminStats"') < dash.indexOf('id="items"'));
   const src = admin.match(/function renderStats\(\)[^\n]*/)[0];
-  const draw = (needFilter, view, coordFilter = '') => { const els = {'#adminStats': {}, '#coordPicker': {hidden: true}}; new Function('$', 'needFilter', 'view', 'coordFilter', 'coordLabel', 'clean', 'allNeeds', 'points', `${src};renderStats()`)(s => els[s], needFilter, view, coordFilter, () => coordFilter ? 'Marta' : 'Todos', s => String(s), [{campId: 'a', status: 'OPEN'}, {campId: 'a', status: 'OPEN'}, {campId: 'a', status: 'IN_PROGRESS'}, {campId: 'a', status: 'COMPLETED'}, {campId: 'z', status: 'OPEN'}], [{id: 'p', status: 'pending'}, {id: 'a', status: 'approved'}, {id: 'z', status: 'archived'}, {id: 'y', status: 'archived'}]); return els['#adminStats'].innerHTML; };
+  const draw = (needFilter, view, coordFilter = '') => { const els = {'#adminStats': {}, '#coordPicker': {hidden: true}}; new Function('$', 'needFilter', 'view', 'coordFilter', 'coordLabel', 'clean', 'allNeeds', 'points', `${src};renderStats()`)(s => els[s], needFilter, view, coordFilter, () => coordFilter ? 'Marta' : 'Todos', s => String(s), [{campId: 'a', status: 'OPEN'}, {campId: 'a', status: 'OPEN'}, {campId: 'a', status: 'IN_PROGRESS'}, {campId: 'a', status: 'COMPLETED'}, {campId: 'z', status: 'OPEN'}], [{id: 'p', status: 'pending'}, {id: 'a', status: 'approved'}, {id: 'z', status: 'archived'}, {id: 'y', status: 'archived'}, {id: 'r', status: 'rejected'}]); return els['#adminStats'].innerHTML; };
   let html = draw('OPEN', 'approved');
   assert.match(html, /class="open active" data-stat="OPEN" aria-pressed="true"><b>2<\/b><span>Necesidades abiertas/);
   assert.match(html, /data-stat="IN_PROGRESS" aria-pressed="false"><b>1<\/b><span>Necesidades en curso/);
   assert.match(html, /data-stat="COMPLETED" aria-pressed="false"><b>1<\/b>/);
   assert.match(html, /^<button type="button" class="review urgent " data-view="pending" aria-pressed="false"><b>1<\/b><span>⚠ Puntos por revisar<\/span><\/button><button type="button" class="all /);
   assert.match(html, /class="archived " data-view="archived" aria-pressed="false"><b>2<\/b><span>Archivados/);
+  assert.match(html, /class="rejected " data-view="rejected" aria-pressed="false"><b>1<\/b><span>Duplicados/);
+  assert.match(admin, /data-decision="rejected">Duplicado<\/button>/);
+  assert.match(admin, /\$\{p\.status==='rejected'\?'duplicado':clean\(p\.status\)\}<\/span>/);
   assert.match(html, /<button type="button" class="all " data-view="approved" aria-pressed="false"><b>1<\/b><span>Puntos aprobados/);
   assert.match(html, /class="coord " data-coord-open aria-haspopup="listbox" aria-expanded="false"><b>Todos<\/b><span>Coordinador ▾/);
   html = draw('', 'archived', 'marta');
@@ -120,8 +123,11 @@ test('admin stats bar: need counters filter approved points; Puntos por revisar 
   assert.equal(press('approved', 'approved'), 'pending');
   assert.equal(press('approved', 'approved', 'OPEN'), 'approved');
   assert.equal(press('archived', 'archived'), 'approved');
+  assert.equal(press('approved', 'rejected'), 'rejected');
+  assert.equal(press('rejected', 'rejected'), 'approved');
   assert.doesNotMatch(admin, /id="(pendingTab|allTab|archivedTab|needsTab)"|Necesidades de servicio<\/button>|renderAllNeeds/);
-  assert.match(admin, /view==='archived'\?p\.status==='archived':p\.status==='approved'\)/);
+  assert.match(admin, /view==='archived'\?p\.status==='archived':view==='rejected'\?p\.status==='rejected':p\.status==='approved'\)/);
+  assert.match(admin, /p\.status==='rejected'\?`<button data-id="\$\{clean\(p\.id\)\}" data-decision="approved">Aprobar<\/button>`/);
   assert.match(admin, /data-decision="approved">Recuperar punto<\/button>/);
 });
 test('camp needs show their creation time in Spanish on admin, runner and public camp pages', () => {
@@ -246,7 +252,7 @@ test('admin map pins the current view, including por revisar and archivados, and
   const src = admin.match(/function renderMap\(rows\)\{[^\n]*/)[0];
   assert.match(src, /const located=rows\.filter\(p=>Array\.isArray\(p\.coords\)&&p\.coords\.length===2\)/);
   assert.doesNotMatch(src, /status!=='archived'/);
-  assert.match(admin, /const pinColor=\{approved:'#277a66',pending:'#e57450',archived:'#8a8f91'\}/);
+  assert.match(admin, /const pinColor=\{approved:'#277a66',pending:'#e57450',archived:'#8a8f91',rejected:'#9a4536'\}/);
   const els = {'#mapCount': {}};
   new Function('$', 'L', 'pinColor', `${src};renderMap([{status: 'archived', coords: [7.4, -80.3]}, {status: 'pending'}])`)(s => els[s], undefined, {});
   assert.match(els['#mapCount'].textContent, /^1 ubicación en mapa · 1 sin GPS \(solo en la lista\)/);

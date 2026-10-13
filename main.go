@@ -882,10 +882,12 @@ func (a *App) routes() http.Handler {
 			if (p.Status == "pending" && in.Decision != "approved" && in.Decision != "rejected") ||
 				(p.Status == "approved" && in.Decision != "archived") ||
 				(p.Status == "archived" && in.Decision != "approved") ||
-				(p.Status != "pending" && p.Status != "approved" && p.Status != "archived") {
+				(p.Status == "rejected" && in.Decision != "approved") ||
+				(p.Status != "pending" && p.Status != "approved" && p.Status != "archived" && p.Status != "rejected") {
 				return errors.New("already decided")
 			}
-			firstApproval := p.Status == "pending" && in.Decision == "approved"
+			// Rejected points were never approved, so approving one creates its need like a pending approval.
+			firstApproval := (p.Status == "pending" || p.Status == "rejected") && in.Decision == "approved"
 			p.Status = in.Decision
 			p.Decided = time.Now().UTC().Format(time.RFC3339)
 			data, _ := json.Marshal(p)
