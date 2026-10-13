@@ -58,3 +58,16 @@ test('runner top nav links to the public Agregar punto form, which opens from #a
   assert.match(runner, /<header class="top">[\s\S]*?<a class="add" href="\/#agregar">\+ Agregar punto<\/a>[\s\S]*?<\/header>/);
   assert.match(template, /location\.hash==='#agregar'[^\n]*\$\('#addBtn'\)\.click\(\)/);
 });
+test('runner map pin popup shows the full need card with ¡Yo lo llevo! like the list', () => {
+  const grab = re => runner.match(re)[0];
+  const src = [grab(/const clean=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/function needDetails[^\n]*/), grab(/function popupList[^\n]*/), grab(/function popupNeed[^\n]*/)].join('\n');
+  const make = (current, available) => new Function('current', 'followup', 'available', 'apple', `${src};return {popupNeed,popupList}`)(current, null, available, false);
+  const n = {id: 'n1', need: 'Agua <b>', urgency: 'Today', camp: {id: 'c1', code: 'C-1', area: 'Cañas', coords: [7.4, -80.3]}};
+  const html = make(null, [n]).popupNeed(n, true);
+  assert.match(html, /data-take="n1">¡Yo lo llevo!/);
+  assert.match(html, /Agua &lt;b&gt;/);
+  assert.match(html, /data-back="c1"/);
+  assert.doesNotMatch(html, /class="where"/);
+  assert.doesNotMatch(make(n, []).popupNeed(n, false), /data-take/);
+  assert.match(make(null, [n]).popupList({camp: n.camp, needs: [n]}), /class="popneed" data-need="n1"/);
+});
