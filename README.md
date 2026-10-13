@@ -14,7 +14,7 @@ Use one replica with an RWO volume. bbolt is a single-file embedded DB; do not r
 API:
 - `POST /api/submissions` JSON with the sheet fields (`code,area,place,needs,gps,people,adults,children,babies,olderAdults,disabled,notes,directions,coordinator,contact,phone,secondContact,secondPhone,thirdContact,thirdPhone,service,serviceNotes,generator,extra,row,ordinal`) → 201 `{id,status:"pending"}`. `gps` is an HTTPS Google Maps link; coordinates are derived server-side when present. No account required. Contact fields are retained for the admin view but omitted from the public API.
 - `GET /api/admin/points` → all stored points with full sheet fields, including contacts; session required. The admin page defaults to this full register and has a pending-only tab.
-- `GET /api/points` → approved submissions and seeded checkpoints (the original sheet snapshot is also bundled into index.html as fallback; the UI deduplicates by code).
+- `GET /api/points` → approved submissions and seeded checkpoints. The public map and list read only from this API; no camp data is bundled into index.html.
 - `POST /api/admin/login` JSON `{password}` → HttpOnly session cookie + JSON `{csrf}`.
 - `GET /api/admin/submissions` → pending queue; session required.
 - `POST /api/admin/seed` + session cookie + `X-CSRF-Token`: JSON array of checkpoint objects (`code,area,place,needs,people,coords,service,...`). Seeds as approved, idempotent by code; returns `{added,skipped}`. This admin-only API does not run during deployment. Do not expose private records publicly.
@@ -22,7 +22,7 @@ API:
 - `POST /api/admin/password` JSON `{password}` + session cookie + `X-CSRF-Token` → bcrypt-hashes the new password in BoltDB and invalidates all sessions. Use the masked form at `/admin.html`; do not send passwords in chat or commit them.
 - `POST /api/admin/logout` + `X-CSRF-Token`.
 
-The sheet snapshot remains static; submission approvals persist in BoltDB and refresh in browsers every 30 seconds. Data is not written back to Google Sheets. Contact names and phone numbers are available only in the authenticated admin API, not the public API or bundled HTML.
+All points, including the original sheet camps (seeded via `POST /api/admin/seed`), persist in BoltDB and refresh in browsers every 30 seconds. Data is not written back to Google Sheets. Contact names and phone numbers are available only in the authenticated admin API, not the public API.
 
 GitHub Actions runs Go tests/build, UI checks, and Helm lint/render on every push and pull request. Image publication and deployment are gated by repository variable `DEPLOY_ENABLED=true` on `main`. The repository tracks and deploys `index.html` directly; edit it for public UI changes. Its bundled historical snapshot is public, so review changes for private data. `seed.json`, CSVs, and the database remain ignored and must not be committed.
 

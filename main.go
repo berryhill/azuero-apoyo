@@ -559,9 +559,6 @@ func (a *App) routes() http.Handler {
 						return e
 					}
 					points = append(points, publicPoint(p))
-				} else if p.Status == "archived" && p.Source == "sheet" {
-					// Hide bundled snapshot rows that were archived after deployment.
-					points = append(points, Point{Code: p.Code, Source: "sheet", Status: "archived"})
 				}
 				return nil
 			})

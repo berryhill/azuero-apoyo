@@ -144,19 +144,8 @@ func TestApprovalFlow(t *testing.T) {
 	if got := archive("seed:s-1", "archived"); got.Code != 200 {
 		t.Fatalf("archive seed: %d %s", got.Code, got.Body.String())
 	}
-	got := call("GET", "/api/points", "", nil, "")
-	var visible []Point
-	if err := json.Unmarshal(got.Body.Bytes(), &visible); err != nil {
-		t.Fatal(err)
-	}
-	var tombstone Point
-	for _, p := range visible {
-		if p.Code == "S-1" {
-			tombstone = p
-		}
-	}
-	if tombstone.Status != "archived" || tombstone.Source != "sheet" || tombstone.Contact != "" || tombstone.Area != "" {
-		t.Fatalf("seed tombstone: %s", got.Body.String())
+	if got := call("GET", "/api/points", "", nil, ""); bytes.Contains(got.Body.Bytes(), []byte("S-1")) {
+		t.Fatalf("archived seed point public: %s", got.Body.String())
 	}
 	if got := call("POST", "/api/admin/seed", seed, cookie, auth["csrf"]); got.Code != 200 {
 		t.Fatalf("reseed: %d %s", got.Code, got.Body.String())
