@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -87,11 +88,12 @@ type attempt struct {
 	until time.Time
 }
 type App struct {
-	db       *bolt.DB
-	mu       sync.Mutex
-	sessions map[string]session
-	attempts map[string]attempt
-	static   string
+	db             *bolt.DB
+	mu             sync.Mutex
+	sessions       map[string]session
+	runnerSessions map[string]runnerSession
+	attempts       map[string]attempt
+	static         string
 }
 
 var submissions = []byte("submissions")
@@ -197,7 +199,7 @@ func openApp(path, static string) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{db: db, static: static, sessions: map[string]session{}, attempts: map[string]attempt{}}
+	a := &App{db: db, static: static, sessions: map[string]session{}, runnerSessions: map[string]runnerSession{}, attempts: map[string]attempt{}}
 	err = db.Update(func(tx *bolt.Tx) error {
 		if _, e := tx.CreateBucketIfNotExists(submissions); e != nil {
 			return e
@@ -792,12 +794,13 @@ func (a *App) routes() http.Handler {
 		response(w, 200, map[string]string{"status": "logged out"})
 	})
 	a.campRoutes(mux)
+	a.runnerRoutes(mux)
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		name := ""
 		switch r.URL.Path {
 		case "/", "/index.html":
 			name = "index.html"
-		case "/admin.html", "/camp.html", "/leaflet.css", "/leaflet.js":
+		case "/admin.html", "/camp.html", "/runner.html", "/leaflet.css", "/leaflet.js":
 			name = strings.TrimPrefix(r.URL.Path, "/")
 		default:
 			http.NotFound(w, r)
@@ -1064,6 +1067,286 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			return
 		}
 		response(w, 200, p)
+	})
+}
+
+// Corredores: sesión solo con nombre, separada del panel. Solo ven datos públicos del punto.
+type runnerSession struct {
+	runnerID string
+	csrf     string
+	expires  time.Time
+}
+type runnerCamp struct {
+	ID          string    `json:"id"`
+	Code        string    `json:"code"`
+	Area        string    `json:"area"`
+	Place       string    `json:"place,omitempty"`
+	Directions  string    `json:"directions,omitempty"`
+	Coordinator string    `json:"coordinator,omitempty"`
+	GPS         string    `json:"gps,omitempty"`
+	Coords      []float64 `json:"coords,omitempty"`
+}
+type runnerNeed struct {
+	ID      string     `json:"id"`
+	Need    string     `json:"need"`
+	Status  string     `json:"status"`
+	Urgency string     `json:"urgency"`
+	Camp    runnerCamp `json:"camp"`
+}
+
+var errBusy = errors.New("Ya tienes una carrera en curso. Complétala o déjala antes de tomar otra.")
+var errTaken = errors.New("Esta necesidad ya no está disponible. Otra persona la tomó o cambió de estado.")
+var errNotYours = errors.New("Esta carrera ya no está asignada a ti.")
+
+func runnerNameKey(name string) string {
+	return strings.Join(strings.Fields(strings.ToLower(name)), " ")
+}
+func runnerError(w http.ResponseWriter, err error) bool {
+	if errors.Is(err, errBusy) || errors.Is(err, errTaken) || errors.Is(err, errNotYours) {
+		fail(w, 409, err.Error())
+		return true
+	}
+	return serviceError(w, err)
+}
+func (a *App) runner(w http.ResponseWriter, r *http.Request) (runnerSession, bool) {
+	c, e := r.Cookie("runner_session")
+	if e != nil {
+		fail(w, 401, "Escribe tu nombre para continuar.")
+		return runnerSession{}, false
+	}
+	a.mu.Lock()
+	s, ok := a.runnerSessions[c.Value]
+	a.mu.Unlock()
+	if !ok || time.Now().After(s.expires) {
+		fail(w, 401, "Escribe tu nombre para continuar.")
+		return runnerSession{}, false
+	}
+	if r.Method == http.MethodPost && r.Header.Get("X-CSRF-Token") != s.csrf {
+		fail(w, 403, "CSRF token required")
+		return runnerSession{}, false
+	}
+	return s, true
+}
+func (a *App) runnerRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /api/runner/session", func(w http.ResponseWriter, r *http.Request) {
+		f, ok := decodeFields(w, r, map[string]int{"name": 120})
+		if !ok {
+			return
+		}
+		name := strings.Join(strings.Fields(fieldText(f, "name")), " ")
+		if name == "" {
+			failField(w, 400, "name", "Escribe tu nombre.")
+			return
+		}
+		var item Runner
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(runnersBucket)
+			key := runnerNameKey(name)
+			if e := b.ForEach(func(_, v []byte) error {
+				var existing Runner
+				if e := json.Unmarshal(v, &existing); e != nil {
+					return e
+				}
+				if item.ID == "" && runnerNameKey(existing.Name) == key {
+					item = existing
+				}
+				return nil
+			}); e != nil || item.ID != "" {
+				return e
+			}
+			item = Runner{ID: randomToken(), Name: name}
+			return putJSON(b, item.ID, item)
+		})
+		if serviceError(w, err) {
+			return
+		}
+		token := randomToken()
+		s := runnerSession{runnerID: item.ID, csrf: randomToken(), expires: time.Now().Add(12 * time.Hour)}
+		a.mu.Lock()
+		a.runnerSessions[token] = s
+		a.mu.Unlock()
+		http.SetCookie(w, &http.Cookie{Name: "runner_session", Value: token, Path: "/api/runner", HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteStrictMode, Expires: s.expires})
+		response(w, 200, map[string]string{"name": item.Name, "csrf": s.csrf})
+	})
+	mux.HandleFunc("GET /api/runner/session", func(w http.ResponseWriter, r *http.Request) {
+		s, ok := a.runner(w, r)
+		if !ok {
+			return
+		}
+		var item Runner
+		err := a.db.View(func(tx *bolt.Tx) error {
+			v := tx.Bucket(runnersBucket).Get([]byte(s.runnerID))
+			if v == nil {
+				return errMissing
+			}
+			return json.Unmarshal(v, &item)
+		})
+		if errors.Is(err, errMissing) {
+			fail(w, 401, "Escribe tu nombre para continuar.")
+			return
+		}
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 200, map[string]string{"name": item.Name, "csrf": s.csrf})
+	})
+	mux.HandleFunc("POST /api/runner/logout", func(w http.ResponseWriter, r *http.Request) {
+		if c, e := r.Cookie("runner_session"); e == nil {
+			a.mu.Lock()
+			delete(a.runnerSessions, c.Value)
+			a.mu.Unlock()
+		}
+		http.SetCookie(w, &http.Cookie{Name: "runner_session", Value: "", Path: "/api/runner", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+		response(w, 200, map[string]string{"status": "logged out"})
+	})
+	mux.HandleFunc("GET /api/runner/needs", func(w http.ResponseWriter, r *http.Request) {
+		s, ok := a.runner(w, r)
+		if !ok {
+			return
+		}
+		var current *runnerNeed
+		available := []runnerNeed{}
+		err := a.db.View(func(tx *bolt.Tx) error {
+			camps := map[string]runnerCamp{}
+			if e := tx.Bucket(submissions).ForEach(func(_, v []byte) error {
+				var p Point
+				if e := json.Unmarshal(v, &p); e != nil {
+					return e
+				}
+				if p.Status == "approved" {
+					p = publicPoint(p)
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords}
+				}
+				return nil
+			}); e != nil {
+				return e
+			}
+			return tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
+				var n CampNeed
+				if e := json.Unmarshal(v, &n); e != nil {
+					return e
+				}
+				camp, ok := camps[n.CampID]
+				if !ok {
+					return nil
+				}
+				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, Camp: camp}
+				if n.RunnerID == s.runnerID && n.Status == "IN_PROGRESS" {
+					current = &item
+				} else if n.Status == "OPEN" && (n.RunnerID == "" || n.RunnerID == s.runnerID) {
+					available = append(available, item)
+				}
+				return nil
+			})
+		})
+		if serviceError(w, err) {
+			return
+		}
+		rank := map[string]int{"Today": 0, "Urgent": 1, "Tomorrow": 2, "Eventually": 3}
+		sort.SliceStable(available, func(i, j int) bool {
+			if rank[available[i].Urgency] != rank[available[j].Urgency] {
+				return rank[available[i].Urgency] < rank[available[j].Urgency]
+			}
+			return available[i].Camp.Code < available[j].Camp.Code
+		})
+		response(w, 200, map[string]any{"current": current, "available": available})
+	})
+	// change aplica una transición solo si la necesidad sigue en el estado esperado.
+	change := func(w http.ResponseWriter, r *http.Request, apply func(tx *bolt.Tx, s runnerSession, n *CampNeed) error) {
+		s, ok := a.runner(w, r)
+		if !ok || !a.guard(w, r) {
+			return
+		}
+		var n CampNeed
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(needsBucket)
+			v := b.Get([]byte(r.PathValue("id")))
+			if v == nil {
+				return errTaken
+			}
+			if e := json.Unmarshal(v, &n); e != nil {
+				return e
+			}
+			if !a.campExists(tx, n.CampID) {
+				return errTaken
+			}
+			if e := apply(tx, s, &n); e != nil {
+				return e
+			}
+			return putJSON(b, n.ID, n)
+		})
+		if runnerError(w, err) {
+			return
+		}
+		response(w, 200, map[string]string{"id": n.ID, "status": n.Status})
+	}
+	mux.HandleFunc("POST /api/runner/needs/{id}/take", func(w http.ResponseWriter, r *http.Request) {
+		change(w, r, func(tx *bolt.Tx, s runnerSession, n *CampNeed) error {
+			if n.Status != "OPEN" || n.RunnerID != "" && n.RunnerID != s.runnerID {
+				return errTaken
+			}
+			busy := false
+			if e := tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
+				var other CampNeed
+				if e := json.Unmarshal(v, &other); e != nil {
+					return e
+				}
+				busy = busy || other.RunnerID == s.runnerID && other.Status == "IN_PROGRESS"
+				return nil
+			}); e != nil {
+				return e
+			}
+			if busy {
+				return errBusy
+			}
+			n.RunnerID, n.Status = s.runnerID, "IN_PROGRESS"
+			return nil
+		})
+	})
+	mux.HandleFunc("POST /api/runner/needs/{id}/complete", func(w http.ResponseWriter, r *http.Request) {
+		change(w, r, func(_ *bolt.Tx, s runnerSession, n *CampNeed) error {
+			if n.RunnerID != s.runnerID || n.Status != "IN_PROGRESS" {
+				return errNotYours
+			}
+			n.Status = "COMPLETED"
+			return nil
+		})
+	})
+	mux.HandleFunc("POST /api/runner/needs/{id}/release", func(w http.ResponseWriter, r *http.Request) {
+		change(w, r, func(_ *bolt.Tx, s runnerSession, n *CampNeed) error {
+			if n.RunnerID != s.runnerID || n.Status != "IN_PROGRESS" {
+				return errNotYours
+			}
+			n.RunnerID, n.Status = "", "OPEN"
+			return nil
+		})
+	})
+	mux.HandleFunc("POST /api/runner/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := a.runner(w, r); !ok {
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"need": 8192, "urgency": 32})
+		if !ok {
+			return
+		}
+		n := CampNeed{ID: randomToken(), CampID: r.PathValue("id"), Need: fieldText(f, "need"), Status: "OPEN", Urgency: fieldText(f, "urgency")}
+		if n.Urgency == "" {
+			n.Urgency = "Eventually"
+		}
+		if n.Need == "" || !validUrgency(n.Urgency) {
+			fail(w, 400, "Describe la necesidad y elige una urgencia válida.")
+			return
+		}
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			if !a.campExists(tx, n.CampID) {
+				return errMissing
+			}
+			return putJSON(tx.Bucket(needsBucket), n.ID, n)
+		})
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 201, map[string]string{"id": n.ID, "status": n.Status})
 	})
 }
 
