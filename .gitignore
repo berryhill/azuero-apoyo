@@ -1,5 +1,4 @@
-# Generated from relief checkpoint data; may contain sensitive locations/counts.
-/index.html
+# Generated from relief checkpoint data; review before publishing.
 *.csv
 
 # Local config, credentials, and Python artifacts.
