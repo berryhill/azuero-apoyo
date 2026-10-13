@@ -26,6 +26,7 @@ jobs:
         with:
           node-version: '22'
       - run: node --test feature_ui_test.mjs
+      - run: python3 -m unittest render_index_test.py
       - uses: azure/setup-helm@v4
         with:
           version: v3.17.3
@@ -44,12 +45,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Provide approved site snapshot
+      - name: Render current template with approved site snapshot
         env:
           INDEX_HTML_B64: ${{ secrets.INDEX_HTML_B64 }}
         run: |
           test -n "$INDEX_HTML_B64" || { echo 'Set INDEX_HTML_B64 before enabling deployment'; exit 1; }
-          printf '%s' "$INDEX_HTML_B64" | base64 --decode > index.html
+          printf '%s' "$INDEX_HTML_B64" | base64 --decode > "$RUNNER_TEMP/approved-index.html"
+          python3 render_index.py template.html "$RUNNER_TEMP/approved-index.html" index.html
           test -s index.html
           if grep -q '__CHECKPOINT_DATA__' index.html; then echo 'Snapshot is not generated'; exit 1; fi
       - uses: docker/setup-qemu-action@v3
