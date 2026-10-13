@@ -269,3 +269,22 @@ test('admin por revisar: list items and map pins share a number, and selecting e
   assert.match(admin, /else\{if\(num\)selectPending\(p\.id\);/);
   assert.match(admin, /el\.classList\.toggle\('selected',el\.dataset\.pointId===id\)/);
 });
+test('admin camp list: en ruta needs show the runner name and tap-to-call phone', () => {
+  const pick = re => admin.match(re)[0];
+  const src = [/const needLook=[^\n]*/, /const needActivity=[^\n]*/, /const runnerLine=[^\n]*/, /const requester=[^\n]*/, /const cardNeeds=[^\n]*/].map(pick).join('\n');
+  const html = new Function('clean', 'stamp', 'needTimes', 'allNeeds', 'runners', `${src};const needClass=n=>(needLook[n.status]||['deleted'])[0],needBadge=n=>'';return cardNeeds({id:'c'})`)(String, String, () => '', [
+    {campId: 'c', status: 'IN_PROGRESS', urgency: 'Today', need: 'agua', runnerId: 'r1'},
+    {campId: 'c', status: 'IN_PROGRESS', urgency: 'Today', need: 'pan'},
+    {campId: 'c', status: 'OPEN', urgency: 'Today', need: 'arroz', runnerId: 'r1'},
+  ], [{id: 'r1', name: 'Ana', telephone: '6000-1234'}]);
+  assert.match(html, /agua.*Corredor: <b>Ana<\/b> · <a href="tel:60001234">6000-1234<\/a>/);
+  assert.match(html, /pan.*Corredor: sin asignar/);
+  assert.doesNotMatch(html, /arroz[^<]*<small class="need-runner"/);
+});
+test('admin camp list: needs sort by latest activity first', () => {
+  const src = admin.match(/const needActivity=[^\n]*/)[0];
+  const needActivity = new Function(`${src};return needActivity`)();
+  const rows = [{id: 'old', createdAt: '2026-10-01T10:00:00Z'}, {id: 'taken', createdAt: '2026-09-01T10:00:00Z', updatedAt: '2026-10-12T10:00:00Z'}, {id: 'done', createdAt: '2026-09-01T10:00:00Z', completedAt: '2026-10-05T10:00:00Z'}];
+  assert.deepEqual(rows.sort((a, b) => needActivity(b) - needActivity(a)).map(n => n.id), ['taken', 'done', 'old']);
+  assert.match(admin, /\.sort\(\(a,b\)=>needActivity\(b\)-needActivity\(a\)\)/);
+});

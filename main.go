@@ -160,6 +160,8 @@ type CampNeed struct {
 	CompletedAt string `json:"completedAt,omitempty"`
 	ReleasedAt  string `json:"releasedAt,omitempty"`
 	ReleasedBy  string `json:"releasedBy,omitempty"`
+	// Última escritura de la necesidad (crear, tomar, soltar, editar, completar); ordena la actividad reciente en el panel.
+	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
 func nowStamp() string { return time.Now().UTC().Format(time.RFC3339) }
@@ -432,6 +434,11 @@ func validStatus(s string) bool {
 func validUrgency(s string) bool {
 	return s == "Today" || s == "Urgent" || s == "Tomorrow" || s == "Eventually"
 }
+func putNeed(b *bolt.Bucket, n *CampNeed) error {
+	n.UpdatedAt = nowStamp()
+	return putJSON(b, n.ID, n)
+}
+
 func putJSON(b *bolt.Bucket, key string, value any) error {
 	data, e := json.Marshal(value)
 	if e != nil {
@@ -447,7 +454,7 @@ func needFromPoint(tx *bolt.Tx, p Point) error {
 		return nil
 	}
 	n := CampNeed{ID: randomToken(), CampID: p.ID, Need: strings.TrimSpace(p.Needs), Status: "OPEN", Urgency: "Eventually", CreatedAt: nowStamp()}
-	return putJSON(tx.Bucket(needsBucket), n.ID, n)
+	return putNeed(tx.Bucket(needsBucket), &n)
 }
 func (a *App) campExists(tx *bolt.Tx, id string) bool {
 	v := tx.Bucket(submissions).Get([]byte(id))
@@ -1089,7 +1096,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			if !a.campExists(tx, n.CampID) {
 				return errMissing
 			}
-			return putJSON(tx.Bucket(needsBucket), n.ID, n)
+			return putNeed(tx.Bucket(needsBucket), &n)
 		})
 		if serviceError(w, err) {
 			return
@@ -1125,7 +1132,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			if n.RunnerID != "" && tx.Bucket(runnersBucket).Get([]byte(n.RunnerID)) == nil {
 				return errInvalid
 			}
-			return putJSON(tx.Bucket(needsBucket), n.ID, n)
+			return putNeed(tx.Bucket(needsBucket), &n)
 		})
 		if serviceError(w, err) {
 			return
@@ -1172,7 +1179,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			if n.Need == "" || !validStatus(n.Status) || !validUrgency(n.Urgency) || n.RunnerID != "" && tx.Bucket(runnersBucket).Get([]byte(n.RunnerID)) == nil {
 				return errInvalid
 			}
-			return putJSON(b, id, n)
+			return putNeed(b, &n)
 		})
 		if serviceError(w, err) {
 			return
@@ -1509,7 +1516,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			if e := apply(tx, s, &n); e != nil {
 				return e
 			}
-			return putJSON(b, n.ID, n)
+			return putNeed(b, &n)
 		})
 		if runnerError(w, err) {
 			return
@@ -1577,7 +1584,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			if !a.campExists(tx, n.CampID) {
 				return errMissing
 			}
-			return putJSON(tx.Bucket(needsBucket), n.ID, n)
+			return putNeed(tx.Bucket(needsBucket), &n)
 		})
 		if serviceError(w, err) {
 			return

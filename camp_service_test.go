@@ -170,7 +170,12 @@ func TestCampServicePatchAndNoNeeds(t *testing.T) {
 		t.Fatalf("runner edit: %v", edited)
 	}
 	n := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","urgency":"Today"}`, 201)
-	s.expect("PATCH", "/api/admin/needs/"+n["id"].(string), `{"status":"DELETED"}`, 200)
+	if n["updatedAt"] == nil || n["updatedAt"] == "" {
+		t.Fatalf("created need lacks updatedAt: %v", n)
+	}
+	if patched := s.expect("PATCH", "/api/admin/needs/"+n["id"].(string), `{"status":"DELETED"}`, 200); patched["updatedAt"] == nil || patched["updatedAt"] == "" {
+		t.Fatalf("patched need lacks updatedAt: %v", patched)
+	}
 	points = s.call("GET", "/api/points", "", false).Body.String()
 	if !strings.Contains(points, `"campStatus":"NO_NEEDS"`) || strings.Contains(points, "highestUrgency") {
 		t.Fatalf("deleted aggregate: %s", points)
