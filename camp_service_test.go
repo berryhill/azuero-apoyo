@@ -322,3 +322,30 @@ func TestNewPointNeedsBecomeOpenCampNeedOnceLive(t *testing.T) {
 		t.Fatalf("point without needs created one: %+v", list)
 	}
 }
+
+func TestArchivedPointHidesItAndItsNeedsUntilRecovered(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua archivada","urgency":"Today"}`, 201)
+	runner := s.runnerLogin("Luis")
+	visible := func() (public, runnerRaw string, needs int) {
+		_, _, runnerRaw = runner.needs()
+		return s.call("GET", "/api/points", "", false).Body.String(), runnerRaw, s.call("GET", "/api/camps/"+s.camp+"/needs", "", false).Code
+	}
+	decide := func(decision string) {
+		s.expect("POST", "/api/admin/decisions", `{"id":"`+s.camp+`","decision":"`+decision+`"}`, 200)
+	}
+	decide("archived")
+	if public, runnerRaw, needs := visible(); strings.Contains(public, "C-1") || strings.Contains(runnerRaw, "Agua archivada") || needs != 404 {
+		t.Fatalf("archived still visible: points=%s runner=%s needs=%d", public, runnerRaw, needs)
+	}
+	if w := s.call("POST", "/api/camps/"+s.camp+"/needs", `{"need":"Más","requesterName":"Eva","requesterPhone":"6555-1234"}`, false); w.Code != 404 {
+		t.Fatalf("public need on archived point: %d", w.Code)
+	}
+	if admin := s.call("GET", "/api/admin/points", "", true).Body.String(); !strings.Contains(admin, `"status":"archived"`) {
+		t.Fatalf("admin lost archived point: %s", admin)
+	}
+	decide("approved")
+	if public, runnerRaw, needs := visible(); !strings.Contains(public, "C-1") || !strings.Contains(runnerRaw, "Agua archivada") || needs != 200 {
+		t.Fatalf("recovered point not visible: points=%s runner=%s needs=%d", public, runnerRaw, needs)
+	}
+}

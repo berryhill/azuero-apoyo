@@ -21,11 +21,12 @@ test('public camp detail has a rendered service need list target', () => {
   assert.match(camp, /id="serviceNeeds"/);
 });
 const needStatusOptions = [['', 'Sin filtro de necesidades'], ['OPEN', 'Abierto'], ['IN_PROGRESS', 'En curso'], ['COMPLETED', 'Completado']];
-test('admin toolbar filters camps by service need status, not urgency', () => {
+test('admin filters camps by need status only through the stats counters, without a dropdown', () => {
   const toolbar = admin.slice(admin.indexOf('class="toolbar"'), admin.indexOf('id="mapCount"'));
-  assert.match(toolbar, /id="needFilter"/);
-  for (const [value, label] of needStatusOptions) assert.ok(toolbar.includes(`<option value="${value}">${label}</option>`), label);
+  assert.doesNotMatch(admin, /id="needFilter"|Sin filtro de necesidades/);
   assert.doesNotMatch(toolbar, /Today|Hoy/);
+  assert.match(admin, /needStatus=needFilter;/);
+  assert.match(admin, /needFilter=needFilter===b\.dataset\.stat\?'':b\.dataset\.stat;render\(\)/);
   assert.match(admin, /\/api\/admin\/needs/);
 });
 test('public map and list filter camps by service need status without an urgency filter', () => {
@@ -103,8 +104,8 @@ test('admin dashboard shows need counts by state at the top and clicking filters
   const dash = admin.slice(admin.indexOf('id="dashboard"'));
   assert.ok(dash.indexOf('id="adminStats"') < dash.indexOf('id="items"'));
   const src = admin.match(/function renderStats\(\)[^\n]*/)[0];
-  const els = {'#needFilter': {value: 'OPEN'}, '#adminStats': {}};
-  new Function('$', 'allNeeds', 'points', `${src};renderStats()`)(s => els[s], [{status: 'OPEN'}, {status: 'OPEN'}, {status: 'IN_PROGRESS'}, {status: 'COMPLETED'}], [{status: 'pending'}, {status: 'approved'}]);
+  const els = {'#adminStats': {}};
+  new Function('$', 'needFilter', 'allNeeds', 'points', `${src};renderStats()`)(s => els[s], 'OPEN', [{campId: 'a', status: 'OPEN'}, {campId: 'a', status: 'OPEN'}, {campId: 'a', status: 'IN_PROGRESS'}, {campId: 'a', status: 'COMPLETED'}, {campId: 'z', status: 'OPEN'}], [{id: 'p', status: 'pending'}, {id: 'a', status: 'approved'}, {id: 'z', status: 'archived'}]);
   const html = els['#adminStats'].innerHTML;
   assert.match(html, /class="open active" data-stat="OPEN" aria-pressed="true"><b>2<\/b><span>Necesidades abiertas/);
   assert.match(html, /data-stat="IN_PROGRESS" aria-pressed="false"><b>1<\/b><span>Necesidades en curso/);
@@ -125,4 +126,22 @@ test('runner need card lists the camp contact phones as tap-to-call links', () =
   const html = needDetails({id: 'n', need: 'Agua', urgency: 'Today', camp: {id: 'c', code: 'C-1', contacts: [{name: 'Ana', phone: '6555-1234'}, {phone: '+507 6000 0000'}]}});
   assert.match(html, /Contactos del punto:<\/b> Ana · <a href="tel:65551234">6555-1234<\/a> · <a href="tel:\+50760000000">\+507 6000 0000<\/a>/);
   assert.match(needDetails({id: 'n', need: 'Agua', urgency: 'Today', camp: {id: 'c', code: 'C-1'}}), /sin teléfono registrado/);
+});
+test('admin has an Archivados tab with Recuperar punto; Todos hides archived points', () => {
+  assert.match(admin, /<button id="archivedTab">Archivados<\/button>/);
+  assert.match(admin, /view==='archived'\?p\.status==='archived':p\.status!=='rejected'&&p\.status!=='archived'/);
+  assert.match(admin, /data-decision="approved">Recuperar punto<\/button>/);
+});
+test('admin header holds Agregar punto and boletín actions, shown only when logged in', () => {
+  const header = admin.slice(admin.indexOf('<header>'), admin.indexOf('</header>'));
+  for (const re of [/id="topActions" hidden/, /id="addPoint">\+ Agregar punto</, /id="boletinToggle">Generar boletín</, /href="\/report\/boletin_general\.html"/]) assert.match(header, re);
+  const dash = admin.slice(admin.indexOf('id="dashboard"'));
+  assert.doesNotMatch(dash, /id="addPoint"|id="boletinToggle"/);
+  assert.match(admin, /\$\('#dashboard'\)\.hidden=\$\('#topActions'\)\.hidden=false/);
+});
+test('admin Agregar punto form keeps a Cancelar button that hides and clears it', () => {
+  const tpl = template.slice(template.indexOf('id="form"'), template.indexOf('</form>', template.indexOf('id="form"')));
+  assert.match(tpl, /<button class="secondary" type="button" id="cancel">Cancelar<\/button>/);
+  assert.match(admin, /const cancel=form\.querySelector\('#cancel'\);cancel\.id='pointCancel';[^\n]*cancel\.onclick=\(\)=>\{form\.reset\(\);\$\('#pointMessage'\)\.textContent='';panel\.hidden=true\}/);
+  assert.match(admin, /form\.querySelector\('#phoneHint'\)\?\.remove\(\)/);
 });
