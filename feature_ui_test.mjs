@@ -45,3 +45,11 @@ test('public list has a Verifica GPS box that drops a distinct temporary pin fro
   assert.equal(coordsFromMapLink('https://maps.app.goo.gl/abc'), null);
   assert.match(template, /className:'verifyicon'/);
 });
+test('public map has an opt-in "my location" control with a distinct person pin kept in the browser', () => {
+  assert.match(template, /id='locateBtn'|b\.id='locateBtn'/);
+  assert.match(template, /L\.DomEvent\.on\(b,'click',locateUser\)/);
+  assert.match(template, /className:'usericon'/);
+  const src = template.match(/function locateUser\(\)[^\n]*/)[0];
+  assert.match(src, /navigator\.geolocation\.watchPosition/);
+  assert.doesNotMatch(src, /fetch\(/);
+});
