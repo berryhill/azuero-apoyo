@@ -349,3 +349,77 @@ func TestArchivedPointHidesItAndItsNeedsUntilRecovered(t *testing.T) {
 		t.Fatalf("recovered point not visible: points=%s runner=%s needs=%d", public, runnerRaw, needs)
 	}
 }
+
+func TestPointMembersStayPrivateFillContactsAndIgnorePublicAdminFields(t *testing.T) {
+	s := newServiceHarness(t)
+	members := `[{"name":" Ana  Ruiz ","cedula":"8-123-456","age":"34"},{},{"name":"Luis"},{"name":"Rosa","cedula":"8-9-9","phone":"6555-1234"}]`
+	body := `{"area":"Cañas","needs":"Agua","code":"MINE","service":"YES","serviceNotes":"x","notes":"y","ordinal":"3","row":"9","members":` + members + `}`
+	w := s.call("POST", "/api/submissions", body, false)
+	if w.Code != 201 {
+		t.Fatalf("submit (phone on 3rd non-empty person): %d %s", w.Code, w.Body.String())
+	}
+	var created map[string]string
+	json.Unmarshal(w.Body.Bytes(), &created)
+	var pts []Point
+	json.Unmarshal(s.call("GET", "/api/admin/points", "", true).Body.Bytes(), &pts)
+	var p Point
+	for _, x := range pts {
+		if x.ID == created["id"] {
+			p = x
+		}
+	}
+	if len(p.Members) != 3 || p.Members[0].Name != "Ana Ruiz" || p.Members[0].Cedula != "8-123-456" || p.Contact != "Ana Ruiz" || p.SecondContact != "Luis" || p.ThirdContact != "Rosa" || p.ThirdPhone != "6555-1234" {
+		t.Fatalf("members/contacts: %+v", p)
+	}
+	if p.Code == "MINE" || p.Service != "" || p.ServiceNotes != "" || p.Notes != "" || p.Ordinal != "" || p.Row != "" {
+		t.Fatalf("public submission set admin-only fields: %+v", p)
+	}
+	if w := s.call("POST", "/api/submissions", `{"needs":"Agua","members":[{"name":"Sin teléfono"}]}`, false); w.Code != 400 || !strings.Contains(w.Body.String(), `"field":"phone"`) {
+		t.Fatalf("members without phone: %d %s", w.Code, w.Body.String())
+	}
+	many := "[" + strings.TrimSuffix(strings.Repeat(`{"phone":"6555-1234"},`, 51), ",") + "]"
+	if w := s.call("POST", "/api/submissions", `{"members":`+many+`}`, false); w.Code != 400 || !strings.Contains(w.Body.String(), `"field":"members"`) {
+		t.Fatalf("too many members: %d %s", w.Code, w.Body.String())
+	}
+	s.expect("POST", "/api/admin/decisions", `{"id":"`+created["id"]+`","decision":"approved"}`, 200)
+	if public := s.call("GET", "/api/points", "", false).Body.String(); strings.Contains(public, "8-123-456") || strings.Contains(public, "members") || strings.Contains(public, "6555-1234") {
+		t.Fatalf("public points leak members: %s", public)
+	}
+	edited := s.expect("PATCH", "/api/admin/camps/"+created["id"], `{"members":[{"name":"Eva","age":"50","phone":"6000-1111"},{"name":"Pedro","phone":"6000-2222"},{"name":"Juan","phone":"6000-3333"},{"name":"Cuarta","phone":"6000-4444"}]}`, 200)
+	if edited["contact"] != "Eva" || edited["thirdPhone"] != "6000-3333" || len(edited["members"].([]any)) != 4 {
+		t.Fatalf("patch members: %v", edited)
+	}
+	_, _, raw := s.runnerLogin("Luis").needs()
+	if !strings.Contains(raw, `{"name":"Cuarta","phone":"6000-4444"}`) || strings.Contains(raw, "cedula") || strings.Contains(raw, `"age"`) {
+		t.Fatalf("runner contacts should list every person's phone without cédula/edad: %s", raw)
+	}
+}
+
+func TestPublicFormFormatsAndPrivateCoordinatorPhone(t *testing.T) {
+	s := newServiceHarness(t)
+	for body, field := range map[string]string{
+		`{"coordinatorPhone":"6555-1234","adults":"diez"}`:                            "adults",
+		`{"coordinatorPhone":"6555-1234","people":"1000"}`:                            "people",
+		`{"coordinatorPhone":"llamar a Ana"}`:                                         "coordinatorPhone",
+		`{"coordinatorPhone":"6555-1234","members":[{"name":"Eva","age":"treinta"}]}`: "members",
+		`{"members":[{"name":"Eva","phone":"6555-1234 Ana"}]}`:                        "members",
+	} {
+		if w := s.call("POST", "/api/submissions", body, false); w.Code != 400 || !strings.Contains(w.Body.String(), `"field":"`+field+`"`) {
+			t.Fatalf("%s: %d %s", body, w.Code, w.Body.String())
+		}
+	}
+	w := s.call("POST", "/api/submissions", `{"coordinator":"Marta","coordinatorPhone":"6555-9999","people":"12","adults":"8","needs":"Agua, Kit de bebé"}`, false)
+	if w.Code != 201 {
+		t.Fatalf("coordinator phone alone should satisfy the phone rule: %d %s", w.Code, w.Body.String())
+	}
+	var created map[string]string
+	json.Unmarshal(w.Body.Bytes(), &created)
+	s.expect("POST", "/api/admin/decisions", `{"id":"`+created["id"]+`","decision":"approved"}`, 200)
+	if public := s.call("GET", "/api/points", "", false).Body.String(); !strings.Contains(public, `"coordinator":"Marta"`) || strings.Contains(public, "6555-9999") {
+		t.Fatalf("coordinator name public, phone private: %s", public)
+	}
+	_, _, raw := s.runnerLogin("Luis").needs()
+	if !strings.Contains(raw, `{"name":"Marta (coordinador)","phone":"6555-9999"}`) {
+		t.Fatalf("runner should see coordinator phone: %s", raw)
+	}
+}

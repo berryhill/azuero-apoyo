@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -24,42 +25,119 @@ import (
 )
 
 type Point struct {
-	ID             string    `json:"id"`
-	Source         string    `json:"source,omitempty"`
-	Service        string    `json:"service,omitempty"`
-	ServiceNotes   string    `json:"serviceNotes,omitempty"`
-	Children       string    `json:"children,omitempty"`
-	Babies         string    `json:"babies,omitempty"`
-	Notes          string    `json:"notes,omitempty"`
-	Directions     string    `json:"directions,omitempty"`
-	Extra          string    `json:"extra,omitempty"`
-	GPS            string    `json:"gps,omitempty"`
-	Row            string    `json:"row,omitempty"`
-	Ordinal        string    `json:"ordinal,omitempty"`
-	Coordinator    string    `json:"coordinator,omitempty"`
-	Contact        string    `json:"contact,omitempty"`
-	Phone          string    `json:"phone,omitempty"`
-	Adults         string    `json:"adults,omitempty"`
-	OlderAdults    string    `json:"olderAdults,omitempty"`
-	Disabled       string    `json:"disabled,omitempty"`
-	SecondContact  string    `json:"secondContact,omitempty"`
-	SecondPhone    string    `json:"secondPhone,omitempty"`
-	ThirdContact   string    `json:"thirdContact,omitempty"`
-	ThirdPhone     string    `json:"thirdPhone,omitempty"`
-	Generator      string    `json:"generator,omitempty"`
-	Code           string    `json:"code"`
-	Area           string    `json:"area"`
-	Place          string    `json:"place"`
-	Needs          string    `json:"needs"`
-	People         string    `json:"people"`
-	Coords         []float64 `json:"coords"`
-	Created        string    `json:"created"`
-	Status         string    `json:"status"`
-	Decided        string    `json:"decided,omitempty"`
-	Note           string    `json:"note,omitempty"`
-	CampStatus     string    `json:"campStatus,omitempty"`
-	HighestUrgency string    `json:"highestUrgency,omitempty"`
-	NeedStatuses   []string  `json:"needStatuses,omitempty"`
+	ID           string `json:"id"`
+	Source       string `json:"source,omitempty"`
+	Service      string `json:"service,omitempty"`
+	ServiceNotes string `json:"serviceNotes,omitempty"`
+	Children     string `json:"children,omitempty"`
+	Babies       string `json:"babies,omitempty"`
+	Notes        string `json:"notes,omitempty"`
+	Directions   string `json:"directions,omitempty"`
+	Extra        string `json:"extra,omitempty"`
+	GPS          string `json:"gps,omitempty"`
+	Row          string `json:"row,omitempty"`
+	Ordinal      string `json:"ordinal,omitempty"`
+	Coordinator  string `json:"coordinator,omitempty"`
+	// Teléfono del coordinador: privado como los demás contactos.
+	CoordinatorPhone string    `json:"coordinatorPhone,omitempty"`
+	Contact          string    `json:"contact,omitempty"`
+	Phone            string    `json:"phone,omitempty"`
+	Adults           string    `json:"adults,omitempty"`
+	OlderAdults      string    `json:"olderAdults,omitempty"`
+	Disabled         string    `json:"disabled,omitempty"`
+	SecondContact    string    `json:"secondContact,omitempty"`
+	SecondPhone      string    `json:"secondPhone,omitempty"`
+	ThirdContact     string    `json:"thirdContact,omitempty"`
+	ThirdPhone       string    `json:"thirdPhone,omitempty"`
+	Generator        string    `json:"generator,omitempty"`
+	Code             string    `json:"code"`
+	Area             string    `json:"area"`
+	Place            string    `json:"place"`
+	Needs            string    `json:"needs"`
+	People           string    `json:"people"`
+	Coords           []float64 `json:"coords"`
+	Created          string    `json:"created"`
+	Status           string    `json:"status"`
+	Decided          string    `json:"decided,omitempty"`
+	Note             string    `json:"note,omitempty"`
+	CampStatus       string    `json:"campStatus,omitempty"`
+	HighestUrgency   string    `json:"highestUrgency,omitempty"`
+	NeedStatuses     []string  `json:"needStatuses,omitempty"`
+	// Personas del grupo; privadas (cédula y edad nunca salen del panel).
+	Members []Member `json:"members,omitempty"`
+}
+
+type Member struct {
+	Name   string `json:"name,omitempty"`
+	Cedula string `json:"cedula,omitempty"`
+	Age    string `json:"age,omitempty"`
+	Phone  string `json:"phone,omitempty"`
+}
+
+// normalizeMembers limpia la lista de personas y, si se envió, copia las tres primeras a los
+// campos de contacto que usan el panel, los corredores y la validación de teléfono.
+func normalizeMembers(p *Point) error {
+	if p.Members == nil {
+		return nil
+	}
+	list := []Member{}
+	for _, m := range p.Members {
+		m = Member{Name: strings.Join(strings.Fields(m.Name), " "), Cedula: strings.TrimSpace(m.Cedula), Age: strings.TrimSpace(m.Age), Phone: strings.TrimSpace(m.Phone)}
+		if m == (Member{}) {
+			continue
+		}
+		if len(m.Name) > 120 || len(m.Cedula) > 30 || len(m.Age) > 10 || len(m.Phone) > 40 {
+			return errors.New("Datos de persona demasiado largos.")
+		}
+		list = append(list, m)
+	}
+	if len(list) > 50 {
+		return errors.New("Máximo 50 personas por punto.")
+	}
+	p.Members = list
+	pairs := [][2]*string{{&p.Contact, &p.Phone}, {&p.SecondContact, &p.SecondPhone}, {&p.ThirdContact, &p.ThirdPhone}}
+	for i, pair := range pairs {
+		*pair[0], *pair[1] = "", ""
+		if i < len(list) {
+			*pair[0], *pair[1] = list[i].Name, list[i].Phone
+		}
+	}
+	return nil
+}
+
+var countPattern = regexp.MustCompile(`^\d{0,3}$`)
+var phonePattern = regexp.MustCompile(`^[\d+\-\s()]*$`)
+
+// publicFormatError valida lo que el formulario público ya restringe: conteos y edades de 0 a 999 y teléfonos solo con números.
+func publicFormatError(p Point) (string, string) {
+	for field, v := range map[string]string{"people": p.People, "adults": p.Adults, "children": p.Children, "babies": p.Babies, "olderAdults": p.OlderAdults, "disabled": p.Disabled} {
+		if !countPattern.MatchString(strings.TrimSpace(v)) {
+			return field, "Escribe solo números del 0 al 999."
+		}
+	}
+	if !phonePattern.MatchString(p.CoordinatorPhone) {
+		return "coordinatorPhone", "El teléfono solo puede tener números."
+	}
+	for _, m := range p.Members {
+		if !countPattern.MatchString(m.Age) {
+			return "members", "La edad debe ser un número."
+		}
+		if !phonePattern.MatchString(m.Phone) {
+			return "members", "El teléfono solo puede tener números."
+		}
+	}
+	return "", ""
+}
+func hasValidPhone(p Point) bool {
+	if validPhone(p.CoordinatorPhone) || validPhone(p.Phone) || validPhone(p.SecondPhone) || validPhone(p.ThirdPhone) {
+		return true
+	}
+	for _, m := range p.Members {
+		if validPhone(m.Phone) {
+			return true
+		}
+	}
+	return false
 }
 
 type Runner struct {
@@ -159,6 +237,8 @@ func parseMapLink(link string) ([]float64, error) {
 	return []float64{lat, lon}, nil
 }
 func publicPoint(p Point) Point {
+	p.Members = nil
+	p.CoordinatorPhone = ""
 	p.Note = ""
 	p.Contact = ""
 	p.Phone = ""
@@ -527,7 +607,19 @@ func (a *App) routes() http.Handler {
 			failField(w, 400, "coords", "Coordenadas fuera de Azuero o incompletas. Omite coords si no tienes ubicación.")
 			return
 		}
-		if !reviewed && !validPhone(p.Phone) && !validPhone(p.SecondPhone) && !validPhone(p.ThirdPhone) {
+		if err := normalizeMembers(&p); err != nil {
+			failField(w, 400, "members", err.Error())
+			return
+		}
+		if !reviewed {
+			if field, msg := publicFormatError(p); field != "" {
+				failField(w, 400, field, msg)
+				return
+			}
+			// Campos internos: solo administración los llena.
+			p.Code, p.Row, p.Ordinal, p.Service, p.ServiceNotes, p.Notes, p.Note = "", "", "", "", "", "", ""
+		}
+		if !reviewed && !hasValidPhone(p) {
 			failField(w, 400, "phone", "Agrega al menos un teléfono de contacto (7 dígitos o más).")
 			return
 		}
@@ -847,7 +939,7 @@ func (a *App) routes() http.Handler {
 		switch r.URL.Path {
 		case "/", "/index.html":
 			name = "index.html"
-		case "/admin.html", "/camp.html", "/runner.html", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
+		case "/admin.html", "/camp.html", "/runner.html", "/pointform.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
 			name = strings.TrimPrefix(r.URL.Path, "/")
 		default:
 			http.NotFound(w, r)
@@ -1091,7 +1183,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		if !a.adminWrite(w, r) {
 			return
 		}
-		allowed := map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": 8192, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "needStatuses": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200}
+		allowed := map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": 8192, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "needStatuses": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200, "members": 0, "coordinatorPhone": 40}
 		f, ok := decodeFields(w, r, allowed)
 		if !ok {
 			return
@@ -1143,7 +1235,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			}
 			p.Code = strings.TrimSpace(p.Code)
 			p.Area = strings.TrimSpace(p.Area)
-			if p.Code == "" || p.Area == "" {
+			if p.Code == "" || p.Area == "" || normalizeMembers(&p) != nil {
 				return errInvalid
 			}
 			if _, yes := f["gps"]; yes {
@@ -1190,6 +1282,21 @@ type runnerContact struct {
 
 func campContacts(p Point) []runnerContact {
 	list := []runnerContact{}
+	if phone := strings.TrimSpace(p.CoordinatorPhone); phone != "" {
+		name := "Coordinador"
+		if p.Coordinator != "" {
+			name = p.Coordinator + " (coordinador)"
+		}
+		list = append(list, runnerContact{Name: name, Phone: phone})
+	}
+	if len(p.Members) > 0 {
+		for _, m := range p.Members {
+			if phone := strings.TrimSpace(m.Phone); phone != "" {
+				list = append(list, runnerContact{Name: m.Name, Phone: phone})
+			}
+		}
+		return list
+	}
 	for _, c := range [][2]string{{p.Contact, p.Phone}, {p.SecondContact, p.SecondPhone}, {p.ThirdContact, p.ThirdPhone}} {
 		if phone := strings.TrimSpace(c[1]); phone != "" {
 			list = append(list, runnerContact{Name: strings.TrimSpace(c[0]), Phone: phone})
@@ -1520,13 +1627,38 @@ func attendedService(s string) bool {
 	}
 	return false
 }
+
+// Código que el panel pide en cada acción de boletín (ver o generar), además de la sesión de administrador.
+const boletinAccessCode = "PRINT5"
+
+func validBoletinCode(code string) bool {
+	return subtle.ConstantTimeCompare([]byte(strings.ToUpper(strings.TrimSpace(code))), []byte(boletinAccessCode)) == 1
+}
 func (a *App) boletinRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /api/admin/boletin-access", func(w http.ResponseWriter, r *http.Request) {
+		if !a.adminWrite(w, r) {
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"code": 40})
+		if !ok {
+			return
+		}
+		if !validBoletinCode(fieldText(f, "code")) {
+			failField(w, 403, "code", "Código de acceso incorrecto.")
+			return
+		}
+		response(w, 200, map[string]string{"status": "ok"})
+	})
 	mux.HandleFunc("POST /api/admin/boletines", func(w http.ResponseWriter, r *http.Request) {
 		if !a.adminWrite(w, r) {
 			return
 		}
-		f, ok := decodeFields(w, r, map[string]int{"donor": 2000})
+		f, ok := decodeFields(w, r, map[string]int{"donor": 2000, "accessCode": 40})
 		if !ok {
+			return
+		}
+		if !validBoletinCode(fieldText(f, "accessCode")) {
+			failField(w, 403, "accessCode", "Código de acceso incorrecto.")
 			return
 		}
 		b := Boletin{Cut: nowStamp(), Donor: fieldText(f, "donor"), Points: []BoletinPoint{}}

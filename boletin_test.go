@@ -16,11 +16,23 @@ func TestBoletinSnapshotIsAdminOnlyAndPublicSafe(t *testing.T) {
 	if w := s.call("GET", "/api/boletines/latest", "", false); w.Code != 404 {
 		t.Fatalf("no boletín yet: %d", w.Code)
 	}
-	first := s.expect("POST", "/api/admin/boletines", `{"donor":"No enviar más tanques."}`, 201)
+	for _, body := range []string{`{}`, `{"accessCode":"PRINT4"}`} {
+		if w := s.call("POST", "/api/admin/boletines", body, true); w.Code != 403 || !strings.Contains(w.Body.String(), "Código de acceso incorrecto") {
+			t.Fatalf("boletín without valid code %s: %d %s", body, w.Code, w.Body.String())
+		}
+	}
+	if w := s.call("POST", "/api/admin/boletin-access", `{"code":"nope"}`, true); w.Code != 403 {
+		t.Fatalf("wrong access code: %d", w.Code)
+	}
+	if w := s.call("POST", "/api/admin/boletin-access", `{"code":" print5 "}`, false); w.Code != 401 {
+		t.Fatalf("access check must require admin session: %d", w.Code)
+	}
+	s.expect("POST", "/api/admin/boletin-access", `{"code":" print5 "}`, 200)
+	first := s.expect("POST", "/api/admin/boletines", `{"donor":"No enviar más tanques.","accessCode":"PRINT5"}`, 201)
 	if first["n"].(float64) != 1 {
 		t.Fatalf("first: %v", first)
 	}
-	s.expect("POST", "/api/admin/boletines", `{}`, 201)
+	s.expect("POST", "/api/admin/boletines", `{"accessCode":"PRINT5"}`, 201)
 	w := s.call("GET", "/api/boletines/1", "", false)
 	body := w.Body.String()
 	if w.Code != 200 || strings.Contains(body, "6555-1234") || strings.Contains(body, "6777-0000") || strings.Contains(body, "Private camp") || strings.Contains(body, "Otra persona") || !strings.Contains(body, "No enviar más tanques.") {
