@@ -53,6 +53,10 @@ test('admin needs tab filters individual needs and links only approved camps to 
   assert.match(admin, /tabsWithNeeds=\{pending:'#pendingTab',all:'#allTab',needs:'#needsTab',archived:'#archivedTab'\}/);
   assert.doesNotMatch(admin, /'#changePassword'|\$\('#needFilter'\)/);
 });
+test('admin header CTA opens and scrolls to the needs list, including from a camp detail', () => {
+  assert.match(admin, /\$\('#topActions'\)\.insertAdjacentHTML\('beforeend','<button id="topNeeds" type="button">Ver necesidades de servicio<\/button>'\)/);
+  assert.match(admin, /\$\('#topNeeds'\)\.onclick=\(\)=>\{if\(\$\('#dashboard'\)\.classList\.contains\('camp-mode'\)\)closeEditor\(\);\$\('#needsTab'\)\.click\(\);\$\('#allNeedList'\)\.scrollIntoView/);
+});
 test('public map and list filter camps by service need status without an urgency filter', () => {
   for (const id of ['mapCampStatus', 'listCampStatus']) {
     const start = template.indexOf(`id="${id}"`);
