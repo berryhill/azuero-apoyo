@@ -87,3 +87,28 @@ test('Agregar punto blocks submit until any one of the three contact phones has 
   assert.match(template, /\['phone','secondPhone','thirdPhone'\]\.some\(n=>validPhone\(v\(n\)\)\)/);
   assert.match(template, /id="phoneHint"/);
 });
+test('selected point offers Reportar necesidad with required requester name and phone', () => {
+  assert.match(template, /\$\{r\.id\?'<button type="button" class="add reportneed" id="reportNeed">\+ Reportar necesidad<\/button>':''\}/);
+  const form = template.slice(template.indexOf('id="needForm"'), template.indexOf('</form>', template.indexOf('id="needForm"')));
+  assert.match(form, /<textarea name="need" required/);
+  assert.match(form, /<input name="requesterName" required/);
+  assert.match(form, /<input name="requesterPhone" type="tel"[^>]* required/);
+  assert.match(template, /fetch\('\/api\/camps\/'\+encodeURIComponent\(needCamp\.id\)\+'\/needs'/);
+  assert.match(template, /!validPhone\(v\('requesterPhone'\)\)/);
+  assert.match(camp, /Reportado por \$\{clean\(n\.requesterName\)\}/);
+  assert.match(admin, /Reportado por \$\{clean\(n\.requesterName\)\}/);
+  assert.match(runner, /Reportado por:<\/b> \$\{clean\(n\.requesterName\)\}/);
+});
+test('admin dashboard shows need counts by state at the top and clicking filters the list', () => {
+  const dash = admin.slice(admin.indexOf('id="dashboard"'));
+  assert.ok(dash.indexOf('id="adminStats"') < dash.indexOf('id="items"'));
+  const src = admin.match(/function renderStats\(\)[^\n]*/)[0];
+  const els = {'#needFilter': {value: 'OPEN'}, '#adminStats': {}};
+  new Function('$', 'allNeeds', 'points', `${src};renderStats()`)(s => els[s], [{status: 'OPEN'}, {status: 'OPEN'}, {status: 'IN_PROGRESS'}, {status: 'COMPLETED'}], [{status: 'pending'}, {status: 'approved'}]);
+  const html = els['#adminStats'].innerHTML;
+  assert.match(html, /class="open active" data-stat="OPEN" aria-pressed="true"><b>2<\/b><span>Necesidades abiertas/);
+  assert.match(html, /data-stat="IN_PROGRESS" aria-pressed="false"><b>1<\/b><span>Necesidades en curso/);
+  assert.match(html, /data-stat="COMPLETED" aria-pressed="false"><b>1<\/b>/);
+  assert.match(html, /data-stat="pending"><b>1<\/b><span>Puntos por revisar/);
+  assert.match(admin, /\$\('#pendingTab'\)\.click\(\)/);
+});

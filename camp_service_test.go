@@ -256,3 +256,33 @@ func TestPublicPointsListNeedStatuses(t *testing.T) {
 		t.Fatalf("read-only: %d %s", w.Code, w.Body.String())
 	}
 }
+
+func TestPublicNeedReportRequiresRequesterAndOpensImmediately(t *testing.T) {
+	s := newServiceHarness(t)
+	path := "/api/camps/" + s.camp + "/needs"
+	for body, field := range map[string]string{
+		`{"requesterName":"Eva","requesterPhone":"6555-1234"}`:                              "need",
+		`{"need":"Agua","requesterPhone":"6555-1234"}`:                                      "requesterName",
+		`{"need":"Agua","requesterName":"Eva"}`:                                             "requesterPhone",
+		`{"need":"Agua","requesterName":"Eva","requesterPhone":"12-34"}`:                    "requesterPhone",
+		`{"need":"Agua","requesterName":"Eva","requesterPhone":"6555-1234","urgency":"Ya"}`: "urgency",
+	} {
+		if w := s.call("POST", path, body, false); w.Code != 400 || !strings.Contains(w.Body.String(), `"field":"`+field+`"`) {
+			t.Fatalf("%s: %d %s", body, w.Code, w.Body.String())
+		}
+	}
+	if w := s.call("POST", "/api/camps/missing/needs", `{"need":"Agua","requesterName":"Eva","requesterPhone":"6555-1234"}`, false); w.Code != 404 {
+		t.Fatalf("unknown camp: %d", w.Code)
+	}
+	if w := s.call("POST", path, `{"need":"Agua potable","urgency":"Today","requesterName":" Eva  Ruiz ","requesterPhone":"6555-1234"}`, false); w.Code != 201 || !strings.Contains(w.Body.String(), `"status":"OPEN"`) {
+		t.Fatalf("report: %d %s", w.Code, w.Body.String())
+	}
+	public := s.call("GET", path, "", false).Body.String()
+	if !strings.Contains(public, `"need":"Agua potable"`) || !strings.Contains(public, `"requesterName":"Eva Ruiz"`) || !strings.Contains(public, `"requesterPhone":"6555-1234"`) {
+		t.Fatalf("public list: %s", public)
+	}
+	runner := s.runnerLogin("Luis")
+	if _, available, raw := runner.needs(); len(available) != 1 || !strings.Contains(raw, `"requesterPhone":"6555-1234"`) {
+		t.Fatalf("runner list: %s", raw)
+	}
+}

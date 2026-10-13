@@ -74,6 +74,9 @@ type CampNeed struct {
 	Status   string `json:"status"`
 	Urgency  string `json:"urgency"`
 	RunnerID string `json:"runnerId,omitempty"`
+	// Quien reportó la necesidad desde la página pública; visible para todos por decisión del equipo.
+	RequesterName  string `json:"requesterName,omitempty"`
+	RequesterPhone string `json:"requesterPhone,omitempty"`
 	// Marcas de tiempo UTC fijadas por el servidor; el navegador las muestra en hora local.
 	CreatedAt   string `json:"createdAt,omitempty"`
 	CompletedAt string `json:"completedAt,omitempty"`
@@ -946,6 +949,44 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		response(w, 200, list)
 	})
 	mux.HandleFunc("GET /api/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) { a.listNeeds(w, r.PathValue("id"), true) })
+	mux.HandleFunc("POST /api/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
+		if !a.guard(w, r) {
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"need": 8192, "urgency": 32, "requesterName": 120, "requesterPhone": 40})
+		if !ok {
+			return
+		}
+		n := CampNeed{ID: randomToken(), CampID: r.PathValue("id"), Need: fieldText(f, "need"), Status: "OPEN", Urgency: fieldText(f, "urgency"), CreatedAt: nowStamp(),
+			RequesterName: strings.Join(strings.Fields(fieldText(f, "requesterName")), " "), RequesterPhone: strings.Join(strings.Fields(fieldText(f, "requesterPhone")), " ")}
+		if n.Urgency == "" {
+			n.Urgency = "Eventually"
+		}
+		switch {
+		case n.Need == "":
+			failField(w, 400, "need", "Describe la necesidad.")
+			return
+		case !validUrgency(n.Urgency):
+			failField(w, 400, "urgency", "Elige una urgencia válida.")
+			return
+		case n.RequesterName == "":
+			failField(w, 400, "requesterName", "Escribe tu nombre.")
+			return
+		case !validPhone(n.RequesterPhone):
+			failField(w, 400, "requesterPhone", "Escribe tu número de teléfono (7 dígitos o más).")
+			return
+		}
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			if !a.campExists(tx, n.CampID) {
+				return errMissing
+			}
+			return putJSON(tx.Bucket(needsBucket), n.ID, n)
+		})
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 201, map[string]string{"id": n.ID, "status": n.Status})
+	})
 	mux.HandleFunc("POST /api/admin/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
 		if !a.adminWrite(w, r) {
 			return
@@ -1124,11 +1165,13 @@ type runnerCamp struct {
 	Coords      []float64 `json:"coords,omitempty"`
 }
 type runnerNeed struct {
-	ID      string     `json:"id"`
-	Need    string     `json:"need"`
-	Status  string     `json:"status"`
-	Urgency string     `json:"urgency"`
-	Camp    runnerCamp `json:"camp"`
+	ID             string     `json:"id"`
+	Need           string     `json:"need"`
+	Status         string     `json:"status"`
+	Urgency        string     `json:"urgency"`
+	RequesterName  string     `json:"requesterName,omitempty"`
+	RequesterPhone string     `json:"requesterPhone,omitempty"`
+	Camp           runnerCamp `json:"camp"`
 }
 
 var errBusy = errors.New("Ya tienes una carrera en curso. Complétala o déjala antes de tomar otra.")
@@ -1280,7 +1323,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 				if !ok {
 					return nil
 				}
-				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, Camp: camp}
+				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, Camp: camp}
 				if n.RunnerID == s.runnerID && n.Status == "IN_PROGRESS" {
 					current = &item
 				} else if n.Status == "OPEN" && (n.RunnerID == "" || n.RunnerID == s.runnerID) {
