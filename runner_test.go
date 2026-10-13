@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	bolt "go.etcd.io/bbolt"
 )
 
 type runnerClient struct {
@@ -15,7 +17,7 @@ type runnerClient struct {
 
 func (s *serviceHarness) runnerLogin(name string) *runnerClient {
 	s.t.Helper()
-	w := s.call("POST", "/api/runner/session", `{"name":"`+name+`"}`, false)
+	w := s.call("POST", "/api/runner/session", `{"name":"`+name+`","telephone":"6000-0000"}`, false)
 	if w.Code != 200 {
 		s.t.Fatalf("runner login: %d %s", w.Code, w.Body.String())
 	}
@@ -51,11 +53,16 @@ func TestRunnerSessionReusesRunnerByName(t *testing.T) {
 	}
 	s.runnerLogin("Luis")
 	list := s.call("GET", "/api/admin/runners", "", true).Body.String()
-	if strings.Count(list, `"id"`) != 2 || !strings.Contains(list, existing["id"].(string)) || !strings.Contains(list, `"name":"Luis"`) {
-		t.Fatalf("runners: %s", list)
+	if strings.Count(list, `"id"`) != 2 || !strings.Contains(list, existing["id"].(string)) || !strings.Contains(list, `"name":"Luis","telephone":"6000-0000"`) || !strings.Contains(list, `"telephone":"6999-1111"`) {
+		t.Fatalf("runners (new runner keeps phone, curated phone not overwritten): %s", list)
 	}
-	if w := s.call("POST", "/api/runner/session", `{"name":"  "}`, false); w.Code != 400 {
+	if w := s.call("POST", "/api/runner/session", `{"name":"  ","telephone":"6000-0000"}`, false); w.Code != 400 {
 		t.Fatalf("blank name: %d", w.Code)
+	}
+	for _, body := range []string{`{"name":"Marta"}`, `{"name":"Marta","telephone":"  "}`, `{"name":"Marta","telephone":"12-34"}`} {
+		if w := s.call("POST", "/api/runner/session", body, false); w.Code != 400 || !strings.Contains(w.Body.String(), "teléfono") {
+			t.Fatalf("missing phone %s: %d %s", body, w.Code, w.Body.String())
+		}
 	}
 	if w := s.call("GET", "/api/runner/needs", "", false); w.Code != 401 {
 		t.Fatalf("no session: %d", w.Code)
@@ -153,5 +160,21 @@ func TestNeedTimestamps(t *testing.T) {
 	}
 	if w := s.call("PATCH", "/api/admin/needs/"+id, `{"createdAt":"2000-01-01T00:00:00Z"}`, true); w.Code != 400 {
 		t.Fatalf("timestamps must be server-set: %d", w.Code)
+	}
+}
+
+func TestRunnerSessionFillsMissingPhone(t *testing.T) {
+	s := newServiceHarness(t)
+	// Corredores registrados antes de pedir teléfono quedaron sin número.
+	if err := s.app.db.Update(func(tx *bolt.Tx) error {
+		return putJSON(tx.Bucket(runnersBucket), "legacy", Runner{ID: "legacy", Name: "Rosa"})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if w := s.call("POST", "/api/runner/session", `{"name":"rosa","telephone":" 6123  4567 "}`, false); w.Code != 200 {
+		t.Fatalf("login: %d %s", w.Code, w.Body.String())
+	}
+	if list := s.call("GET", "/api/admin/runners", "", true).Body.String(); strings.Count(list, `"id"`) != 1 || !strings.Contains(list, `"telephone":"6123 4567"`) {
+		t.Fatalf("runners: %s", list)
 	}
 }

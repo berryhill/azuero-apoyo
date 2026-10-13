@@ -71,3 +71,10 @@ test('runner map pin popup shows the full need card with ¡Yo lo llevo! like the
   assert.doesNotMatch(make(n, []).popupNeed(n, false), /data-take/);
   assert.match(make(null, [n]).popupList({camp: n.camp, needs: [n]}), /class="popneed" data-need="n1"/);
 });
+test('runner name gate also requires a phone number and sends it with the session', () => {
+  const gate = runner.slice(runner.indexOf('id="gateForm"'), runner.indexOf('</form>', runner.indexOf('id="gateForm"')));
+  assert.match(gate, /<input name="name" required/);
+  assert.match(gate, /<input name="telephone" type="tel" required/);
+  assert.match(runner, /JSON\.stringify\(\{name,telephone\}\)/);
+  assert.match(runner, /startSession\(e\.target\.elements\.name\.value,e\.target\.elements\.telephone\.value\)/);
+});

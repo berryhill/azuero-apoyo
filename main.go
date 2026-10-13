@@ -1151,13 +1151,24 @@ func (a *App) runner(w http.ResponseWriter, r *http.Request) (runnerSession, boo
 }
 func (a *App) runnerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/runner/session", func(w http.ResponseWriter, r *http.Request) {
-		f, ok := decodeFields(w, r, map[string]int{"name": 120})
+		f, ok := decodeFields(w, r, map[string]int{"name": 120, "telephone": 40})
 		if !ok {
 			return
 		}
 		name := strings.Join(strings.Fields(fieldText(f, "name")), " ")
 		if name == "" {
 			failField(w, 400, "name", "Escribe tu nombre.")
+			return
+		}
+		telephone := strings.Join(strings.Fields(fieldText(f, "telephone")), " ")
+		digits := 0
+		for _, c := range telephone {
+			if c >= '0' && c <= '9' {
+				digits++
+			}
+		}
+		if digits < 7 {
+			failField(w, 400, "telephone", "Escribe tu número de teléfono.")
 			return
 		}
 		var item Runner
@@ -1173,10 +1184,18 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 					item = existing
 				}
 				return nil
-			}); e != nil || item.ID != "" {
+			}); e != nil {
 				return e
 			}
-			item = Runner{ID: randomToken(), Name: name}
+			// Un teléfono guardado por curación no se sobrescribe; solo se completa si falta.
+			if item.ID != "" {
+				if item.Telephone != "" {
+					return nil
+				}
+				item.Telephone = telephone
+				return putJSON(b, item.ID, item)
+			}
+			item = Runner{ID: randomToken(), Name: name, Telephone: telephone}
 			return putJSON(b, item.ID, item)
 		})
 		if serviceError(w, err) {
