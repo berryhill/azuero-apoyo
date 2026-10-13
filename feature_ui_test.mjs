@@ -5,6 +5,10 @@ const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
 const camp = readFileSync(new URL('./camp.html', import.meta.url), 'utf8');
 const template = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
 const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+test('admin panel keeps login but has no master password change form', () => {
+  assert.match(admin, /id="login"/);
+  assert.doesNotMatch(admin, /id="changePassword"|\/api\/admin\/password|passwordMessage/);
+});
 test('admin camp detail is adjacent to the camp list rather than after runner management', () => {
   assert.ok(admin.indexOf('id="campEditor"') < admin.indexOf('id="items"'));
 });
