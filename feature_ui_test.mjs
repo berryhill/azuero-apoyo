@@ -33,6 +33,26 @@ test('admin filters camps by need status only through the stats counters, withou
   assert.match(admin, /needFilter=needFilter===b\.dataset\.stat\?'':b\.dataset\.stat;render\(\)/);
   assert.match(admin, /\/api\/admin\/needs/);
 });
+test('admin needs tab filters individual needs and links only approved camps to private management', () => {
+  const src = admin.slice(admin.indexOf('function renderAllNeeds()'), admin.indexOf('const renderPoints=render;'));
+  const els = {'#search': {value: ''}, '#coordinatorFilter': {value: ''}, '#count': {}, '#allNeedList': {}};
+  const points = [{id: 'a', code: 'A-1', area: 'Cañas', coordinator: 'Ana', status: 'approved'}, {id: 'b', code: 'B-1', area: 'Tonosí', status: 'archived'}];
+  const allNeeds = [{campId: 'a', need: 'Agua <b>', status: 'OPEN', urgency: 'Today'}, {campId: 'a', need: 'Gas', status: 'COMPLETED', urgency: 'Tomorrow'}, {campId: 'b', need: 'Mantas', status: 'OPEN', urgency: 'Urgent'}, {campId: 'a', need: 'Antigua', status: 'DELETED'}];
+  const {renderAllNeeds: renderNeeds, setFilter} = new Function('$', 'points', 'allNeeds', 'runners', 'clean', 'needStates', `let needFilter='';${src};return {renderAllNeeds,setFilter:v=>needFilter=v}`)(s => els[s], points, allNeeds, [], s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c])), {OPEN: 'Abierta', COMPLETED: 'Completada'});
+  renderNeeds();
+  assert.match(els['#count'].textContent, /^3 necesidades/);
+  assert.match(els['#allNeedList'].innerHTML, /Agua &lt;b&gt;/);
+  assert.equal((els['#allNeedList'].innerHTML.match(/Gestionar punto y necesidades/g) || []).length, 2);
+  assert.doesNotMatch(els['#allNeedList'].innerHTML, /Antigua/);
+  els['#search'].value = 'Mantas'; renderNeeds();
+  assert.match(els['#count'].textContent, /^1 necesidad/);
+  els['#search'].value = ''; els['#coordinatorFilter'].value = 'ana'; renderNeeds();
+  assert.match(els['#count'].textContent, /^2 necesidades/);
+  setFilter('OPEN'); renderNeeds();
+  assert.match(els['#count'].textContent, /^1 necesidad/);
+  assert.match(admin, /tabsWithNeeds=\{pending:'#pendingTab',all:'#allTab',needs:'#needsTab',archived:'#archivedTab'\}/);
+  assert.doesNotMatch(admin, /'#changePassword'|\$\('#needFilter'\)/);
+});
 test('public map and list filter camps by service need status without an urgency filter', () => {
   for (const id of ['mapCampStatus', 'listCampStatus']) {
     const start = template.indexOf(`id="${id}"`);
