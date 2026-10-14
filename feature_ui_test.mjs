@@ -310,7 +310,7 @@ test('¡Ayuda! form has no intro and only confirms "Se ha enviado tu solicitud" 
   assert.match(template, /id="addBtn">¡Ayuda!<\/button>/);
   assert.doesNotMatch(template, /formIntro/);
   // Signed in with a code, the button reads «+ Agregar punto» like the admin and runner pages; otherwise «¡Ayuda!».
-  assert.match(template, /\$\('#addBtn'\)\.textContent=u\?'\+ Agregar punto':'¡Ayuda!';/);
+  assert.match(template, /\$\('#addBtn'\)\.textContent=\$\('#addBtnBar'\)\.textContent=u\?'\+ Agregar punto':'¡Ayuda!';/);
   assert.doesNotMatch(template, /Un administrador la revisará/);
   assert.match(modal, /<div class="notice sent" id="sentNotice" role="status" hidden><b id="sentTitle">Se ha enviado tu solicitud\.<\/b>/);
   assert.doesNotMatch(template, /Se envía a revisión/);
@@ -991,7 +991,7 @@ test('Usuarios can filter to users with an access code only', () => {
 });
 test('public header shows «Mis carreras» only to a signed-in user with the runner role', () => {
   assert.match(template, /<a class="navbtn" id="runnerNav" href="\/runner\.html" hidden>🚚 Mis carreras<\/a>/);
-  assert.match(template, /\$\('#runnerNav'\)\.hidden=!\(u&&\(\(u\.roles\|\|\[\]\)\.includes\('runner'\)/);
+  assert.match(template, /\$\('#runnerNav'\)\.hidden=\$\('#runnerNavBar'\)\.hidden=!\(u&&\(\(u\.roles\|\|\[\]\)\.includes\('runner'\)/);
   assert.match(template, /roles:body\.roles,panels:body\.panels/);
   assert.match(runner, /roles:body\.roles\|\|\[\],panels:\[\{label:'Corredores'/);
 });
@@ -1142,4 +1142,12 @@ test('share a point link: public ?punto= opens its detail, runner ?punto= focuse
   for (const page of [template, runner]) {
     assert.match(page, /async function shareLink\(url,title,btn\)\{if\(mobileDevice&&navigator\.share\)\{try\{await navigator\.share\(\{title,url\}\)\}catch\{\}return\}[^\n]*navigator\.clipboard\.writeText\(url\);btn\.textContent='✓ Enlace copiado'/, 'share sheet on a phone, copy on a computer');
   }
+});
+test('narrow screens: ¡Ayuda! / + Agregar punto and Mis carreras get their own full-width row under the header', () => {
+  assert.match(template, /<\/header>\n?<div class="addbar"><a class="navbtn" id="runnerNavBar" href="\/runner\.html" hidden>🚚 Mis carreras<\/a><button type="button" class="add" id="addBtnBar">¡Ayuda!<\/button><\/div><nav class="mobile-nav"/);
+  assert.match(template, /\.addbar\{display:none\}/, 'desktop keeps it in the header');
+  assert.match(template, /@media\(max-width:760px\)\{body\{overflow:hidden\}\.addbar\{display:flex;gap:8px;height:54px;[^}]*\}\.addbar \.add\{flex:1;[^}]*\}[^@]*\.topright #addBtn,\.topright #runnerNav\{display:none\}/);
+  assert.match(template, /\.app\{height:calc\(100dvh - 166px\);/, 'header 62 + add row 54 + tabs 50');
+  assert.match(template, /\$\('#runnerNav'\)\.hidden=\$\('#runnerNavBar'\)\.hidden=/, 'Mis carreras shows for the same runners');
+  assert.match(template, /\$\('#addBtnBar'\)\.onclick=\(\)=>\$\('#addBtn'\)\.click\(\);/, 'same action as the header button');
 });
