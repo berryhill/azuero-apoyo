@@ -75,7 +75,11 @@ func rawUpload(s *serviceHarness, path string, cookie *http.Cookie, csrf, ctype 
 }
 
 func TestRunMediaPickupDeliveryAndAdminCuration(t *testing.T) {
+	t.Setenv("MEDIA_LOCAL_DISK", "1")
 	s := newServiceHarness(t)
+	if body := s.call("GET", "/api/media/status", "", false).Body.String(); body != "{\"enabled\":true}\n" {
+		t.Fatalf("status with local disk: %s", body)
+	}
 	id := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","urgency":"normal"}`, 201)["id"].(string)
 	cookie, csrf := s.crewLogin("/api/runner", "Rosa")
 	jpeg := []byte("\xff\xd8\xff fake jpeg")
@@ -153,5 +157,17 @@ func TestRunMediaPickupDeliveryAndAdminCuration(t *testing.T) {
 	json.Unmarshal(s.call("GET", "/api/admin/camps/"+s.camp+"/needs", "", true).Body.Bytes(), &needs)
 	if len(needs) != 1 || len(needs[0].Media) != 2 {
 		t.Fatalf("media after curation: %+v", needs)
+	}
+}
+
+func TestMediaUploadsOffWithoutObjectStorage(t *testing.T) {
+	t.Setenv("MEDIA_LOCAL_DISK", "")
+	s := newServiceHarness(t)
+	if body := s.call("GET", "/api/media/status", "", false).Body.String(); body != "{\"enabled\":false}\n" {
+		t.Fatalf("status: %s", body)
+	}
+	id := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","urgency":"normal"}`, 201)["id"].(string)
+	if w := rawUpload(s, "/api/admin/needs/"+id+"/media?stage=pickup", s.cookie, s.csrf, "image/jpeg", []byte("x")); w.Code != 503 || !strings.Contains(w.Body.String(), "no disponibles") {
+		t.Fatalf("uploads must be refused without storage: %d %s", w.Code, w.Body.String())
 	}
 }

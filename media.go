@@ -270,9 +270,15 @@ var errMediaFull = userFieldError{"media", "Esta carrera ya tiene el máximo de 
 
 func validStage(s string) bool { return s == stagePickup || s == stageDelivery }
 
+const errMediaOff = "Fotos y videos no disponibles por ahora."
+
 // receiveMedia guarda el cuerpo de la solicitud (el archivo tal cual, sin multipart) y lo agrega a la necesidad.
 // allowed decide, dentro de la transacción, si quien sube puede documentar esa necesidad.
 func (a *App) receiveMedia(w http.ResponseWriter, r *http.Request, byID, byName string, allowed func(tx *bolt.Tx, n CampNeed) error) {
+	if !a.mediaOn {
+		failField(w, 503, "media", errMediaOff)
+		return
+	}
 	stage := r.URL.Query().Get("stage")
 	if !validStage(stage) {
 		failField(w, 400, "stage", "Indica si es foto de partida o de entrega.")
@@ -390,6 +396,10 @@ func sameOrigin(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func (a *App) mediaRoutes(mux *http.ServeMux, runners *crew) {
+	// Si se pueden subir fotos: sin almacenamiento de objetos las páginas ocultan los botones y avisan.
+	mux.HandleFunc("GET /api/media/status", func(w http.ResponseWriter, r *http.Request) {
+		response(w, 200, map[string]bool{"enabled": a.mediaOn})
+	})
 	// Corredor: documenta sus propias carreras (en ruta o ya completadas).
 	runnerOwns := func(s runnerSession) func(tx *bolt.Tx, n CampNeed) error {
 		return func(tx *bolt.Tx, n CampNeed) error {

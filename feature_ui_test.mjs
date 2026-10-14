@@ -685,7 +685,7 @@ test('admin Marcar completada asks first: Cancelar, Sí, completar, and the defa
 });
 test('admin user management lists, adds, edits and disables users with roles and an access code', () => {
   const ops = admin.slice(admin.indexOf('id="operations"'));
-  assert.match(ops, /<h2>Usuarios<\/h2>/);
+  assert.match(ops, /<h2 id="usersTitle">Usuarios<\/h2>/);
   assert.match(ops, /id="userList"/);
   assert.match(ops, /id="userForm"/);
   for (const role of ['runner', 'builder', 'agent']) assert.match(ops, new RegExp(`name="roles" value="${role}"`));
@@ -701,10 +701,10 @@ test('admin user management lists, adds, edits and disables users with roles and
 });
 test('Usuarios is its own admin page opened from the header and deep-linkable', () => {
   assert.match(admin, /<button type="button" role="menuitem" id="usersToggle">Usuarios<\/button>/);
-  assert.match(admin, /id="usersBack">← Volver al panel<\/button><h2>Usuarios<\/h2>/);
+  assert.match(admin, /id="usersBack">← Volver al panel<\/button><h2 id="usersTitle">Usuarios<\/h2><button type="button" id="userNew">\+ Nuevo<\/button><button type="submit" form="userForm" id="userSaveTop">Guardar<\/button>/);
   assert.match(admin, /#dashboard\.users-mode>:not\(#operations\)\{display:none!important\}#dashboard:not\(\.users-mode\)>#operations\{display:none!important\}/);
   assert.match(admin, /history\.pushState\(null,'',on\?'\/admin\.html\?view=usuarios':'\/admin\.html'\)/);
-  assert.match(admin, /else if\(q\.get\('view'\)==='usuarios'\)showUsers\(true,false\)/, 'reloading the deep link reopens Usuarios');
+  assert.match(admin, /else if\(q\.get\('view'\)==='usuarios'\)\{showUsers\(true,false\);/, 'reloading the deep link reopens Usuarios');
   assert.match(admin, /showUsers\(q\.get\('view'\)==='usuarios',false\)/, 'back/forward keeps the page in sync');
   // Need cards resolve assignees from every user, so migrated or placeholder users still show a name.
   assert.match(admin, /const r=userById\(assigneeOf\(n\)\);/);
@@ -848,7 +848,7 @@ test('admin point card: the Completadas box toggles completed needs for that poi
 });
 test('runner confirms completing or leaving a run in a Sí / No modal, not a browser popup', () => {
   assert.match(runner, /<dialog id="confirmDialog" class="confirmdlg"[^>]*><form method="dialog" class="confirmbox"><h2 id="confirmText"><\/h2><div id="confirmNeed"><\/div><p id="confirmDetail"[^>]*><\/p><div id="confirmMedia"[^]*?<div class="confirmactions"><button class="btn plain" value="no" id="confirmNo">No<\/button><button class="btn" value="yes" id="confirmYes">Sí<\/button>/);
-  assert.match(runner, /askConfirm\('¿Estás seguro de que quieres completar esta carrera\?',\{yes:'Sí, completar',need:done,media:true\}\)/);
+  assert.match(runner, /askConfirm\('¿Estás seguro de que quieres completar esta carrera\?',\{yes:'Sí, completar',need:done,media:mediaOn\}\)/);
   assert.match(runner, /askConfirm\('¿Estás seguro de que no puedes continuar esta carrera\?',\{yes:'Sí, dejarla',danger:true,/);
   assert.match(runner, /resolve\(d\.returnValue==='yes'\)/, 'Esc or No means no');
   assert.doesNotMatch(runner, /[^a-zA-Z]confirm\('¿Dejar esta carrera/);
@@ -867,8 +867,8 @@ test('admin point view: each supply need has a Lista de empaque button next to E
 });
 test('runner documents runs: Foto de partida on each run, delivery media when completing, smaller No puedo continuar', () => {
   const card = runner.match(/function runCard[^\n]*/)[0];
-  assert.match(card, /\$\{mediaStrip\(n\)\}\$\{packButton\(n\)\}\$\{\(n\.media\|\|\[\]\)\.some\(m=>m\.stage==='pickup'\)\?'':`<button class="btn plain media" type="button" data-media="\$\{id\}">📷 Foto de partida<\/button>`\}/, 'the big button only until the first pickup photo');
-  assert.match(runner, /\$\{st==='pickup'\?`<button type="button" class="thumbadd" data-media="\$\{clean\(n\.id\)\}"[^>]*>\+<\/button>`:''\}/, 'then a + tile after the last pickup photo');
+  assert.match(card, /\$\{mediaStrip\(n\)\}\$\{packButton\(n\)\}\$\{!mediaOn\?'<small class="nomedia">📷 Fotos no disponibles<\/small>':\(n\.media\|\|\[\]\)\.some\(m=>m\.stage==='pickup'\)\?'':`<button class="btn plain media" type="button" data-media="\$\{id\}">📷 Foto de partida<\/button>`\}/, 'the big button only until the first pickup photo, and only with media storage');
+  assert.match(runner, /\$\{st==='pickup'&&mediaOn\?`<button type="button" class="thumbadd" data-media="\$\{clean\(n\.id\)\}"[^>]*>\+<\/button>`:''\}/, 'then a + tile after the last pickup photo');
   assert.ok(card.indexOf('Foto de partida') < card.indexOf('Completé esta carrera'), 'Foto de partida comes before completing');
   // Foto de partida opens a chooser: Android's photo picker has no camera unless the input asks for it.
   assert.match(runner, /<dialog id="pickDialog"[^>]*><form method="dialog" class="confirmbox"><h2 id="pickTitle">Foto de partida<\/h2><div class="mediabtns pickbtns"><button type="button" class="btn plain" data-pick="pickPhoto">📷 Tomar foto/);
@@ -879,7 +879,7 @@ test('runner documents runs: Foto de partida on each run, delivery media when co
   assert.match(runner, /data-pick="pickPhoto">📷 Tomar foto<\/button><button type="button" class="btn plain" data-pick="pickVideo">🎥 Grabar video<\/button><button type="button" class="btn plain" data-pick="pickGallery">🖼️ Galería<\/button>/);
   assert.match(runner, /files\.then\(f=>\{confirmFiles\.push\(\.\.\.f\);drawConfirmFiles\(\)\}\)/, 'each pick adds to the list');
   assert.match(runner, /URL\.createObjectURL\(f\)/, 'thumbnails preview before upload');
-  assert.match(runner, /askConfirm\('¿Estás seguro de que quieres completar esta carrera\?',\{yes:'Sí, completar',need:done,media:true\}\)/);
+  assert.match(runner, /askConfirm\('¿Estás seguro de que quieres completar esta carrera\?',\{yes:'Sí, completar',need:done,media:mediaOn\}\)/);
   assert.match(runner, /if\(confirmFiles\.length&&!await uploadRunMedia\(done\.id,'delivery',confirmFiles\)\)\{complete\.disabled=false;return\}/, 'delivery media uploads before the run is completed');
   assert.match(runner, /PointForm\.uploadMedia\('\/api\/runner\/needs\/'\+encodeURIComponent\(id\)\+'\/media\?stage='\+stage,file,\{csrf,/);
   assert.match(runner, /\.btn\.quit\{display:block;width:auto;margin:12px auto 0;padding:6px 12px;font-size:12px;/);
@@ -983,4 +983,38 @@ test('runner header: ✕ to sign out (no «Cambiar nombre») and «Mapa público
   assert.match(runner, /<a class="publink" id="publicNav" href="\/" hidden>← Mapa público<\/a>/);
   assert.match(runner, /function syncPublicNav\(\)\{\$\('#publicNav'\)\.hidden=!localStorage\.getItem\('runnerCode'\)\}/);
   assert.equal((runner.match(/syncPublicNav\(\)/g) || []).length, 4, 'defined, after sign-in or session check, and after sign-out');
+});
+test('Usuarios can sort by name or by creation date, newest or oldest first', () => {
+  assert.match(admin, /<select id="userSort" aria-label="Ordenar usuarios"><option value="name">Nombre \(A–Z\)<\/option><option value="newest">Más recientes primero<\/option><option value="oldest">Más antiguos primero<\/option><\/select>/);
+  const sortSrc = admin.match(/if\(sort!=='name'\)rows\.sort\([^;]*;return sort==='newest'\?-d:d\}\);/)[0];
+  const order = (sort, list) => { const rows = [...list]; new Function('rows', 'sort', sortSrc)(rows, sort); return rows.map(u => u.name); };
+  const list = [{name: 'B', createdAt: '2026-10-02T00:00:00Z'}, {name: 'Old'}, {name: 'A', createdAt: '2026-10-05T00:00:00Z'}];
+  assert.deepEqual(order('newest', list), ['A', 'B', 'Old'], 'users without a date (migrated) sort as oldest');
+  assert.deepEqual(order('oldest', list), ['Old', 'B', 'A']);
+  assert.match(admin, /Creado \$\{clean\(stamp\(u\.createdAt\)\)\}/);
+});
+test('Usuarios: «+ Nuevo» top right opens the user form as its own page (like camp needs), no intro text', () => {
+  const ops = admin.slice(admin.indexOf('id="operations"'));
+  assert.doesNotMatch(ops.slice(0, ops.indexOf('id="userForm"')), /Corredores y constructores también pueden registrarse|runner\.html ↗/, 'no intro text or links');
+  assert.match(admin, /#operations\.user-form-mode \.userbar,#operations\.user-form-mode #userList,[^{]*#operations:not\(\.user-form-mode\) #userForm,#operations:not\(\.user-form-mode\) #userSaveTop\{display:none!important\}/);
+  assert.match(admin, /\$\('#userNew'\)\.onclick=\(\)=>openUserForm\('new'\);/);
+  assert.match(admin, /if\(edit\)\{openUserForm\(u\.id\);return\}/);
+  assert.match(admin, /history\.pushState\(null,'','\/admin\.html\?view=usuarios&user='\+encodeURIComponent\(id\)\)/);
+  assert.match(admin, /if\(q\.get\('user'\)\)openUserForm\(q\.get\('user'\),false\)/, 'reloading the deep link reopens the form');
+  assert.match(admin, /\$\('#usersBack'\)\.onclick=\(\)=>userFormOpen\(\)\?closeUserForm\(\):showUsers\(false\);/, 'Cancelar returns to the list');
+  assert.match(admin, /await loadRunners\(\);render\(\);closeUserForm\(\);\$\('#usersNotice'\)\.textContent='Usuario guardado\.'/);
+});
+test('without media storage, upload buttons are hidden and a short notice shows (runner and admin)', () => {
+  assert.match(runner, /fetch\('\/api\/media\/status',\{cache:'no-store'\}\)\.then\(r=>r\.json\(\)\)\.then\(s=>\{mediaOn=!!s\.enabled;/);
+  assert.match(admin, /fetch\('\/api\/media\/status',\{cache:'no-store'\}\)\.then\(r=>r\.json\(\)\)\.then\(s=>\{mediaOn=!!s\.enabled;/);
+  assert.match(admin, /\$\{mediaOn\?`<button type="button" class="thumbadd" data-media-add=/);
+  assert.match(admin, /\$\{mediaOn\?'':'<small class="nomedia">📷 Fotos no disponibles<\/small>'\}/);
+});
+test('runner footer shows the user ID with a copy button; Usuarios shows and searches the same ID', () => {
+  assert.match(runner, /<footer class="sidefoot" id="idFoot" hidden>ID de usuario: <code id="userIdShort" title=""><\/code><button type="button" id="copyId"[^>]*>📋<\/button>/);
+  assert.match(runner, /showUserId\(body\.id\)/);
+  assert.match(runner, /showUserId\(s\.id\)/);
+  assert.match(runner, /navigator\.clipboard\.writeText\(userId\)/);
+  assert.match(admin, /<small class="user-id" title="ID de usuario: \$\{clean\(u\.id\)\}">ID \$\{clean\(u\.id\.slice\(0,8\)\)\}<\/small>/);
+  assert.match(admin, /fold\(u\.name\+' '\+u\.telephone\+' '\+u\.id\)\.includes\(q\)/, 'search by ID');
 });

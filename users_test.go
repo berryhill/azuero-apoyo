@@ -591,3 +591,20 @@ func TestSessionCookiesAreSecureBehindHTTPSProxy(t *testing.T) {
 		}
 	}
 }
+
+func TestRunnerSessionReportsUserID(t *testing.T) {
+	s := newServiceHarness(t)
+	login := s.call("POST", "/api/runner/session", `{"name":"Rosa","telephone":"6000-0000"}`, false)
+	var body map[string]any
+	json.Unmarshal(login.Body.Bytes(), &body)
+	id, _ := body["id"].(string)
+	if len(id) != 64 {
+		t.Fatalf("name sign-in returns the user ID: %s", login.Body.String())
+	}
+	if list := s.call("GET", "/api/admin/users", "", true).Body.String(); !strings.Contains(list, id) {
+		t.Fatalf("the same ID is in Usuarios: %s", list)
+	}
+	if got := s.crewCall("GET", "/api/runner/session", "", login.Result().Cookies()[0], "").Body.String(); !strings.Contains(got, `"id":"`+id+`"`) {
+		t.Fatalf("session check returns the ID: %s", got)
+	}
+}

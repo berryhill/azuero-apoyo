@@ -255,6 +255,8 @@ type App struct {
 	static       string
 	router       *router
 	media        mediaStore
+	// mediaOn: se pueden subir fotos y videos (almacenamiento de objetos, o MEDIA_LOCAL_DISK=1 para desarrollo local).
+	mediaOn bool
 }
 
 var submissions = []byte("submissions")
@@ -398,6 +400,8 @@ func openApp(path, static string) (*App, error) {
 		db.Close()
 		return nil, err
 	}
+	_, objectStorage := a.media.(*s3Store)
+	a.mediaOn = objectStorage || os.Getenv("MEDIA_LOCAL_DISK") == "1"
 	if err := db.Update(migrateUsers); err != nil {
 		return nil, err
 	}
@@ -2070,7 +2074,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					}
 				}
 			}
-			response(w, 200, map[string]any{"name": item.Name, "telephone": item.Telephone, "csrf": s.csrf, "roles": item.Roles, "agent": s.agent})
+			response(w, 200, map[string]any{"id": item.ID, "name": item.Name, "telephone": item.Telephone, "csrf": s.csrf, "roles": item.Roles, "agent": s.agent})
 			return
 		}
 		name := strings.Join(strings.Fields(fieldText(f, "name")), " ")
@@ -2125,7 +2129,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 			return
 		}
 		s := a.startCrewSession(w, r, c, item.ID, false)
-		response(w, 200, map[string]string{"name": item.Name, "csrf": s.csrf})
+		response(w, 200, map[string]string{"id": item.ID, "name": item.Name, "csrf": s.csrf})
 	})
 	mux.HandleFunc("GET "+c.path+"/session", func(w http.ResponseWriter, r *http.Request) {
 		s, ok := a.crewSession(c, w, r)
@@ -2147,7 +2151,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 		if serviceError(w, err) {
 			return
 		}
-		response(w, 200, map[string]any{"name": item.Name, "csrf": s.csrf, "agent": s.agent})
+		response(w, 200, map[string]any{"id": item.ID, "name": item.Name, "csrf": s.csrf, "agent": s.agent})
 	})
 	mux.HandleFunc("POST "+c.path+"/logout", func(w http.ResponseWriter, r *http.Request) {
 		if cookie, e := r.Cookie(c.cookie); e == nil {
