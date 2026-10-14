@@ -142,3 +142,28 @@ func TestCodeUserSharesLocationFromPublicMap(t *testing.T) {
 		t.Fatalf("logout removes her: %s", body)
 	}
 }
+
+func TestCodeSignInReturnsOwnID(t *testing.T) {
+	s := newServiceHarness(t)
+	id := s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)["id"].(string)
+	login := s.call("POST", "/api/session/code", `{"accessCode":"FUFO12"}`, false)
+	if !strings.Contains(login.Body.String(), `"id":"`+id+`"`) {
+		t.Fatalf("sign-in returns the user ID: %s", login.Body.String())
+	}
+	r := httptest.NewRequest("GET", "/api/full/me", nil)
+	none := httptest.NewRecorder()
+	s.h.ServeHTTP(none, r)
+	if none.Code != 401 {
+		t.Fatalf("me needs a code session: %d", none.Code)
+	}
+	for _, c := range login.Result().Cookies() {
+		if c.Name == "viewer_session" {
+			r.AddCookie(c)
+		}
+	}
+	w := httptest.NewRecorder()
+	s.h.ServeHTTP(w, r)
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"id":"`+id+`"`) {
+		t.Fatalf("me: %d %s", w.Code, w.Body.String())
+	}
+}

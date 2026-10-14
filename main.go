@@ -222,6 +222,8 @@ type CampNeed struct {
 	Packing []PackingLine `json:"packing,omitempty"`
 	// Fotos y videos de partida y entrega; privados (corredor asignado y administración).
 	Media []MediaItem `json:"media,omitempty"`
+	// Solo en la respuesta de la ficha para quien entró con código (nombre del conductor asignado, sin su ID); nunca se guarda.
+	RunnerName string `json:"runnerName,omitempty"`
 }
 
 func nowStamp() string { return time.Now().UTC().Format(time.RFC3339) }
@@ -597,7 +599,7 @@ func migrateNeedUrgency(tx *bolt.Tx) error {
 	return nil
 }
 func putNeed(b *bolt.Bucket, n *CampNeed) error {
-	n.UpdatedAt = nowStamp()
+	n.UpdatedAt, n.RunnerName = nowStamp(), ""
 	return putJSON(b, n.ID, n)
 }
 
@@ -1840,6 +1842,8 @@ type runnerCamp struct {
 	Coords      []float64 `json:"coords,omitempty"`
 	// Contactos del punto para que el corredor llame antes de tomar la carrera; nunca en páginas públicas.
 	Contacts []runnerContact `json:"contacts,omitempty"`
+	// team: lo agregó un usuario con código (filtro «Solo Nuestro Equipo»).
+	Team bool `json:"team,omitempty"`
 }
 type runnerContact struct {
 	Name  string `json:"name,omitempty"`
@@ -1997,7 +2001,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			return
 		}
 		a.startViewerSession(w, r, item.ID)
-		response(w, 200, map[string]any{"name": item.Name, "telephone": item.Telephone, "roles": item.Roles, "panels": panels})
+		response(w, 200, map[string]any{"id": item.ID, "name": item.Name, "telephone": item.Telephone, "roles": item.Roles, "panels": panels})
 	})
 	// Vista completa: los mismos datos públicos, pero con el detalle de las carreras reservadas.
 	mux.HandleFunc("GET /api/full/points", func(w http.ResponseWriter, r *http.Request) {
@@ -2008,6 +2012,12 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/full/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := a.viewer(w, r); ok {
 			a.listNeeds(w, r.PathValue("id"), true, true)
+		}
+	})
+	// Tu propio ID (tocar tu nombre en la página pública lo copia), para sesiones guardadas antes de que se incluyera.
+	mux.HandleFunc("GET /api/full/me", func(w http.ResponseWriter, r *http.Request) {
+		if u, ok := a.viewer(w, r); ok {
+			response(w, 200, map[string]string{"id": u.ID, "name": u.Name})
 		}
 	})
 	mux.HandleFunc("POST /api/full/logout", func(w http.ResponseWriter, r *http.Request) {
@@ -2027,6 +2037,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.mediaRoutes(mux, runners)
 	a.locationRoutes(mux, runners)
 	a.settingsRoutes(mux)
+	a.fullNeedRoutes(mux)
 	mux.HandleFunc("POST /api/runner/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := a.crewSession(runners, w, r); !ok {
 			return
@@ -2198,9 +2209,9 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					return e
 				}
 				if p.Status == "approved" {
-					contacts := campContacts(p)
+					contacts, team := campContacts(p), p.AddedBy != ""
 					p = publicPoint(p)
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts}
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team}
 				}
 				return nil
 			}); e != nil {
@@ -2597,7 +2608,26 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public, reveal bool) {
 			if n.CampID == id && n.Status != "DELETED" && !(public && isRepair(n)) {
 				if public {
 					reserved := reservedNeed(tx, n)
-					n.RunnerID, n.ReleasedBy, n.Packing, n.Media = "", "", nil, nil
+					// Quien entró con código ve el nombre del conductor asignado y la lista de empaque (para asignar y empacar desde la ficha).
+					if reveal && n.RunnerID != "" {
+						if u, found := getUser(tx, n.RunnerID); found {
+							n.RunnerName = u.Name
+						}
+					}
+					n.RunnerID, n.ReleasedBy = "", ""
+					if !reveal {
+						n.Packing, n.Media = nil, nil
+					} else {
+						// Solo las fotos de partida, sin la clave de almacenamiento.
+						pickups := []MediaItem{}
+						for _, m := range n.Media {
+							if m.Stage == stagePickup {
+								m.StoredKey, m.AddedBy = "", ""
+								pickups = append(pickups, m)
+							}
+						}
+						n.Media = pickups
+					}
 					if n.Need, _ = splitRepair(n.Need); n.Need == "" {
 						return nil
 					}

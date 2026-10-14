@@ -101,7 +101,8 @@ test('public Buscar: «!code» + Enter signs in with an access code, with no hin
   assert.doesNotMatch(template, /placeholder="[^"]*(código|!)/i, 'the placeholder does not reveal it');
   assert.match(template, /<span class="codeuser" id="codeUser" hidden><\/span>/);
   const show = template.match(/function showCodeUser\(\)[^\n]*/)[0];
-  assert.match(show, /<a href="\$\{clean\(home\)\}">\$\{clean\(u\.name\)\}<\/a>`:clean\(u\.name\)/, 'just the name, linking to their panel');
+  assert.match(show, /<button type="button" id="copyMyId" title="Copiar mi ID de usuario">\$\{clean\(u\.name\)\}<\/button><span class="idtip" id="idTip" role="status" hidden><\/span>/, 'just the name, no link; tapping it copies the user ID');
+  assert.doesNotMatch(show, /<a href=/);
   assert.doesNotMatch(show, /p\.label/, 'no role or panel names in the header');
 });
 test('public map has an opt-in "my location" control with a distinct person pin kept in the browser', () => {
@@ -911,8 +912,8 @@ test('public list shows reserved run details to a code-signed-in user, and falls
 });
 test('public coordinator filter only appears when signed in with an access code', () => {
   assert.match(template, /<span class="needlabel coordlabel">Filtrar por coordinador<\/span><div class="coordwrap">/);
-  assert.match(template, /body:not\(\.signed-in\) \.coordlabel,body:not\(\.signed-in\) \.coordwrap\{display:none!important\}/);
-  assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\);[^\n]*?if\(!u&&selectedCoordinator\)\{selectedCoordinator='';/);
+  assert.match(template, /body:not\(\.signed-in\) \.coordlabel,body:not\(\.signed-in\) \.coordwrap,[^{]*\{display:none!important\}/);
+  assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\);[^\n]*?if\(!u&&\(selectedCoordinator\|\|teamOnly\)\)\{selectedCoordinator='';/);
 });
 test('chosen location shows a small fixed map preview instead of «Ubicación elegida» text; Ubicar en mapa still moves it', () => {
   assert.match(PointForm.html(), /<button type="button" class="pf-gps">[^]*?<\/button><div class="pf-gpsthumb" hidden title="Toca para mover la ubicación"/);
@@ -934,7 +935,7 @@ test('signed-in users get «Yo» and ✕ next to Coordinador to fill or clear th
   assert.equal((template.match(/me:codeMe\(\)/g) || []).length, 2);
   assert.match(template, /\$\('#addBtn'\)\.onclick=\(\)=>\{showSent\(false\);PointForm\.setMe\(\$\('#pointFields'\),codeMe\(\)\);/);
   assert.match(template, /telephone:body\.telephone,roles:body\.roles,panels:body\.panels/);
-  assert.match(runner, /localStorage\.setItem\('codeUser',JSON\.stringify\(\{name:body\.name,telephone:body\.telephone\|\|'',roles:body\.roles\|\|\[\],panels:\[\{label:'Corredores',url:'\/runner\.html'\}\]\}\)\)/, 'signing in with a code on the runner page counts too');
+  assert.match(runner, /localStorage\.setItem\('codeUser',JSON\.stringify\(\{id:body\.id,name:body\.name,telephone:body\.telephone\|\|'',roles:body\.roles\|\|\[\],panels:\[\{label:'Corredores',url:'\/runner\.html'\}\]\}\)\)/, 'signing in with a code on the runner page counts too');
 });
 test('a point added by a code-signed-in user is published at once; otherwise it goes to review', () => {
   const fn = template.match(/async function submitPoint[^\n]*/)[0];
@@ -1119,19 +1120,19 @@ test('runner live location is shared with the team; code users see other runners
 test('public map: code users turn location sharing on and off with a map button; it never asks on its own', () => {
   assert.match(template, /L\.DomUtil\.create\('button','sharebtn'\);b\.id='shareBtn';b\.type='button';b\.hidden=true;[^\n]*L\.DomEvent\.on\(b,'click',\(\)=>liveShare\?stopShare\(\):startShare\(\)\)/);
   assert.match(template, /b\.hidden=!localStorage\.getItem\('codeUser'\);b\.classList\.toggle\('on',liveShare\);b\.textContent=liveShare\?'📍 Compartiendo · Detener':'📍 Compartir mi ubicación'/, 'only for code users, with a clear on/off label');
-  assert.match(template, /postLocation\('\/api\/full\/location',\{lat:here\[0\],lon:here\[1\]/);
-  assert.match(template, /postLocation\('\/api\/full\/location\/stop',\{\}\)/);
+  assert.match(template, /fullPost\('\/api\/full\/location',\{lat:here\[0\],lon:here\[1\]/);
+  assert.match(template, /fullPost\('\/api\/full\/location\/stop',\{\}\)/);
   assert.match(template, /Date\.now\(\)-sharedAt<15000&&map\.distance\(sharedPos,here\)<50\)return/, 'every 15 s or 50 m');
   assert.match(template, /lastFix=p;shareFromMap\(p\);/, 'the blue pin feeds sharing');
   assert.match(template, /'Compartida con quienes entraron con código\.':'Solo visible en este dispositivo\.'/);
-  assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\);if\(!u\)stopShare\(false\);setShareButton\(\);/, 'signing out stops sharing');
+  assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\);if\(!u\)\{stopShare\(false\);[^}]*\}setShareButton\(\);/, 'signing out stops sharing');
   assert.match(template, /p\.state==='granted'\?startShare\(\):localStorage\.removeItem\('mapLive'\)/, 'a reload resumes only without a permission prompt');
   const calls = template.match(/startShare\(\)/g).length;
   assert.equal(calls, 3, 'started only by the button, the reload resume, or its own definition');
   assert.doesNotMatch(template, /getCurrentPosition/, 'no automatic location request');
 });
 test('share a point link: public ?punto= opens its detail, runner ?punto= focuses it after sign-in', () => {
-  assert.match(template, /<div class="sharerow"><button type="button" class="sharelink" id="shareCamp">🔗 Compartir enlace<\/button>/);
+  assert.match(template, /<button type="button" class="footbtn" id="shareCamp" title="Compartir enlace del punto">🔗 Compartir<\/button>/);
   assert.match(template, /const campLink=r=>location\.origin\+'\/\?punto='\+encodeURIComponent\(r\.id\|\|r\.code\);/);
   assert.match(template, /renderMarkers\(\);renderFeed\(\);openLinkedCamp\(\)\}/, 'opened after the data loads');
   assert.match(template, /const want=linkedCamp,r=all\(\)\.find\(x=>x\.id===want\|\|x\.code===want\);linkedCamp=null;[^\n]*if\(r\)show\(r\);else \$\('#gpsMessage'\)\.textContent='Ese punto no está publicado o ya no existe\.'/, 'unpublished points are not shown');
@@ -1195,4 +1196,72 @@ test('admin ☰ menu: «Requerir revisión de puntos» toggles whether public po
   assert.match(admin, /if\(!next&&!confirm\('¿Publicar al momento los puntos que agregue el público\?/, 'turning it off asks first');
   assert.match(admin, /adminRequest\('\/api\/admin\/settings','POST',\{requireReviews:next\}\)/);
   assert.match(template, /saved\.status==='approved'\?'Punto publicado\. Ya aparece en el mapa y en la lista\.':'Se ha enviado tu solicitud\.'/, 'the public form already says which happened');
+});
+test('«Solo Nuestro Equipo»: code users can limit the public list/map and runner needs to points added by a code user', () => {
+  assert.match(template, /<button type="button" class="stat fstat teambtn" id="teamOnly" aria-pressed="false"><b id="teamCount">—<\/b><span>SOLO NUESTRO EQUIPO<\/span><\/button>/);
+  assert.match(template, /body:not\(\.signed-in\) \.coordwrap,body:not\(\.signed-in\) \.teambtn\{display:none!important\}/, 'only with a code sign-in');
+  assert.match(template, /const teamPoint=r=>r\.source==='user';/);
+  assert.match(template, /const coordRows=\(\)=>all\(\)\.filter\(r=>\(!teamOnly\|\|teamPoint\(r\)\)&&/, 'filters the list, the map and the counts');
+  assert.match(template, /if\(!u&&\(selectedCoordinator\|\|teamOnly\)\)\{selectedCoordinator='';teamOnly=false;/, 'signing out clears it');
+  assert.match(runner, /<button type="button" class="teamonly" id="teamOnly" aria-pressed="false">👥 Solo Nuestro Equipo<\/button>/);
+  assert.match(runner, /body:not\(\.code-user\) \.teamonly\{display:none\}/);
+  assert.match(runner, /const listed=\(\)=>teamOnly\?available\.filter\(n=>n\.camp\.team\):available;/);
+  assert.match(runner, /renderMap\(\[\.\.\.mine,\.\.\.shown\]\)/, 'your own runs always stay');
+  assert.match(runner, /if\(!localStorage\.getItem\('runnerCode'\)\)teamOnly=false;/);
+});
+test('public narrow view: 📊 tab holds the totals, Lista keeps only filters; tapping your name copies your user ID', () => {
+  assert.match(template, /<button type="button" data-view="map">◉ Mapa<\/button><button type="button" data-view="stats" class="iconview" title="Estadísticas" aria-label="Estadísticas">📊<\/button><\/nav>/, 'icon only');
+  assert.match(template, /<div class="sidehead"><div class="stats pointstats">/);
+  assert.match(template, /\.mobile-list \.pointstats\{display:none\}/, 'no totals in Lista on a phone');
+  assert.match(template, /\.mobile-stats \.mapwrap\{display:none\}\.mobile-stats \.feed,\.mobile-stats \.sortrow,[^{]*\{display:none!important\}/, '📊 shows only totals and need counts');
+  assert.match(template, /document\.body\.classList\.toggle\('mobile-stats',view==='stats'\)/);
+  assert.match(template, /if\(document\.body\.classList\.contains\('mobile-stats'\)\)mobileView\('list'\);/, 'a need tapped in 📊 filters the list');
+  assert.match(template, /if\(e\.target\.closest\('#copyMyId'\)\)\{copyMyId\(\);return\}/);
+  const fn = template.match(/async function copyMyId\(\)[^\n]*/)[0];
+  assert.match(fn, /let id=u\?\.id;if\(!id\)\{try\{const r=await fetch\('\/api\/full\/me'/, 'older saved sessions fetch it once');
+  assert.match(fn, /navigator\.clipboard\.writeText\(id\);text='ID copiado: '\+id\.slice\(0,8\)\+'…'\}catch\{text='Tu ID: '\+id\}/);
+  assert.match(fn, /setTimeout\(\(\)=>tip\.hidden=true,4000\)/);
+  assert.match(template, /localStorage\.setItem\('codeUser',JSON\.stringify\(\{id:body\.id,name:body\.name/);
+});
+test('public detail for code users: each open/en ruta need can get a conductor and packing, like admin', () => {
+  assert.match(template, /\$\{r\.id&&codeMe\(\)\?'<div id="teamNeeds"><\/div>':''\}/, 'only with a code sign-in');
+  const draw = template.match(/function drawTeamNeeds\(\)[^\n]*/)[0];
+  assert.match(draw, /filter\(n=>n\.status==='OPEN'\|\|n\.status==='IN_PROGRESS'\)/);
+  assert.match(draw, /Conductor: <b>\$\{n\.runnerName\?clean\(n\.runnerName\):'sin asignar'\}<\/b>/);
+  assert.match(draw, /PointForm\.packingHtml\(n\.packing\)/);
+  assert.match(draw, /data-assign-need="\$\{clean\(n\.id\)\}" aria-haspopup="listbox">🚚 \$\{n\.runnerName\?'Cambiar conductor':'Asignar conductor'\}<\/button><button type="button" data-pack-need="\$\{clean\(n\.id\)\}">📦 Agregar a lista de empaque<\/button>/);
+  assert.match(template, /<div class="picker assignpick" id="assignPicker" hidden><input id="assignSearch" type="search" placeholder="Buscar conductor…"/);
+  assert.ok(template.indexOf('id="assignPicker"') < template.indexOf('<script>'), 'markup exists before the script binds it');
+  assert.match(template, /crewCache=\{at:Date\.now\(\),list:await fullGet\('\/api\/full\/crew'\)\}/, 'the server lists code users first');
+  assert.match(template, /c\.code\?'<small>Equipo<\/small>':''/);
+  assert.match(template, /fullJSON\('\/api\/full\/needs\/'\+encodeURIComponent\(need\)\+'\/runner',\{runnerId:id\}\)/);
+  assert.match(template, /PointForm\.openPacking\(\{subtitle:[^\n]*fullJSON\('\/api\/full\/needs\/'\+encodeURIComponent\(id\)\+'\/packing',\{items:lines\}\)/, 'same packing dialog as admin and runners');
+  assert.match(template, /\.length;drawTeamNeeds\(\)\}/, 'refreshed with the list and after each save');
+});
+test('public detail: with needs to fulfil, the big buttons are Asignar conductor and packing; Reportar becomes a small link at the bottom', () => {
+  assert.match(template, /<button type="button" class="footbtn reportsmall" data-report-need title="Reportar otra necesidad">➕ Reportar<\/button>/);
+  assert.match(template, /\$\('#detailBody'\)\.classList\.toggle\('has-team-needs',list\.length>0\)/);
+  assert.match(template, /\.has-team-needs \.reportneed\{display:none\}\.has-team-needs \.reportsmall\{display:inline-block\}/);
+  assert.match(template, /\.teamacts button\{[^}]*padding:11px 12px;font:800 14px[^}]*background:#ed7654\}/);
+  assert.match(template, /if\(!e\.target\.closest\('#reportNeed,\[data-report-need\]'\)\)return;/, 'both open the same form');
+});
+test('public detail: code users can remove the conductor (the need reopens)', () => {
+  assert.match(template, /\$\{n\.runnerName\?` · <button type="button" class="unassign" data-unassign-need="\$\{clean\(n\.id\)\}">Quitar conductor<\/button>`:''\}/);
+  assert.match(template, /async function unassign\(need\)\{if\(!confirm\('¿Quitar el conductor de esta necesidad\? Volverá a quedar abierta\.'\)\)return;try\{await fullJSON\('\/api\/full\/needs\/'\+encodeURIComponent\(need\)\+'\/runner',\{runnerId:''\}\)/);
+});
+test('public detail: Maps, Compartir and Reportar are small footer buttons; code users add a pickup photo; nothing of the team shows publicly', () => {
+  assert.match(template, /d\.innerHTML\+=`<div class="detailfoot">\$\{maps\?`<a class="footbtn" target="_blank" rel="noopener noreferrer" href="\$\{clean\(maps\.url\)\}"/, 'the external Maps app, no embedded map');
+  assert.doesNotMatch(template, /class="maplink"/);
+  assert.match(template, /\$\{r\.coords\?'':'<p>Sin GPS: confirmar ubicación antes de salir\.<\/p>'\}/);
+  assert.match(template, /\$\{mediaOn\?`<button type="button" data-photo-need="\$\{clean\(n\.id\)\}">📷 Foto de partida<\/button>`:''\}/);
+  assert.match(template, /<dialog id="pickDialog" class="pickdlg"[^>]*><form method="dialog"><h2 id="pickTitle">Foto de partida<\/h2><div class="pickbtns"><button type="button" data-pick="pickPhoto">📷 Tomar foto<\/button><button type="button" data-pick="pickVideo">🎥 Grabar video<\/button><button type="button" data-pick="pickGallery">🖼️ Galería<\/button>/);
+  assert.match(template, /<input type="file" id="pickPhoto" accept="image\/\*" capture="environment" hidden>/);
+  assert.match(template, /url='\/api\/full\/needs\/'\+encodeURIComponent\(id\)\+'\/media\?stage=pickup'/);
+  assert.match(template, /PointForm\.mediaThumbs\(n\.media,m=>'\/api\/full\/media\/'/);
+  // Team-only: the section exists only with a code sign-in, and signing out wipes what was loaded with it.
+  assert.match(template, /\$\{r\.id&&codeMe\(\)\?'<div id="teamNeeds"><\/div>':''\}/);
+  assert.match(template, /if\(!u\)\{stopShare\(false\);[^}]*campNeeds\.clear\(\);\$\('#teamNeeds'\)\?\.remove\(\);/);
+  const draw = template.match(/function drawTeamNeeds\(\)[^\n]*/)[0];
+  assert.match(draw, /^function drawTeamNeeds\(\)\{const box=\$\('#teamNeeds'\);if\(!box\)\{/, 'draws nothing without the team section');
+  assert.doesNotMatch(template.match(/function serviceNeedsHtml[^\n]*/)[0], /runnerName|packing|media/, 'the public need list never shows them');
 });

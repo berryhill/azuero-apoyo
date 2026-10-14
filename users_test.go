@@ -441,10 +441,13 @@ func TestCodeUserPointIsPublishedWithoutReview(t *testing.T) {
 	if w := post(nil, point); w.Code != 401 {
 		t.Fatalf("publishing requires a code sign-in: %d", w.Code)
 	}
-	var viewer *http.Cookie
+	var viewer, runner *http.Cookie
 	for _, c := range s.call("POST", "/api/session/code", `{"accessCode":"FUFO12"}`, false).Result().Cookies() {
-		if c.Name == "viewer_session" {
+		switch c.Name {
+		case "viewer_session":
 			viewer = c
+		case "runner_session":
+			runner = c
 		}
 	}
 	if w := post(viewer, `{"area":"Sin teléfono"}`); w.Code != 400 {
@@ -469,6 +472,19 @@ func TestCodeUserPointIsPublishedWithoutReview(t *testing.T) {
 	}
 	if strings.Contains(pts, "addedBy") || strings.Contains(pts, "Fufo\",\"needs") {
 		t.Fatalf("Agregado por is private: %s", pts)
+	}
+	// «Solo Nuestro Equipo»: the public data marks it with source "user"; the runner panel with camp.team.
+	if !strings.Contains(pts, `"source":"user"`) {
+		t.Fatalf("team points are recognizable on the public map: %s", pts)
+	}
+	var needs struct{ Available []runnerNeed }
+	json.Unmarshal(s.crewCall("GET", "/api/runner/needs", "", runner, "").Body.Bytes(), &needs)
+	team := map[string]bool{}
+	for _, n := range needs.Available {
+		team[n.Camp.ID] = n.Camp.Team
+	}
+	if v, ok := team[created["id"]]; !ok || !v || team[s.camp] {
+		t.Fatalf("runner needs mark only team points: %v", team)
 	}
 	// A public submission can't claim to be added by someone.
 	pub := s.call("POST", "/api/submissions", `{"area":"X","coordinatorPhone":"6999-0000","addedByName":"Fufo","addedBy":"x"}`, false)
