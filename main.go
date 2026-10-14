@@ -861,6 +861,7 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /api/points", func(w http.ResponseWriter, r *http.Request) { a.publicPoints(w, false) })
 	// reviewed: administración (campos internos, código propio). publish: queda aprobado al guardar
 	// (administración, o un usuario que entró con su código de acceso).
+	// Una solicitud pública también se publica si administración apagó la revisión (ver settings.go).
 	// by: usuario con código que lo agrega (queda como «Agregado por»); nil en solicitudes públicas y de administración.
 	createPoint := func(w http.ResponseWriter, r *http.Request, reviewed, publish bool, by *User) {
 		if !a.guard(w, r) || (reviewed && !a.admin(w, r)) {
@@ -939,7 +940,10 @@ func (a *App) routes() http.Handler {
 		p.Status = "pending"
 		p.Decided, p.MergedInto, p.LastCheckup = "", "", ""
 		if publish {
-			p.Source = "user"
+			// Un punto público publicado sin revisión conserva source "submission".
+			if by != nil {
+				p.Source = "user"
+			}
 			if reviewed {
 				p.Source = "admin"
 			}
@@ -979,7 +983,10 @@ func (a *App) routes() http.Handler {
 		}
 		response(w, 201, map[string]string{"id": p.ID, "status": p.Status})
 	}
-	mux.HandleFunc("POST /api/submissions", func(w http.ResponseWriter, r *http.Request) { createPoint(w, r, false, false, nil) })
+	// Público: queda por revisar, salvo que administración haya apagado «Requerir revisión de puntos».
+	mux.HandleFunc("POST /api/submissions", func(w http.ResponseWriter, r *http.Request) {
+		createPoint(w, r, false, !a.requireReviews(), nil)
+	})
 	mux.HandleFunc("POST /api/admin/points", func(w http.ResponseWriter, r *http.Request) { createPoint(w, r, true, true, nil) })
 	// Usuario con código («!código» en la página pública o en su panel): su punto se publica sin revisión.
 	mux.HandleFunc("POST /api/full/points", func(w http.ResponseWriter, r *http.Request) {
@@ -2019,6 +2026,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.routingRoutes(mux, runners)
 	a.mediaRoutes(mux, runners)
 	a.locationRoutes(mux, runners)
+	a.settingsRoutes(mux)
 	mux.HandleFunc("POST /api/runner/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := a.crewSession(runners, w, r); !ok {
 			return

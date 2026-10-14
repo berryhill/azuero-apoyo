@@ -972,7 +972,7 @@ test('Usuarios: tapping the phone copies it on a computer and opens WhatsApp on 
   assert.match(admin, /const phone=e\.target\.closest\('\[data-phone\]'\);if\(phone\)\{phoneClick\(phone\);return\}/);
 });
 test('admin header: Usuarios and Generar boletín live in a ☰ menu that opens and closes', () => {
-  assert.match(admin, /<button type="button" class="menubtn" id="menuToggle" aria-expanded="false" aria-controls="adminMenu"[^>]*>☰<\/button><div class="adminmenu" id="adminMenu" role="menu" hidden><button type="button" role="menuitem" id="usersToggle">Usuarios<\/button><button type="button" role="menuitem" id="boletinToggle">Generar boletín<\/button><a role="menuitem" class="boletinlink" href="\/report\/boletin_general\.html"[^>]*>Ver último boletín ↗<\/a><button type="button" role="menuitem" id="passwordToggle">Cambiar contraseña maestra<\/button><\/div>/);
+  assert.match(admin, /<button type="button" class="menubtn" id="menuToggle" aria-expanded="false" aria-controls="adminMenu"[^>]*>☰<\/button><div class="adminmenu" id="adminMenu" role="menu" hidden><button type="button" role="menuitem" id="usersToggle">Usuarios<\/button><button type="button" role="menuitem" id="boletinToggle">Generar boletín<\/button><a role="menuitem" class="boletinlink" href="\/report\/boletin_general\.html"[^>]*>Ver último boletín ↗<\/a><button type="button" role="menuitemcheckbox" id="reviewToggle"[^>]*>[^\n]*?<\/button><button type="button" role="menuitem" id="passwordToggle">Cambiar contraseña maestra<\/button><\/div>/);
   assert.match(admin, /\$\('#menuToggle'\)\.onclick=e=>\{e\.stopPropagation\(\);setMenu\(\$\('#adminMenu'\)\.hidden\)\};/);
   assert.match(admin, /\$\('#adminMenu'\)\.addEventListener\('click',\(\)=>setMenu\(false\)\);/, 'choosing an option closes it');
   assert.match(admin, /if\(!e\.target\.closest\('\.menuwrap'\)\)setMenu\(false\)/, 'clicking outside closes it');
@@ -1188,4 +1188,11 @@ test('public list: Ordenar by Más recientes (default), Más antiguos, Área or 
   assert.deepEqual(order('oldest', rows), ['B', 'C', 'A']);
   assert.deepEqual(order('area', rows), ['A', 'C', 'B']);
   assert.deepEqual(order('coord', rows), ['C', 'B', 'A'], 'no coordinator last');
+});
+test('admin ☰ menu: «Requerir revisión de puntos» toggles whether public points wait for review', () => {
+  assert.match(admin, /<div class="adminmenu" id="adminMenu" role="menu" hidden>[^\n]*<button type="button" role="menuitemcheckbox" id="reviewToggle" aria-checked="true">Requerir revisión de puntos: <b>Sí<\/b><\/button>/);
+  assert.match(admin, /requireReviews=\(await adminRequest\('\/api\/admin\/settings'\)\)\.requireReviews!==false/, 'read on load; Sí unless the server says otherwise');
+  assert.match(admin, /if\(!next&&!confirm\('¿Publicar al momento los puntos que agregue el público\?/, 'turning it off asks first');
+  assert.match(admin, /adminRequest\('\/api\/admin\/settings','POST',\{requireReviews:next\}\)/);
+  assert.match(template, /saved\.status==='approved'\?'Punto publicado\. Ya aparece en el mapa y en la lista\.':'Se ha enviado tu solicitud\.'/, 'the public form already says which happened');
 });
