@@ -1116,3 +1116,17 @@ test('runner live location is shared with the team; code users see other runners
   assert.match(template, /setInterval\(loadRunnersOnMap,15000\);/);
   assert.match(template, /if\(localStorage\.getItem\('codeUser'\)\)\{try\{const r=await fetch\('\/api\/full\/runners'/, 'only for code users; otherwise the trucks are removed');
 });
+test('public map: code users turn location sharing on and off with a map button; it never asks on its own', () => {
+  assert.match(template, /L\.DomUtil\.create\('button','sharebtn'\);b\.id='shareBtn';b\.type='button';b\.hidden=true;[^\n]*L\.DomEvent\.on\(b,'click',\(\)=>liveShare\?stopShare\(\):startShare\(\)\)/);
+  assert.match(template, /b\.hidden=!localStorage\.getItem\('codeUser'\);b\.classList\.toggle\('on',liveShare\);b\.textContent=liveShare\?'📍 Compartiendo · Detener':'📍 Compartir mi ubicación'/, 'only for code users, with a clear on/off label');
+  assert.match(template, /postLocation\('\/api\/full\/location',\{lat:here\[0\],lon:here\[1\]/);
+  assert.match(template, /postLocation\('\/api\/full\/location\/stop',\{\}\)/);
+  assert.match(template, /Date\.now\(\)-sharedAt<15000&&map\.distance\(sharedPos,here\)<50\)return/, 'every 15 s or 50 m');
+  assert.match(template, /lastFix=p;shareFromMap\(p\);/, 'the blue pin feeds sharing');
+  assert.match(template, /'Compartida con quienes entraron con código\.':'Solo visible en este dispositivo\.'/);
+  assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\);if\(!u\)stopShare\(false\);setShareButton\(\);/, 'signing out stops sharing');
+  assert.match(template, /p\.state==='granted'\?startShare\(\):localStorage\.removeItem\('mapLive'\)/, 'a reload resumes only without a permission prompt');
+  const calls = template.match(/startShare\(\)/g).length;
+  assert.equal(calls, 3, 'started only by the button, the reload resume, or its own definition');
+  assert.doesNotMatch(template, /getCurrentPosition/, 'no automatic location request');
+});

@@ -92,3 +92,53 @@ func rosaIDFrom(t *testing.T, s *serviceHarness, c *http.Cookie) string {
 	id, _ := sess["id"].(string)
 	return id
 }
+
+func TestCodeUserSharesLocationFromPublicMap(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)
+	s.expect("POST", "/api/admin/users", `{"name":"Bea","telephone":"6999-2222","roles":["builder"],"accessCode":"BEA123"}`, 201)
+	viewer := func(code string) *http.Cookie {
+		for _, c := range s.call("POST", "/api/session/code", `{"accessCode":"`+code+`"}`, false).Result().Cookies() {
+			if c.Name == "viewer_session" {
+				return c
+			}
+		}
+		t.Fatalf("no viewer session for %s", code)
+		return nil
+	}
+	fufo, bea := viewer("FUFO12"), viewer("BEA123")
+	call := func(method, path, body string, c *http.Cookie) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, path, strings.NewReader(body))
+		if c != nil {
+			r.AddCookie(c)
+		}
+		w := httptest.NewRecorder()
+		s.h.ServeHTTP(w, r)
+		return w
+	}
+	if w := call("POST", "/api/full/location", `{"lat":7.5,"lon":-80.3}`, nil); w.Code != 401 {
+		t.Fatalf("sharing needs a code session: %d", w.Code)
+	}
+	if w := call("POST", "/api/full/location", `{"lat":7.5,"lon":-200}`, bea); w.Code != 400 {
+		t.Fatalf("bad location: %d", w.Code)
+	}
+	// A builder with a code shares too, and a code runner sees her.
+	if w := call("POST", "/api/full/location", `{"lat":7.5,"lon":-80.3,"accuracy":9}`, bea); w.Code != 200 {
+		t.Fatalf("share: %d %s", w.Code, w.Body.String())
+	}
+	if body := call("GET", "/api/full/runners", "", fufo).Body.String(); !strings.Contains(body, `"name":"Bea"`) {
+		t.Fatalf("code users see each other: %s", body)
+	}
+	if body := call("GET", "/api/full/runners", "", bea).Body.String(); strings.Contains(body, "Bea") {
+		t.Fatalf("not herself: %s", body)
+	}
+	call("POST", "/api/full/location/stop", `{}`, bea)
+	if body := call("GET", "/api/full/runners", "", fufo).Body.String(); strings.Contains(body, "Bea") {
+		t.Fatalf("stop removes her: %s", body)
+	}
+	call("POST", "/api/full/location", `{"lat":7.5,"lon":-80.3}`, bea)
+	call("POST", "/api/full/logout", `{}`, bea)
+	if body := call("GET", "/api/full/runners", "", fufo).Body.String(); strings.Contains(body, "Bea") {
+		t.Fatalf("logout removes her: %s", body)
+	}
+}

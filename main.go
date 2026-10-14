@@ -2006,6 +2006,9 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/full/logout", func(w http.ResponseWriter, r *http.Request) {
 		if c, e := r.Cookie("viewer_session"); e == nil {
 			a.mu.Lock()
+			if s, ok := a.viewerSessions[c.Value]; ok {
+				delete(a.locations, s.runnerID)
+			}
 			delete(a.viewerSessions, c.Value)
 			a.mu.Unlock()
 		}
