@@ -1130,3 +1130,17 @@ test('public map: code users turn location sharing on and off with a map button;
   assert.equal(calls, 3, 'started only by the button, the reload resume, or its own definition');
   assert.doesNotMatch(template, /getCurrentPosition/, 'no automatic location request');
 });
+test('share a point link: public ?punto= opens its detail, runner ?punto= focuses it after sign-in', () => {
+  assert.match(template, /<div class="sharerow"><button type="button" class="sharelink" id="shareCamp">🔗 Compartir enlace<\/button>/);
+  assert.match(template, /const campLink=r=>location\.origin\+'\/\?punto='\+encodeURIComponent\(r\.id\|\|r\.code\);/);
+  assert.match(template, /href="\/runner\.html\?punto=\$\{encodeURIComponent\(r\.id\)\}">🚚 Abrir en Mis carreras<\/a>/, 'runners can jump to their panel');
+  assert.match(template, /renderMarkers\(\);renderFeed\(\);openLinkedCamp\(\)\}/, 'opened after the data loads');
+  assert.match(template, /const want=linkedCamp,r=all\(\)\.find\(x=>x\.id===want\|\|x\.code===want\);linkedCamp=null;[^\n]*if\(r\)show\(r\);else \$\('#gpsMessage'\)\.textContent='Ese punto no está publicado o ya no existe\.'/, 'unpublished points are not shown');
+  assert.match(runner, /data-share-camp="\$\{clean\(c\.id\)\}"[^>]*>🔗 Compartir<\/button>/);
+  assert.match(runner, /shareLink\(location\.origin\+'\/runner\.html\?punto='\+encodeURIComponent\(b\.dataset\.shareCamp\)/);
+  assert.match(runner, /available=data\.available\|\|\[\];render\(\);openLinkedCamp\(\)\}/, 'applied after sign-in loads the needs');
+  assert.match(runner, /if\(hasCoords\(n\)\)\{focusCamp=want;pendingFocus=true;[^\n]*else goToNeed\(n\.id\)\}/);
+  for (const page of [template, runner]) {
+    assert.match(page, /async function shareLink\(url,title,btn\)\{if\(mobileDevice&&navigator\.share\)\{try\{await navigator\.share\(\{title,url\}\)\}catch\{\}return\}[^\n]*navigator\.clipboard\.writeText\(url\);btn\.textContent='✓ Enlace copiado'/, 'share sheet on a phone, copy on a computer');
+  }
+});
