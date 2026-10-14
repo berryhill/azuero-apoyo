@@ -951,8 +951,25 @@ test('Usuarios: 🔑 left of the name copies the access code and shows it in a t
   assert.match(admin, /adminRequest\('\/api\/admin\/users\/'\+encodeURIComponent\(id\)\+'\/access-code'\)/, 'fetched only when copying');
   assert.match(admin, /navigator\.clipboard\.writeText\(c\)/);
   assert.match(admin, /'Copiado: '\+c:c\+' \(cópialo a mano\)'/, 'the code is still shown if the clipboard is unavailable');
-  assert.match(admin, /keyTips\[id\]=setTimeout\(\(\)=>\{tip\.hidden=true;delete keyTips\[id\]\},5000\)/);
+  assert.match(admin, /keyTips\[key\]=setTimeout\(\(\)=>\{tip\.hidden=true;delete keyTips\[key\]\},5000\)/);
   assert.doesNotMatch(admin, /data-reveal|eyebtn|••••••/, 'no more 👁 masked code');
+});
+test('Usuarios: tapping the phone copies it on a computer and opens WhatsApp on a phone', () => {
+  const ops = admin.slice(admin.indexOf('// Usuarios: corredores'));
+  assert.doesNotMatch(ops.slice(0, ops.indexOf('// Usuarios es su propia página')), /href="tel:/, 'the list phone is not a link');
+  assert.match(admin, /\$\{field\('Teléfono',phoneBtn\(u\)\)\}/, 'nor in the view');
+  const src = ['waNumber', 'phoneBtn'].map(n => admin.match(new RegExp(`const ${n}=[^\\n]*`))[0]).join('\n');
+  const {waNumber, phoneBtn} = new Function('clean', 'mobile', `${src};return {waNumber,phoneBtn}`)(String, false);
+  assert.equal(waNumber('6999-1111'), '50769991111', 'local numbers get Panamá 507');
+  assert.equal(waNumber('+1 (305) 555-0100'), '13055550100');
+  assert.equal(waNumber('507 6999 1111'), '50769991111');
+  assert.match(phoneBtn({id: 'u1', telephone: '6999-1111'}), /<span class="keytip"><button type="button" class="phonebtn" data-phone="u1" title="Copiar teléfono">6999-1111<\/button><span class="tip" role="status" hidden><\/span><\/span>/);
+  assert.equal(phoneBtn({id: 'u2', telephone: ''}), '<small>Sin teléfono</small>');
+  const fn = admin.match(/function phoneClick\(b\)[^\n]*/)[0];
+  assert.match(fn, /if\(mobile\)\{window\.open\('https:\/\/wa\.me\/'\+waNumber\(u\.telephone\),'_blank','noopener'\);return\}/);
+  assert.match(fn, /navigator\.clipboard\.writeText\(u\.telephone\)/);
+  assert.match(fn, /showTip\(b,'tel:'\+u\.id,'Copiado: '\+u\.telephone\)/);
+  assert.match(admin, /const phone=e\.target\.closest\('\[data-phone\]'\);if\(phone\)\{phoneClick\(phone\);return\}/);
 });
 test('admin header: Usuarios and Generar boletín live in a ☰ menu that opens and closes', () => {
   assert.match(admin, /<button type="button" class="menubtn" id="menuToggle" aria-expanded="false" aria-controls="adminMenu"[^>]*>☰<\/button><div class="adminmenu" id="adminMenu" role="menu" hidden><button type="button" role="menuitem" id="usersToggle">Usuarios<\/button><button type="button" role="menuitem" id="boletinToggle">Generar boletín<\/button><a role="menuitem" class="boletinlink" href="\/report\/boletin_general\.html"[^>]*>Ver último boletín ↗<\/a><button type="button" role="menuitem" id="passwordToggle">Cambiar contraseña maestra<\/button><\/div>/);
