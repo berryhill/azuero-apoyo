@@ -906,7 +906,7 @@ test('public list shows reserved run details to a code-signed-in user, and falls
   const fn = template.match(/async function dataFetch[^\n]*/)[0];
   assert.match(fn, /fetch\('\/api\/full'\+path/);
   assert.match(fn, /if\(r\.status===401&&await reloginWithCode\(\)\)r=await get\(\);if\(r\.status!==401\)return r;forgetCodeUser\(\)\}return fetch\('\/api'\+path/);
-  assert.match(template, /showCodeUser\(\);refresh\(\)\}/, 'signing in reloads the list with details');
+  assert.match(template, /showCodeUser\(\);refresh\(\);loadRunnersOnMap\(\)\}/, 'signing in reloads the list with details');
   assert.match(template, /'\/api\/full\/logout'/);
 });
 test('public coordinator filter only appears when signed in with an access code', () => {
@@ -1050,4 +1050,13 @@ test('a point opened from Usuarios goes back to Usuarios («← Usuarios»), oth
   assert.match(admin, /else if\(campReturn==='usuarios'\)\{closeEditor\(false\);showUsers\(true\)\}else closeEditor\(\)/);
   assert.match(admin, /function closeEditor\(navigate=true\)\{campReturn='';/, 'leaving the point forgets where it came from');
   assert.ok(admin.indexOf("let campReturn=''") < admin.indexOf('async function openEditor('), 'declared before openEditor');
+});
+test('runner live location is shared with the team; code users see other runners as small orange trucks on the public map', () => {
+  assert.match(runner, /function shareLocation\(p\)\{if\(agentMode\|\|!csrf\)return;[^\n]*Date\.now\(\)-sharedAt<15000&&\(!map\|\|map\.distance\(sharedPos,here\)<50\)\)return;[^\n]*api\('\/api\/runner\/location','POST'/, 'every 15 s or after 50 m');
+  assert.match(runner, /api\('\/api\/runner\/location\/stop','POST',\{\}\)/, 'turning it off stops sharing');
+  assert.match(runner, /'📍 En vivo · compartida con el equipo'/, 'the runner is told it is shared');
+  assert.match(template, /fetch\('\/api\/full\/runners',\{cache:'no-store',credentials:'same-origin'\}\)/);
+  assert.match(template, /const runnerTruck='<div class="runnertruck"><svg viewBox="0 0 32 20" width="28" height="18"[^']*fill="#ed7654"/, 'smaller orange truck, distinct from your blue pin');
+  assert.match(template, /setInterval\(loadRunnersOnMap,15000\);/);
+  assert.match(template, /if\(localStorage\.getItem\('codeUser'\)\)\{try\{const r=await fetch\('\/api\/full\/runners'/, 'only for code users; otherwise the trucks are removed');
 });

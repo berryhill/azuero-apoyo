@@ -254,9 +254,11 @@ type App struct {
 	codeAttempts map[string]attempt
 	// Última vez que cada usuario hizo algo con su sesión (en memoria; se guarda en el usuario cada 2 minutos).
 	lastSeen map[string]time.Time
-	static   string
-	router   *router
-	media    mediaStore
+	// Última ubicación en vivo de cada corredor que la comparte (solo memoria; ver location.go).
+	locations map[string]liveLocation
+	static    string
+	router    *router
+	media     mediaStore
 	// mediaOn: se pueden subir fotos y videos (almacenamiento de objetos, o MEDIA_LOCAL_DISK=1 para desarrollo local).
 	mediaOn bool
 }
@@ -370,7 +372,7 @@ func openApp(path, static string) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{db: db, static: static, sessions: map[string]session{}, runnerSessions: map[string]runnerSession{}, builderSessions: map[string]runnerSession{}, viewerSessions: map[string]runnerSession{}, attempts: map[string]attempt{}, codeAttempts: map[string]attempt{}, lastSeen: map[string]time.Time{}, router: newRouter(), media: newMediaStore(path)}
+	a := &App{db: db, static: static, sessions: map[string]session{}, runnerSessions: map[string]runnerSession{}, builderSessions: map[string]runnerSession{}, viewerSessions: map[string]runnerSession{}, attempts: map[string]attempt{}, codeAttempts: map[string]attempt{}, lastSeen: map[string]time.Time{}, locations: map[string]liveLocation{}, router: newRouter(), media: newMediaStore(path)}
 	err = db.Update(func(tx *bolt.Tx) error {
 		if _, e := tx.CreateBucketIfNotExists(submissions); e != nil {
 			return e
@@ -2013,6 +2015,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.packingRoutes(mux, runners)
 	a.routingRoutes(mux, runners)
 	a.mediaRoutes(mux, runners)
+	a.locationRoutes(mux, runners)
 	mux.HandleFunc("POST /api/runner/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := a.crewSession(runners, w, r); !ok {
 			return
@@ -2160,6 +2163,9 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 	mux.HandleFunc("POST "+c.path+"/logout", func(w http.ResponseWriter, r *http.Request) {
 		if cookie, e := r.Cookie(c.cookie); e == nil {
 			a.mu.Lock()
+			if s, ok := c.sessions[cookie.Value]; ok && !c.repair {
+				delete(a.locations, s.runnerID)
+			}
 			delete(c.sessions, cookie.Value)
 			a.mu.Unlock()
 		}

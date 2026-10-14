@@ -549,7 +549,7 @@ func secureCookie(r *http.Request) bool {
 	return r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
 }
 
-// dropCrewSessions cierra las sesiones de corredor y constructor de un usuario (al desactivarlo o quitarle roles).
+// dropCrewSessions cierra las sesiones de un usuario (al desactivarlo o quitarle roles) y quita su ubicación en vivo.
 func (a *App) dropCrewSessions(id string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -560,6 +560,8 @@ func (a *App) dropCrewSessions(id string) {
 			}
 		}
 	}
+	// Sin sesión deja de compartir su ubicación en vivo.
+	delete(a.locations, id)
 }
 
 type userFieldError struct{ field, msg string }
