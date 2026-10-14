@@ -708,14 +708,15 @@ test('Usuarios is its own admin page opened from the header and deep-linkable', 
   assert.match(admin, /const r=userById\(assigneeOf\(n\)\);/);
   assert.match(admin, /userById\(n\.releasedBy\)\?\.name/);
 });
-test('runner and builder sign-in accept an access code or name and phone', () => {
+test('runner and builder sign-in show only name and phone; «!código» in Nombre signs in with a code, no phone', () => {
   for (const [page, who] of [[runner, 'runner'], [readFileSync(new URL('./builder.html', import.meta.url), 'utf8'), 'builder']]) {
     const gate = page.match(/<form id="gateForm"[^]*?<\/form>/)[0];
-    assert.match(gate, /<label>Código de acceso<input name="accessCode"/);
-    assert.match(gate, /o con nombre y teléfono/);
-    assert.ok(gate.indexOf('name="accessCode"') < gate.indexOf('name="name"'), 'code comes first');
-    assert.doesNotMatch(gate, /required/, 'either the code or name+phone is enough');
-    assert.match(page, /if\(!accessCode&&!\(name&&telephone\)\)\{\$\('#gateMessage'\)\.textContent='Escribe tu código de acceso, o tu nombre y teléfono\.'/);
+    assert.match(gate, /<h1>¿Cómo te llamas\?<\/h1>/);
+    assert.doesNotMatch(gate, /name="accessCode"|código de acceso|gate-or/i, 'nothing hints at access codes');
+    assert.match(gate, /<input name="name" maxlength="120"/);
+    assert.match(page, /accessCode=raw\.startsWith\('!'\)\?raw\.slice\(1\)\.trim\(\):'',name=accessCode\?'':raw/);
+    assert.match(page, /if\(accessCode\)f\.name\.value='';/, 'the code is cleared from the box');
+    assert.match(page, /if\(!accessCode&&!\(name&&telephone\)\)\{\$\('#gateMessage'\)\.textContent='Escribe tu nombre y teléfono\.'/);
     assert.match(page, /await startSession\(accessCode\?\{accessCode\}:\{name,telephone\}\)/);
     assert.match(page, new RegExp(`localStorage\\.removeItem\\('${who}Code'\\)`), 'logout forgets the saved code');
   }
@@ -958,4 +959,9 @@ test('admin shows «Agregado por» for points published by access-code users', (
   const {campViewHtml} = new Function(`${src};return {campViewHtml}`)();
   assert.match(campViewHtml({code: 'C', area: 'A', addedByName: 'Fufo <b>'}), /<div class="field"><b>Agregado por<\/b>Fufo &lt;b&gt;<\/div>/);
   assert.doesNotMatch(campViewHtml({code: 'C', area: 'A'}), /Agregado por/);
+});
+test('Usuarios can filter to users with an access code only', () => {
+  assert.match(admin, /<label class="check"><input type="checkbox" id="userOnlyCode"> Solo con código<\/label>/);
+  assert.match(admin, /rows=users\.filter\(u=>\(showOff\|\|!u\.disabled\)&&\(!onlyCode\|\|u\.hasAccessCode\)&&/);
+  assert.match(admin, /\$\('#userOnlyCode'\)\.onchange=drawUsers;/);
 });
