@@ -23,7 +23,7 @@ func (a *App) requireReviews() bool {
 func (a *App) settingsRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/admin/settings", func(w http.ResponseWriter, r *http.Request) {
 		if a.admin(w, r) {
-			response(w, 200, map[string]bool{"requireReviews": a.requireReviews()})
+			response(w, 200, map[string]bool{"requireReviews": a.requireReviews(), "importEnabled": importEnabled()})
 		}
 	})
 	mux.HandleFunc("POST /api/admin/settings", func(w http.ResponseWriter, r *http.Request) {

@@ -9,7 +9,7 @@ const pointformSrc = readFileSync(new URL('./pointform.js', import.meta.url), 'u
 const PointForm = (() => { const window = {}; const document = {getElementById: () => null, head: {insertAdjacentHTML() {}}}; new Function('window', 'document', pointformSrc)(window, document); return window.PointForm; })();
 test('admin ☰ menu can change the master password (typed twice), then signs in again', () => {
   assert.match(admin, /id="login"/);
-  assert.match(admin, /<button type="button" role="menuitem" id="passwordToggle">Cambiar contraseña maestra<\/button><\/div>/);
+  assert.match(admin, /<button type="button" role="menuitem" id="passwordToggle">Cambiar contraseña maestra<\/button><a role="menuitem" id="backupDownload"[^\n]*?<\/div>/);
   assert.match(admin, /<dialog id="changePassword"[^>]*><form id="changePasswordForm">[^]*?name="password" minlength="12" maxlength="72" autocomplete="new-password" required[^]*?name="confirm"/);
   assert.match(admin, /if\(pw!==f\.elements\.confirm\.value\)\{\$\('#passwordMessage'\)\.textContent='Las dos contraseñas no coinciden\.'/);
   assert.match(admin, /<label>Contraseña actual<input type="password" name="current" autocomplete="current-password" required><\/label><label>Nueva contraseña/);
@@ -973,7 +973,7 @@ test('Usuarios: tapping the phone copies it on a computer and opens WhatsApp on 
   assert.match(admin, /const phone=e\.target\.closest\('\[data-phone\]'\);if\(phone\)\{phoneClick\(phone\);return\}/);
 });
 test('admin header: Usuarios and Generar boletín live in a ☰ menu that opens and closes', () => {
-  assert.match(admin, /<button type="button" class="menubtn" id="menuToggle" aria-expanded="false" aria-controls="adminMenu"[^>]*>☰<\/button><div class="adminmenu" id="adminMenu" role="menu" hidden><button type="button" role="menuitem" id="usersToggle">Usuarios<\/button><button type="button" role="menuitem" id="boletinToggle">Generar boletín<\/button><a role="menuitem" class="boletinlink" href="\/report\/boletin_general\.html"[^>]*>Ver último boletín ↗<\/a><button type="button" role="menuitemcheckbox" id="reviewToggle"[^>]*>[^\n]*?<\/button><button type="button" role="menuitem" id="passwordToggle">Cambiar contraseña maestra<\/button><\/div>/);
+  assert.match(admin, /<button type="button" class="menubtn" id="menuToggle" aria-expanded="false" aria-controls="adminMenu"[^>]*>☰<\/button><div class="adminmenu" id="adminMenu" role="menu" hidden><button type="button" role="menuitem" id="usersToggle">Usuarios<\/button><button type="button" role="menuitem" id="boletinToggle">Generar boletín<\/button><a role="menuitem" class="boletinlink" href="\/report\/boletin_general\.html"[^>]*>Ver último boletín ↗<\/a><button type="button" role="menuitemcheckbox" id="reviewToggle"[^>]*>[^\n]*?<\/button><button type="button" role="menuitem" id="passwordToggle">Cambiar contraseña maestra<\/button><a role="menuitem" id="backupDownload"[^\n]*?<\/div>/);
   assert.match(admin, /\$\('#menuToggle'\)\.onclick=e=>\{e\.stopPropagation\(\);setMenu\(\$\('#adminMenu'\)\.hidden\)\};/);
   assert.match(admin, /\$\('#adminMenu'\)\.addEventListener\('click',\(\)=>setMenu\(false\)\);/, 'choosing an option closes it');
   assert.match(admin, /if\(!e\.target\.closest\('\.menuwrap'\)\)setMenu\(false\)/, 'clicking outside closes it');
@@ -1194,10 +1194,16 @@ test('public list: Ordenar by Más recientes (default), Más antiguos, Área or 
 });
 test('admin ☰ menu: «Requerir revisión de puntos» toggles whether public points wait for review', () => {
   assert.match(admin, /<div class="adminmenu" id="adminMenu" role="menu" hidden>[^\n]*<button type="button" role="menuitemcheckbox" id="reviewToggle" aria-checked="true">Requerir revisión de puntos: <b>Sí<\/b><\/button>/);
-  assert.match(admin, /requireReviews=\(await adminRequest\('\/api\/admin\/settings'\)\)\.requireReviews!==false/, 'read on load; Sí unless the server says otherwise');
+  assert.match(admin, /const got=await adminRequest\('\/api\/admin\/settings'\);requireReviews=got\.requireReviews!==false/, 'read on load; Sí unless the server says otherwise');
   assert.match(admin, /if\(!next&&!confirm\('¿Publicar al momento los puntos que agregue el público\?/, 'turning it off asks first');
   assert.match(admin, /adminRequest\('\/api\/admin\/settings','POST',\{requireReviews:next\}\)/);
   assert.match(template, /saved\.status==='approved'\?'Punto publicado\. Ya aparece en el mapa y en la lista\.':'Se ha enviado tu solicitud\.'/, 'the public form already says which happened');
+});
+test('admin ☰ menu: «Descargar respaldo» downloads the whole DB; «Importar respaldo…» only on a local test server', () => {
+  assert.match(admin, /<a role="menuitem" id="backupDownload" href="\/api\/admin\/backup" download>Descargar respaldo<\/a><button type="button" role="menuitem" id="backupImport" hidden>Importar respaldo…<\/button><input type="file" id="backupFile" accept="\.gz,application\/gzip" hidden>/);
+  assert.match(admin, /\$\('#backupImport'\)\.hidden=!got\.importEnabled/, 'import shows only when the server allows it');
+  assert.match(admin, /if\(!confirm\(`¿Importar «\$\{file\.name\}»\? Se reemplazarán TODOS los datos/, 'importing asks first');
+  assert.match(admin, /fetch\('\/api\/admin\/restore',\{method:'POST',credentials:'same-origin',headers:\{'Content-Type':'application\/gzip','X-CSRF-Token':csrf\},body:file\}\)/);
 });
 test('«Solo Nuestro Equipo»: code users can limit the public list/map and runner needs to points added by a code user', () => {
   assert.match(template, /<button type="button" class="stat fstat teambtn" id="teamOnly" aria-pressed="false"><b id="teamCount">—<\/b><span>SOLO NUESTRO EQUIPO<\/span><\/button>/);

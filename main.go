@@ -411,22 +411,20 @@ func openApp(path, static string) (*App, error) {
 	}
 	_, objectStorage := a.media.(*s3Store)
 	a.mediaOn = objectStorage || os.Getenv("MEDIA_LOCAL_DISK") == "1"
-	if err := db.Update(migrateUsers); err != nil {
-		return nil, err
-	}
-	if err := db.Update(seedPackingItems); err != nil {
-		return nil, err
-	}
-	if err := db.Update(splitLegacyRepairs); err != nil {
-		return nil, err
-	}
-	if err := db.Update(migrateNeedUrgency); err != nil {
-		return nil, err
-	}
-	if err := a.loadLocations(); err != nil {
+	if err := a.migrate(); err != nil {
 		return nil, err
 	}
 	return a, nil
+}
+
+// migrate pone al día los datos guardados (al arrancar y después de importar un respaldo, que puede ser más viejo).
+func (a *App) migrate() error {
+	for _, step := range []func(*bolt.Tx) error{migrateUsers, seedPackingItems, splitLegacyRepairs, migrateNeedUrgency} {
+		if err := a.db.Update(step); err != nil {
+			return err
+		}
+	}
+	return a.loadLocations()
 }
 func (a *App) passwordValid(p string) bool {
 	var hash []byte
@@ -2074,6 +2072,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.mediaRoutes(mux, runners)
 	a.locationRoutes(mux, runners)
 	a.settingsRoutes(mux)
+	a.backupRoutes(mux)
 	a.fullNeedRoutes(mux)
 	mux.HandleFunc("POST /api/runner/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := a.crewSession(runners, w, r); !ok {
