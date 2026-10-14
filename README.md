@@ -6,6 +6,7 @@ Server: port 8080; serves map at `/`, curation at `/admin.html`, health at `/hea
 
 Environment:
 - `DB_PATH=/data/relief.db` — BoltDB file; mount a persistent volume at `/data` (writable by UID 10001).
+- `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (plus `S3_ENDPOINT` and `S3_REGION` for S3-compatible providers) — optional object storage for run photos/videos. In the cluster they come from the operator-created Secret `azuero-relief-media` (Helm `mediaEnvSecret`, optional; CI never writes it). Without them, media is saved under `media/` next to the database. `MEDIA_MAX_MB` caps each upload (default 250).
 - `ADMIN_BOOTSTRAP_PASSWORD` — required only to initialize a new database; at least 12 characters. bcrypt hash stored in BoltDB. No default password. Set from a Kubernetes Secret, not the image/manifests.
 - `LISTEN_ADDR=:8080`, `STATIC_DIR=/app/static` (Docker defaults).
 
@@ -19,7 +20,7 @@ API:
 - `GET /api/admin/submissions` → pending queue; session required.
 - `POST /api/admin/seed` + session cookie + `X-CSRF-Token`: JSON array of checkpoint objects (`code,area,place,needs,people,coords,service,...`). Seeds as approved, idempotent by code; returns `{added,skipped}`. This admin-only API does not run during deployment. Do not expose private records publicly.
 - `POST /api/admin/decisions` JSON `{id,decision:"approved"|"rejected"}` + `X-CSRF-Token`; session required.
-- `POST /api/admin/password` JSON `{password}` + session cookie + `X-CSRF-Token` → bcrypt-hashes the new password in BoltDB and invalidates all sessions. Use the masked form at `/admin.html`; do not send passwords in chat or commit them.
+- `POST /api/admin/password` JSON `{current, password}` (current master password required) + session cookie + `X-CSRF-Token` → bcrypt-hashes the new password in BoltDB and invalidates all sessions. Use the masked form at `/admin.html`; do not send passwords in chat or commit them.
 - `POST /api/admin/logout` + `X-CSRF-Token`.
 
 All points, including the original sheet camps (seeded via `POST /api/admin/seed`), persist in BoltDB and refresh in browsers every 30 seconds. Data is not written back to Google Sheets. Contact names and phone numbers are available only in the authenticated admin API, not the public API.

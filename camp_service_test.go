@@ -95,7 +95,11 @@ func TestCampServiceNeedsAndPublicPrivacy(t *testing.T) {
 		t.Fatalf("public: %d %s", pub.Code, pub.Body.String())
 	}
 	points := s.call("GET", "/api/points", "", false)
-	if !bytes.Contains(points.Body.Bytes(), []byte(`"campStatus":"OPEN"`)) || !bytes.Contains(points.Body.Bytes(), []byte(`"highestUrgency":"urgente"`)) || bytes.Contains(points.Body.Bytes(), []byte("6999-1111")) {
+	// Assigning a runner puts the need en ruta.
+	if n["status"] != "IN_PROGRESS" || n["enRouteAt"] == nil {
+		t.Fatalf("assigned need must be en ruta: %v", n)
+	}
+	if !bytes.Contains(points.Body.Bytes(), []byte(`"campStatus":"IN_PROGRESS"`)) || !bytes.Contains(points.Body.Bytes(), []byte(`"highestUrgency":"urgente"`)) || bytes.Contains(points.Body.Bytes(), []byte("6999-1111")) {
 		t.Fatalf("aggregate: %s", points.Body.String())
 	}
 }
@@ -438,5 +442,34 @@ func TestPublicFormFormatsAndPrivateCoordinatorPhone(t *testing.T) {
 	_, _, raw := s.runnerLogin("Luis").needs()
 	if !strings.Contains(raw, `{"name":"Marta (coordinador)","phone":"6555-9999"}`) {
 		t.Fatalf("runner should see coordinator phone: %s", raw)
+	}
+}
+
+func TestAssigningRunnerPutsNeedEnRuta(t *testing.T) {
+	s := newServiceHarness(t)
+	runner := s.expect("POST", "/api/admin/runners", `{"name":"Ana","telephone":"6999-1111"}`, 201)["id"].(string)
+	id := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","urgency":"normal"}`, 201)["id"].(string)
+	n := s.expect("PATCH", "/api/admin/needs/"+id, `{"runnerId":"`+runner+`"}`, 200)
+	if n["status"] != "IN_PROGRESS" || n["enRouteAt"] == nil {
+		t.Fatalf("assigning a runner must put the need en ruta: %v", n)
+	}
+	// Moving it back to Abierta on purpose keeps the same runner without forcing en ruta again.
+	if n := s.expect("PATCH", "/api/admin/needs/"+id, `{"status":"OPEN","runnerId":"`+runner+`"}`, 200); n["status"] != "OPEN" {
+		t.Fatalf("explicit Abierta with the same runner: %v", n)
+	}
+	// Changing to another runner keeps it en ruta with a fresh time; removing the runner reopens it.
+	s.expect("PATCH", "/api/admin/needs/"+id, `{"runnerId":"`+runner+`","status":"IN_PROGRESS"}`, 200)
+	other := s.expect("POST", "/api/admin/runners", `{"name":"Luis","telephone":"6999-2222"}`, 201)["id"].(string)
+	if n := s.expect("PATCH", "/api/admin/needs/"+id, `{"runnerId":"`+other+`","status":"IN_PROGRESS"}`, 200); n["status"] != "IN_PROGRESS" || n["runnerId"] != other || n["enRouteAt"] == nil {
+		t.Fatalf("reassigned: %v", n)
+	}
+	// The admin form always sends the status it shows; removing the runner still wins.
+	if n := s.expect("PATCH", "/api/admin/needs/"+id, `{"runnerId":"","status":"IN_PROGRESS"}`, 200); n["status"] != "OPEN" || n["enRouteAt"] != nil {
+		t.Fatalf("unassigned need must go back to Abierta: %v", n)
+	}
+	// A completed need stays completed when someone is assigned.
+	s.expect("PATCH", "/api/admin/needs/"+id, `{"status":"COMPLETED","runnerId":""}`, 200)
+	if n := s.expect("PATCH", "/api/admin/needs/"+id, `{"runnerId":"`+runner+`"}`, 200); n["status"] != "COMPLETED" {
+		t.Fatalf("completed need: %v", n)
 	}
 }

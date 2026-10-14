@@ -59,10 +59,17 @@ spec:
           env:
             - name: PORT
               value: {{ .Values.containerPort | quote }}
-          {{- if .Values.existingEnvSecret }}
+          {{- if or .Values.existingEnvSecret .Values.mediaEnvSecret }}
           envFrom:
+            {{- if .Values.existingEnvSecret }}
             - secretRef:
                 name: {{ .Values.existingEnvSecret | quote }}
+            {{- end }}
+            {{- if .Values.mediaEnvSecret }}
+            - secretRef:
+                name: {{ .Values.mediaEnvSecret | quote }}
+                optional: true
+            {{- end }}
           {{- end }}
           # Image must serve the site root over HTTP.
           startupProbe:

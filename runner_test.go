@@ -85,9 +85,6 @@ func TestRunnerTakeCompleteReleaseAndFollowup(t *testing.T) {
 	if w := ana.call("POST", "/api/runner/needs/"+n1+"/take", "{}"); w.Code != 200 {
 		t.Fatalf("take: %d %s", w.Code, w.Body.String())
 	}
-	if w := ana.call("POST", "/api/runner/needs/"+n2+"/take", "{}"); w.Code != 409 {
-		t.Fatalf("second run must be refused: %d", w.Code)
-	}
 	if w := luis.call("POST", "/api/runner/needs/"+n1+"/take", "{}"); w.Code != 409 {
 		t.Fatalf("taken need: %d", w.Code)
 	}
@@ -171,7 +168,7 @@ func TestRunnerSessionFillsMissingPhone(t *testing.T) {
 	s := newServiceHarness(t)
 	// Corredores registrados antes de pedir teléfono quedaron sin número.
 	if err := s.app.db.Update(func(tx *bolt.Tx) error {
-		return putJSON(tx.Bucket(runnersBucket), "legacy", Runner{ID: "legacy", Name: "Rosa"})
+		return putJSON(tx.Bucket(usersBucket), "legacy", User{ID: "legacy", Name: "Rosa", Roles: []string{roleRunner}})
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -180,5 +177,52 @@ func TestRunnerSessionFillsMissingPhone(t *testing.T) {
 	}
 	if list := s.call("GET", "/api/admin/runners", "", true).Body.String(); strings.Count(list, `"id"`) != 1 || !strings.Contains(list, `"telephone":"6123 4567"`) {
 		t.Fatalf("runners: %s", list)
+	}
+}
+
+func TestRunnerHoldsSeveralRunsInTheirOwnOrder(t *testing.T) {
+	s := newServiceHarness(t)
+	ids := []string{}
+	for i := 0; i < 11; i++ {
+		ids = append(ids, s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua `+string(rune('A'+i))+`","urgency":"normal"}`, 201)["id"].(string))
+	}
+	ana := s.runnerLogin("Ana")
+	for _, id := range ids[:3] {
+		if w := ana.call("POST", "/api/runner/needs/"+id+"/take", "{}"); w.Code != 200 {
+			t.Fatalf("take %s: %d %s", id, w.Code, w.Body.String())
+		}
+	}
+	mine := func() []string {
+		var out struct{ Mine []runnerNeed }
+		json.Unmarshal(ana.call("GET", "/api/runner/needs", "").Body.Bytes(), &out)
+		got := []string{}
+		for _, n := range out.Mine {
+			got = append(got, n.ID)
+		}
+		return got
+	}
+	if got := mine(); strings.Join(got, ",") != strings.Join(ids[:3], ",") {
+		t.Fatalf("without a saved order, runs come in the order taken: %v", got)
+	}
+	// The runner drags them: third, first, second. Unknown or repeated IDs are ignored.
+	if w := ana.call("POST", "/api/runner/order", `{"ids":["`+ids[2]+`","nope","`+ids[0]+`","`+ids[2]+`","`+ids[1]+`"]}`); w.Code != 200 {
+		t.Fatalf("order: %d %s", w.Code, w.Body.String())
+	}
+	if got := mine(); strings.Join(got, ",") != strings.Join([]string{ids[2], ids[0], ids[1]}, ",") {
+		t.Fatalf("saved order: %v", got)
+	}
+	// A new run goes to the end.
+	ana.call("POST", "/api/runner/needs/"+ids[3]+"/take", "{}")
+	if got := mine(); len(got) != 4 || got[3] != ids[3] || got[0] != ids[2] {
+		t.Fatalf("new run at the end: %v", got)
+	}
+	for _, id := range ids[4:10] {
+		ana.call("POST", "/api/runner/needs/"+id+"/take", "{}")
+	}
+	if w := ana.call("POST", "/api/runner/needs/"+ids[10]+"/take", "{}"); w.Code != 409 || !strings.Contains(w.Body.String(), "10 carreras") {
+		t.Fatalf("limit of 10 runs: %d %s", w.Code, w.Body.String())
+	}
+	if w := ana.call("POST", "/api/runner/order", `{"ids":"x"}`); w.Code != 400 {
+		t.Fatalf("bad order: %d", w.Code)
 	}
 }

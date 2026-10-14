@@ -161,7 +161,13 @@ func TestApprovalFlow(t *testing.T) {
 	if got := archive("seed:s-1", "approved"); got.Code != 200 {
 		t.Fatalf("restore seed: %d %s", got.Code, got.Body.String())
 	}
-	rotated := call("POST", "/api/admin/password", `{"password":"rotated-test-only-45678"}`, cookie, auth["csrf"])
+	if got := call("POST", "/api/admin/password", `{"password":"rotated-test-only-45678"}`, cookie, auth["csrf"]); got.Code != 403 {
+		t.Fatalf("changing the password requires the current one: %d", got.Code)
+	}
+	if got := call("POST", "/api/admin/password", `{"current":"wrong-password-0000","password":"rotated-test-only-45678"}`, cookie, auth["csrf"]); got.Code != 403 {
+		t.Fatalf("wrong current password: %d", got.Code)
+	}
+	rotated := call("POST", "/api/admin/password", `{"current":"test-password-only-12345","password":"rotated-test-only-45678"}`, cookie, auth["csrf"])
 	if rotated.Code != 200 {
 		t.Fatalf("rotate: %d %s", rotated.Code, rotated.Body.String())
 	}

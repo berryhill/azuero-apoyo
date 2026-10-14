@@ -25,7 +25,7 @@ jobs:
               with op.open(req, timeout=15) as r:
                   return json.load(r)
           auth=post('/api/admin/login',{'password':old})
-          post('/api/admin/password',{'password':new},auth['csrf'])
+          post('/api/admin/password',{'current':old,'password':new},auth['csrf'])
           post('/api/admin/login',{'password':new})
           print('Production admin password rotated and verified')
           PY
