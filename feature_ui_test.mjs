@@ -1177,3 +1177,15 @@ test('admin list: filter by Agregado por, sort by recent/código/área/coordinad
   assert.match(admin, /if\(b\.dataset\.decision==='archived'&&!confirm\(archiveQuestion\)\)return;/, 'asks before archiving; Recuperar punto undoes it');
   assert.match(admin, /\$\('#archiveCamp'\)\.onclick=async e=>\{if\(!activeCamp\|\|!confirm\(archiveQuestion\)\)return;/);
 });
+test('public list: Ordenar by Más recientes (default), Más antiguos, Área or Coordinador, for everyone', () => {
+  assert.match(template, /<label class="sortrow"><span class="needlabel">Ordenar<\/span><select id="sortList"><option value="recent">Más recientes<\/option><option value="oldest">Más antiguos<\/option><option value="area">Área<\/option><option value="coord">Coordinador<\/option><\/select><\/label>/);
+  assert.doesNotMatch(template, /body:not\(\.signed-in\) [^{]*\.sortrow/, 'not limited to signed-in users');
+  assert.match(template, /\.includes\(q\)\)\.sort\(listOrder\(\)\);/);
+  const src = template.match(/const addedAt=[^\n]*/)[0] + '\n' + template.match(/function listOrder\(\)[^\n]*/)[0];
+  const order = (value, rows) => rows.slice().sort(new Function('$', `${src};return listOrder()`)(() => ({value}))).map(r => r.code);
+  const rows = [{code: 'B', area: 'Venao', coordinator: 'Zoe', created: '2026-10-01T00:00:00Z'}, {code: 'A', area: 'Ávila', created: '2026-10-03T00:00:00Z'}, {code: 'C', area: 'Pedasí', coordinator: 'Ana', created: '2026-10-02T00:00:00Z'}];
+  assert.deepEqual(order('recent', rows), ['A', 'C', 'B']);
+  assert.deepEqual(order('oldest', rows), ['B', 'C', 'A']);
+  assert.deepEqual(order('area', rows), ['A', 'C', 'B']);
+  assert.deepEqual(order('coord', rows), ['C', 'B', 'A'], 'no coordinator last');
+});
