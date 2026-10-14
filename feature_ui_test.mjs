@@ -1109,7 +1109,7 @@ test('runner page: code users see the other live runners as orange trucks, like 
   assert.match(runner, /render\(\);loadTeam\(\);\$\('#gateForm'\)\.reset\(\);showGate\(\)\}/, 'signing out clears them');
 });
 test('runner live location is shared with the team; code users see other runners as small orange trucks on the public map', () => {
-  assert.match(runner, /function shareLocation\(p\)\{if\(agentMode\|\|!csrf\)return;[^\n]*Date\.now\(\)-sharedAt<15000&&\(!map\|\|map\.distance\(sharedPos,here\)<50\)\)return;[^\n]*api\('\/api\/runner\/location','POST'/, 'every 15 s or after 50 m');
+  assert.match(runner, /function shareLocation\(p\)\{lastFix=p;if\(agentMode\|\|!csrf\)return;[^\n]*Date\.now\(\)-sharedAt<15000&&\(!map\|\|map\.distance\(sharedPos,here\)<50\)\)return;[^\n]*api\('\/api\/runner\/location','POST'/, 'every 15 s or after 50 m');
   assert.match(runner, /api\('\/api\/runner\/location\/stop','POST',\{\}\)/, 'turning it off stops sharing');
   assert.match(runner, /'📍 En vivo · compartida con el equipo'/, 'the runner is told it is shared');
   assert.match(template, /fetch\('\/api\/full\/runners',\{cache:'no-store',credentials:'same-origin'\}\)/);
@@ -1124,6 +1124,8 @@ test('public map: code users turn location sharing on and off with a map button;
   assert.match(template, /fullPost\('\/api\/full\/location\/stop',\{\}\)/);
   assert.match(template, /Date\.now\(\)-sharedAt<15000&&map\.distance\(sharedPos,here\)<50\)return/, 'every 15 s or 50 m');
   assert.match(template, /lastFix=p;shareFromMap\(p\);/, 'the blue pin feeds sharing');
+  assert.match(template, /setInterval\(\(\)=>\{if\(liveShare&&lastFix\)shareFromMap\(lastFix\)\},20000\)/, 'a phone standing still keeps re-sending its last position');
+  assert.match(runner, /setInterval\(\(\)=>\{if\(watchId!==null&&lastFix\)shareLocation\(lastFix\)\},20000\)/, 'a runner standing still keeps re-sending too');
   assert.match(template, /'Compartida con quienes entraron con código\.':'Solo visible en este dispositivo\.'/);
   assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\);if\(!u\)\{stopShare\(false\);[^}]*\}setShareButton\(\);/, 'signing out stops sharing');
   assert.match(template, /p\.state==='granted'\?startShare\(\):localStorage\.removeItem\('mapLive'\)/, 'a reload resumes only without a permission prompt');

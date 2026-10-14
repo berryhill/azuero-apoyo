@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	bolt "go.etcd.io/bbolt"
 )
 
 func TestRunnerLiveLocationVisibleToCodeUsersOnly(t *testing.T) {
@@ -165,5 +167,74 @@ func TestCodeSignInReturnsOwnID(t *testing.T) {
 	s.h.ServeHTTP(w, r)
 	if w.Code != 200 || !strings.Contains(w.Body.String(), `"id":"`+id+`"`) {
 		t.Fatalf("me: %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestLiveLocationStoredInDatabaseAndSurvivesRestart(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)
+	s.expect("POST", "/api/admin/users", `{"name":"Bea","telephone":"6999-2222","roles":["builder"],"accessCode":"BEA123"}`, 201)
+	viewer := func(h http.Handler, code string) *http.Cookie {
+		r := httptest.NewRequest("POST", "/api/session/code", strings.NewReader(`{"accessCode":"`+code+`"}`))
+		r.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		for _, c := range w.Result().Cookies() {
+			if c.Name == "viewer_session" {
+				return c
+			}
+		}
+		t.Fatalf("no viewer session for %s: %d %s", code, w.Code, w.Body.String())
+		return nil
+	}
+	call := func(h http.Handler, method, path, body string, c *http.Cookie) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, path, strings.NewReader(body))
+		r.Header.Set("Content-Type", "application/json")
+		r.AddCookie(c)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w
+	}
+	stored := func(app *App) int {
+		n := 0
+		app.db.View(func(tx *bolt.Tx) error { n = tx.Bucket(locationsBucket).Stats().KeyN; return nil })
+		return n
+	}
+	if w := call(s.h, "POST", "/api/full/location", `{"lat":7.5,"lon":-80.3,"accuracy":9}`, viewer(s.h, "BEA123")); w.Code != 200 {
+		t.Fatalf("share: %d %s", w.Code, w.Body.String())
+	}
+	if n := stored(s.app); n != 1 {
+		t.Fatalf("position saved in the database: %d", n)
+	}
+	// Restart (deploy): sessions are gone but the position is still there for the others.
+	path := s.app.db.Path()
+	s.app.db.Close()
+	app, err := openApp(path, ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { app.db.Close() })
+	h := app.routes()
+	fufo := viewer(h, "FUFO12")
+	if body := call(h, "GET", "/api/full/runners", "", fufo).Body.String(); !strings.Contains(body, `"name":"Bea"`) || !strings.Contains(body, `"lat":7.5`) {
+		t.Fatalf("position survives restart: %s", body)
+	}
+	bea := viewer(h, "BEA123")
+	call(h, "POST", "/api/full/location/stop", `{}`, bea)
+	if n := stored(app); n != 0 {
+		t.Fatalf("stop removes it from the database: %d", n)
+	}
+	// An old stored position is dropped on start.
+	app.db.Update(func(tx *bolt.Tx) error {
+		return putJSON(tx.Bucket(locationsBucket), "old", liveLocation{Lat: 7, Lon: -80, At: time.Now().Add(-5 * time.Minute)})
+	})
+	app.db.Close()
+	again, err := openApp(path, ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer again.db.Close()
+	if n := stored(again); n != 0 || len(again.locations) != 0 {
+		t.Fatalf("stale position pruned on start: %d %v", n, again.locations)
 	}
 }

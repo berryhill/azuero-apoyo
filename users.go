@@ -552,7 +552,6 @@ func secureCookie(r *http.Request) bool {
 // dropCrewSessions cierra las sesiones de un usuario (al desactivarlo o quitarle roles) y quita su ubicación en vivo.
 func (a *App) dropCrewSessions(id string) {
 	a.mu.Lock()
-	defer a.mu.Unlock()
 	for _, sessions := range []map[string]runnerSession{a.runnerSessions, a.builderSessions, a.viewerSessions} {
 		for token, s := range sessions {
 			if s.runnerID == id {
@@ -560,8 +559,9 @@ func (a *App) dropCrewSessions(id string) {
 			}
 		}
 	}
+	a.mu.Unlock()
 	// Sin sesión deja de compartir su ubicación en vivo.
-	delete(a.locations, id)
+	a.dropLocation(id)
 }
 
 type userFieldError struct{ field, msg string }

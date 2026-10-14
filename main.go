@@ -259,7 +259,7 @@ type App struct {
 	codeAttempts map[string]attempt
 	// Última vez que cada usuario hizo algo con su sesión (en memoria; se guarda en el usuario cada 2 minutos).
 	lastSeen map[string]time.Time
-	// Última ubicación en vivo de cada corredor que la comparte (solo memoria; ver location.go).
+	// Última ubicación en vivo de cada usuario que la comparte (copia en memoria de la base; ver location.go).
 	locations map[string]liveLocation
 	static    string
 	router    *router
@@ -421,6 +421,9 @@ func openApp(path, static string) (*App, error) {
 		return nil, err
 	}
 	if err := db.Update(migrateNeedUrgency); err != nil {
+		return nil, err
+	}
+	if err := a.loadLocations(); err != nil {
 		return nil, err
 	}
 	return a, nil
@@ -2056,11 +2059,12 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/full/logout", func(w http.ResponseWriter, r *http.Request) {
 		if c, e := r.Cookie("viewer_session"); e == nil {
 			a.mu.Lock()
-			if s, ok := a.viewerSessions[c.Value]; ok {
-				delete(a.locations, s.runnerID)
-			}
+			s, ok := a.viewerSessions[c.Value]
 			delete(a.viewerSessions, c.Value)
 			a.mu.Unlock()
+			if ok {
+				a.dropLocation(s.runnerID)
+			}
 		}
 		http.SetCookie(w, &http.Cookie{Name: "viewer_session", Value: "", Path: "/api/full", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
 		response(w, 200, map[string]string{"status": "logged out"})
@@ -2218,11 +2222,12 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 	mux.HandleFunc("POST "+c.path+"/logout", func(w http.ResponseWriter, r *http.Request) {
 		if cookie, e := r.Cookie(c.cookie); e == nil {
 			a.mu.Lock()
-			if s, ok := c.sessions[cookie.Value]; ok && !c.repair {
-				delete(a.locations, s.runnerID)
-			}
+			s, ok := c.sessions[cookie.Value]
 			delete(c.sessions, cookie.Value)
 			a.mu.Unlock()
+			if ok && !c.repair {
+				a.dropLocation(s.runnerID)
+			}
 		}
 		http.SetCookie(w, &http.Cookie{Name: c.cookie, Value: "", Path: c.path, MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
 		response(w, 200, map[string]string{"status": "logged out"})

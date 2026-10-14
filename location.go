@@ -9,16 +9,19 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-// Ubicación en vivo de corredores: cuando un corredor activa «Mi ubicación en vivo» en su panel, el teléfono envía
-// su posición y quienes entraron con código la ven en el mapa público. Solo se guarda la última posición de cada
-// corredor y solo en memoria (nunca en la base de datos); deja de mostrarse 2 minutos después de la última.
+// Ubicación en vivo: cuando un corredor activa «Mi ubicación en vivo» en su panel, o alguien con código toca
+// «Compartir mi ubicación» en el mapa público, el teléfono envía su posición y quienes entraron con código la ven en
+// ambos mapas. Solo se guarda la última posición de cada usuario, en la base (bucket live_locations) con copia en
+// memoria para las consultas; así sobrevive a un reinicio o despliegue. Deja de mostrarse 2 minutos después de la última.
 const locationTTL = 2 * time.Minute
 
+var locationsBucket = []byte("live_locations")
+
 type liveLocation struct {
-	Lat      float64 `json:"lat"`
-	Lon      float64 `json:"lon"`
-	Accuracy float64 `json:"accuracy,omitempty"`
-	At       time.Time
+	Lat      float64   `json:"lat"`
+	Lon      float64   `json:"lon"`
+	Accuracy float64   `json:"accuracy,omitempty"`
+	At       time.Time `json:"at"`
 }
 
 type runnerOnMap struct {
@@ -52,9 +55,7 @@ func (a *App) locationRoutes(mux *http.ServeMux, runners *crew) {
 	})
 	mux.HandleFunc("POST /api/full/location/stop", func(w http.ResponseWriter, r *http.Request) {
 		if u, ok := a.viewer(w, r); ok {
-			a.mu.Lock()
-			delete(a.locations, u.ID)
-			a.mu.Unlock()
+			a.dropLocation(u.ID)
 			response(w, 200, map[string]string{"status": "stopped"})
 		}
 	})
@@ -63,9 +64,7 @@ func (a *App) locationRoutes(mux *http.ServeMux, runners *crew) {
 		if !ok {
 			return
 		}
-		a.mu.Lock()
-		delete(a.locations, s.runnerID)
-		a.mu.Unlock()
+		a.dropLocation(s.runnerID)
 		response(w, 200, map[string]string{"status": "stopped"})
 	})
 	// Vista completa (entró con código): los otros corredores con ubicación reciente, sin incluir a quien consulta.
@@ -101,11 +100,82 @@ func (a *App) saveLocation(w http.ResponseWriter, r *http.Request, userID string
 		fail(w, 400, "Ubicación inválida.")
 		return
 	}
-	in.At = time.Now()
+	in.At = time.Now().UTC()
+	if e := a.db.Update(func(tx *bolt.Tx) error {
+		b, e := tx.CreateBucketIfNotExists(locationsBucket)
+		if e != nil {
+			return e
+		}
+		return putJSON(b, userID, in)
+	}); e != nil {
+		fail(w, 500, "No se pudo guardar la ubicación.")
+		return
+	}
 	a.mu.Lock()
 	a.locations[userID] = in
 	a.mu.Unlock()
 	response(w, 200, map[string]string{"status": "ok"})
+}
+
+// dropLocation deja de compartir la ubicación de un usuario (detener, salir, desactivado), en memoria y en la base.
+// No llamar con a.mu tomado.
+func (a *App) dropLocation(ids ...string) {
+	a.mu.Lock()
+	for _, id := range ids {
+		delete(a.locations, id)
+	}
+	a.mu.Unlock()
+	a.db.Update(func(tx *bolt.Tx) error {
+		if b := tx.Bucket(locationsBucket); b != nil {
+			for _, id := range ids {
+				b.Delete([]byte(id))
+			}
+		}
+		return nil
+	})
+}
+
+// loadLocations, al arrancar, recupera de la base las posiciones aún vigentes (las vencidas se borran).
+func (a *App) loadLocations() error {
+	if e := a.pruneStoredLocations(); e != nil {
+		return e
+	}
+	return a.db.View(func(tx *bolt.Tx) error {
+		return tx.Bucket(locationsBucket).ForEach(func(k, v []byte) error {
+			var loc liveLocation
+			if json.Unmarshal(v, &loc) == nil {
+				a.mu.Lock()
+				a.locations[string(k)] = loc
+				a.mu.Unlock()
+			}
+			return nil
+		})
+	})
+}
+
+// pruneStoredLocations borra de la base las posiciones con más de locationTTL (o ilegibles).
+func (a *App) pruneStoredLocations() error {
+	now := time.Now()
+	return a.db.Update(func(tx *bolt.Tx) error {
+		b, e := tx.CreateBucketIfNotExists(locationsBucket)
+		if e != nil {
+			return e
+		}
+		var stale [][]byte
+		b.ForEach(func(k, v []byte) error {
+			var loc liveLocation
+			if json.Unmarshal(v, &loc) != nil || now.Sub(loc.At) > locationTTL {
+				stale = append(stale, append([]byte(nil), k...))
+			}
+			return nil
+		})
+		for _, k := range stale {
+			if e := b.Delete(k); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
 }
 
 // liveRunners: corredores (o usuarios con código) activos con ubicación reciente, sin incluir a exclude; las posiciones vencidas se borran.
@@ -113,14 +183,19 @@ func (a *App) liveRunners(exclude string) []runnerOnMap {
 	now := time.Now()
 	a.mu.Lock()
 	live := map[string]liveLocation{}
+	pruned := false
 	for id, loc := range a.locations {
 		if now.Sub(loc.At) > locationTTL {
 			delete(a.locations, id)
+			pruned = true
 		} else if id != exclude {
 			live[id] = loc
 		}
 	}
 	a.mu.Unlock()
+	if pruned {
+		a.pruneStoredLocations()
+	}
 	list := []runnerOnMap{}
 	a.db.View(func(tx *bolt.Tx) error {
 		for id, loc := range live {
