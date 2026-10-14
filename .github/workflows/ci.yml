@@ -112,7 +112,7 @@ jobs:
             --set image.repository=ghcr.io/berryhill/azuero-apoyo \
             --set-string image.digest="$IMAGE_DIGEST" \
             --set existingEnvSecret=azuero-relief-env \
-            --set mediaEnvSecret=azuero-relief-media \
+            --set mediaEnvSecret=azuero-apoyo-media \
             --set imagePullSecrets[0].name=ghcr-pull \
             --set ingress.enabled=true
           kubectl -n azuero-relief rollout status deployment/azuero-apoyo-azuero-relief --timeout=2m
