@@ -46,6 +46,21 @@ test('public stats are static counts; only need-status and coordinator stat butt
   assert.doesNotMatch(template, /CampUrgency|Todas las urgencias/);
   assert.match(template, /needStatuses/);
 });
+test('public map/list default to «Con necesidades»; pins are light green (camp), light red (need) or strong red (urgent need)', () => {
+  assert.match(template, /<div class="stats" id="needStats"><button type="button" class="stat fstat active" data-need="ACTIVE" aria-pressed="true"><b id="needACTIVE">—<\/b><span>CON NECESIDADES<\/span><\/button><button type="button" class="stat fstat" data-need="OPEN"/);
+  assert.match(template, /let selectedCoordinator='',selectedCampStatus='ACTIVE',teamOnly=false;/, 'on by default');
+  assert.match(template, /selectedCampStatus==='ACTIVE'\?hasActiveNeed\(r\):hasNeed\(r,selectedCampStatus\)/);
+  assert.match(template, /\$\('#needACTIVE'\)\.textContent=needBase\.filter\(hasActiveNeed\)\.length/);
+  assert.match(template, /Toca «Con necesidades» para ver todos los puntos\./, 'an empty list says how to see every point');
+  const src = template.match(/const hasNeed=[^;]*;/)[0] + template.match(/const pinColors=[^\n]*/)[0];
+  const {pinColor, pinColors} = new Function(`${src};return {pinColor, pinColors}`)();
+  assert.deepEqual(pinColors, {camp: '#7fcf9a', need: '#f28b82', urgent: '#c62828'});
+  assert.equal(pinColor({needStatuses: ['COMPLETED']}), pinColors.camp, 'only completed needs = camp');
+  assert.equal(pinColor({}), pinColors.camp);
+  assert.equal(pinColor({needStatuses: ['IN_PROGRESS'], highestUrgency: 'normal'}), pinColors.need);
+  assert.equal(pinColor({needStatuses: ['OPEN'], highestUrgency: 'urgente'}), pinColors.urgent);
+  assert.match(template, /<div class="legend"><span><i style="background:#7fcf9a"><\/i>Punto<\/span><span><i style="background:#f28b82"><\/i>Necesidad<\/span><span><i style="background:#c62828"><\/i>Urgente<\/span><\/div>/, 'the map explains the colors');
+});
 test('public coordinator filter is a sidebar stat button with a searchable picker, not a map dropdown', () => {
   assert.doesNotMatch(template, /mapCoordinator|listCoordinator|<select[^>]*coordinador/i);
   assert.ok(template.indexOf('id="needStats"') < template.indexOf('id="coordOpen"'));
@@ -59,7 +74,7 @@ test('public coordinator filter is a sidebar stat button with a searchable picke
   assert.equal(api.coordLabel(), 'Marta Ruiz');
 });
 test('public need filter shows the matching saved needs with Spanish created / en ruta times', () => {
-  assert.match(template, /\$\{selectedCampStatus&&r\.id\?serviceNeedsHtml\(r\):/);
+  assert.match(template, /\$\{selectedCampStatus&&selectedCampStatus!=='ACTIVE'&&r\.id\?serviceNeedsHtml\(r\):/);
   const src = template.match(/const activeNeeds=[^\n]*\nfunction loadNeeds[^\n]*\nfunction serviceNeedsHtml[^\n]*/)[0];
   const render = new Function('clean', 'selectedCampStatus', 'fetch', 'renderFeed', `${src};campNeeds.set('c1',{gen:0,list:[{need:'Agua',status:'IN_PROGRESS',urgency:'urgente',createdAt:'2026-10-13T13:00:00Z',enRouteAt:'2026-10-13T14:30:00Z'},{need:'Comida',status:'OPEN',createdAt:'2026-10-13T12:00:00Z'},{need:'Ropa',status:'COMPLETED',createdAt:'2026-10-13T11:00:00Z'}]});campNeeds.set('c2',{gen:0,list:[{need:'Ropa',status:'COMPLETED'}]});return (id,all)=>serviceNeedsHtml({id},...(all?[activeNeeds]:[]))`)(s => String(s), 'IN_PROGRESS', () => { throw Error('should use cache'); }, () => {});
   const html = render('c1');
