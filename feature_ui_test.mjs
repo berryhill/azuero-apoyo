@@ -952,3 +952,10 @@ test('admin header: Usuarios and Generar boletín live in a ☰ menu that opens 
   assert.match(admin, /\$\('#adminMenu'\)\.addEventListener\('click',\(\)=>setMenu\(false\)\);/, 'choosing an option closes it');
   assert.match(admin, /if\(!e\.target\.closest\('\.menuwrap'\)\)setMenu\(false\)/, 'clicking outside closes it');
 });
+test('admin shows «Agregado por» for points published by access-code users', () => {
+  assert.match(admin, /p\.addedByName&&'Agregado por '\+p\.addedByName\]\.filter\(Boolean\)\.join\(' · '\)/);
+  const src = ['clean', 'labels', 'contactKeys', 'memberList', 'peopleOf', 'peopleLine', 'campViewHtml'].map(k => admin.match(new RegExp(`const ${k}=[^\\n]*`))[0]).join('\n');
+  const {campViewHtml} = new Function(`${src};return {campViewHtml}`)();
+  assert.match(campViewHtml({code: 'C', area: 'A', addedByName: 'Fufo <b>'}), /<div class="field"><b>Agregado por<\/b>Fufo &lt;b&gt;<\/div>/);
+  assert.doesNotMatch(campViewHtml({code: 'C', area: 'A'}), /Agregado por/);
+});

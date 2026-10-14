@@ -437,7 +437,7 @@ func TestCodeUserPointIsPublishedWithoutReview(t *testing.T) {
 		s.h.ServeHTTP(w, r)
 		return w
 	}
-	point := `{"area":"Cañas","place":"Escuela","needs":"Agua","coordinator":"Fufo","coordinatorPhone":"6999-1111","notes":"interno","code":"MIO-1"}`
+	point := `{"area":"Cañas","place":"Escuela","needs":"Agua","coordinator":"Fufo","coordinatorPhone":"6999-1111","notes":"interno","code":"MIO-1","addedByName":"Otra persona","addedBy":"x"}`
 	if w := post(nil, point); w.Code != 401 {
 		t.Fatalf("publishing requires a code sign-in: %d", w.Code)
 	}
@@ -463,8 +463,22 @@ func TestCodeUserPointIsPublishedWithoutReview(t *testing.T) {
 	var all []Point
 	json.Unmarshal(s.call("GET", "/api/admin/points", "", true).Body.Bytes(), &all)
 	for _, p := range all {
-		if p.ID == created["id"] && (p.Notes != "" || p.Code == "MIO-1" || p.Source != "user" || p.LastCheckup == "") {
-			t.Fatalf("internal fields stay admin-only; source marks the user: %+v", p)
+		if p.ID == created["id"] && (p.Notes != "" || p.Code == "MIO-1" || p.Source != "user" || p.LastCheckup == "" || p.AddedByName != "Fufo" || p.AddedBy == "" || p.AddedBy == "x") {
+			t.Fatalf("internal fields stay admin-only; source and Agregado por mark the user: %+v", p)
+		}
+	}
+	if strings.Contains(pts, "addedBy") || strings.Contains(pts, "Fufo\",\"needs") {
+		t.Fatalf("Agregado por is private: %s", pts)
+	}
+	// A public submission can't claim to be added by someone.
+	pub := s.call("POST", "/api/submissions", `{"area":"X","coordinatorPhone":"6999-0000","addedByName":"Fufo","addedBy":"x"}`, false)
+	var pubCreated map[string]string
+	json.Unmarshal(pub.Body.Bytes(), &pubCreated)
+	all = nil // fresh slice: decoding into the old one would keep earlier points' fields
+	json.Unmarshal(s.call("GET", "/api/admin/points", "", true).Body.Bytes(), &all)
+	for _, p := range all {
+		if p.ID == pubCreated["id"] && (p.AddedBy != "" || p.AddedByName != "") {
+			t.Fatalf("public submissions have no Agregado por: %+v", p)
 		}
 	}
 }

@@ -74,6 +74,9 @@ type Point struct {
 	History []FieldChange `json:"history,omitempty"`
 	// Cada clic en «Checkup» del panel, del más antiguo al más reciente; privado y de solo lectura.
 	Checkups []string `json:"checkups,omitempty"`
+	// Usuario con código de acceso que publicó el punto (ID y nombre completo); lo fija el servidor y solo lo ve administración.
+	AddedBy     string `json:"addedBy,omitempty"`
+	AddedByName string `json:"addedByName,omitempty"`
 }
 
 // FieldChange guarda el valor que tenía un campo hasta la edición que lo cambió (Until).
@@ -307,6 +310,7 @@ func parseMapLink(link string) ([]float64, error) {
 }
 func publicPoint(p Point) Point {
 	p.Needs, _ = splitRepair(p.Needs)
+	p.AddedBy, p.AddedByName = "", ""
 	p.Members = nil
 	p.History = nil
 	p.Checkups = nil
@@ -849,7 +853,8 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /api/points", func(w http.ResponseWriter, r *http.Request) { a.publicPoints(w, false) })
 	// reviewed: administración (campos internos, código propio). publish: queda aprobado al guardar
 	// (administración, o un usuario que entró con su código de acceso).
-	createPoint := func(w http.ResponseWriter, r *http.Request, reviewed, publish bool) {
+	// by: usuario con código que lo agrega (queda como «Agregado por»); nil en solicitudes públicas y de administración.
+	createPoint := func(w http.ResponseWriter, r *http.Request, reviewed, publish bool, by *User) {
 		if !a.guard(w, r) || (reviewed && !a.admin(w, r)) {
 			return
 		}
@@ -898,6 +903,10 @@ func (a *App) routes() http.Handler {
 			return
 		}
 		p.History, p.Checkups = nil, nil
+		p.AddedBy, p.AddedByName = "", ""
+		if by != nil {
+			p.AddedBy, p.AddedByName = by.ID, by.Name
+		}
 		if !reviewed {
 			if field, msg := publicFormatError(p); field != "" {
 				failField(w, 400, field, msg)
@@ -962,12 +971,12 @@ func (a *App) routes() http.Handler {
 		}
 		response(w, 201, map[string]string{"id": p.ID, "status": p.Status})
 	}
-	mux.HandleFunc("POST /api/submissions", func(w http.ResponseWriter, r *http.Request) { createPoint(w, r, false, false) })
-	mux.HandleFunc("POST /api/admin/points", func(w http.ResponseWriter, r *http.Request) { createPoint(w, r, true, true) })
+	mux.HandleFunc("POST /api/submissions", func(w http.ResponseWriter, r *http.Request) { createPoint(w, r, false, false, nil) })
+	mux.HandleFunc("POST /api/admin/points", func(w http.ResponseWriter, r *http.Request) { createPoint(w, r, true, true, nil) })
 	// Usuario con código («!código» en la página pública o en su panel): su punto se publica sin revisión.
 	mux.HandleFunc("POST /api/full/points", func(w http.ResponseWriter, r *http.Request) {
-		if a.viewer(w, r) {
-			createPoint(w, r, false, true)
+		if u, ok := a.viewer(w, r); ok {
+			createPoint(w, r, false, true, &u)
 		}
 	})
 	mux.HandleFunc("POST /api/admin/login", func(w http.ResponseWriter, r *http.Request) {
@@ -1976,12 +1985,12 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	})
 	// Vista completa: los mismos datos públicos, pero con el detalle de las carreras reservadas.
 	mux.HandleFunc("GET /api/full/points", func(w http.ResponseWriter, r *http.Request) {
-		if a.viewer(w, r) {
+		if _, ok := a.viewer(w, r); ok {
 			a.publicPoints(w, true)
 		}
 	})
 	mux.HandleFunc("GET /api/full/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
-		if a.viewer(w, r) {
+		if _, ok := a.viewer(w, r); ok {
 			a.listNeeds(w, r.PathValue("id"), true, true)
 		}
 	})

@@ -406,11 +406,12 @@ func (a *App) startViewerSession(w http.ResponseWriter, r *http.Request, userID 
 }
 
 // viewer exige la vista completa: sesión vigente de un usuario activo que todavía tiene código de acceso.
-func (a *App) viewer(w http.ResponseWriter, r *http.Request) bool {
+func (a *App) viewer(w http.ResponseWriter, r *http.Request) (User, bool) {
+	var u User
 	c, e := r.Cookie("viewer_session")
 	if e != nil {
 		fail(w, 401, "login required")
-		return false
+		return u, false
 	}
 	a.mu.Lock()
 	s, ok := a.viewerSessions[c.Value]
@@ -418,16 +419,17 @@ func (a *App) viewer(w http.ResponseWriter, r *http.Request) bool {
 	active := false
 	if ok && time.Now().Before(s.expires) {
 		a.db.View(func(tx *bolt.Tx) error {
-			u, found := getUser(tx, s.runnerID)
+			var found bool
+			u, found = getUser(tx, s.runnerID)
 			active = found && !u.Disabled && u.CodeHash != ""
 			return nil
 		})
 	}
 	if !active {
 		fail(w, 401, "login required")
-		return false
+		return User{}, false
 	}
-	return true
+	return u, true
 }
 
 // Intentos de código: 10 incorrectos en 10 minutos por IP de quien visita bloquean todo intento con código desde esa IP
