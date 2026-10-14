@@ -1151,3 +1151,7 @@ test('narrow screens: ¡Ayuda! / + Agregar punto and Mis carreras get their own 
   assert.match(template, /\$\('#runnerNav'\)\.hidden=\$\('#runnerNavBar'\)\.hidden=/, 'Mis carreras shows for the same runners');
   assert.match(template, /\$\('#addBtnBar'\)\.onclick=\(\)=>\$\('#addBtn'\)\.click\(\);/, 'same action as the header button');
 });
+test('public header: a code sign-in puts a gold glowing ring around the logo', () => {
+  assert.match(template, /body\.signed-in \.logo\{box-shadow:0 0 0 2px #10263a,0 0 0 4px #ffd166,0 0 16px 5px #ffd16680\}/);
+  assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\)/, 'only while signed in with a code');
+});
