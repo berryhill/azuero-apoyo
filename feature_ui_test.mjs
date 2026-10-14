@@ -308,7 +308,9 @@ test('¡Ayuda! form has no intro and only confirms "Se ha enviado tu solicitud" 
   const modal = template.slice(template.indexOf('id="modal"'), template.indexOf('<form id="form">'));
   assert.match(modal, /<h2>¡Ayuda!<\/h2><div class="notice sent"/);
   assert.match(template, /id="addBtn">¡Ayuda!<\/button>/);
-  assert.doesNotMatch(template, /formIntro|Agregar punto/);
+  assert.doesNotMatch(template, /formIntro/);
+  // Signed in with a code, the button reads «+ Agregar punto» like the admin and runner pages; otherwise «¡Ayuda!».
+  assert.match(template, /\$\('#addBtn'\)\.textContent=u\?'\+ Agregar punto':'¡Ayuda!';/);
   assert.doesNotMatch(template, /Un administrador la revisará/);
   assert.match(modal, /<div class="notice sent" id="sentNotice" role="status" hidden><b id="sentTitle">Se ha enviado tu solicitud\.<\/b>/);
   assert.doesNotMatch(template, /Se envía a revisión/);
@@ -910,7 +912,7 @@ test('public list shows reserved run details to a code-signed-in user, and falls
 test('public coordinator filter only appears when signed in with an access code', () => {
   assert.match(template, /<span class="needlabel coordlabel">Filtrar por coordinador<\/span><div class="coordwrap">/);
   assert.match(template, /body:not\(\.signed-in\) \.coordlabel,body:not\(\.signed-in\) \.coordwrap\{display:none!important\}/);
-  assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\);if\(!u&&selectedCoordinator\)\{selectedCoordinator='';/);
+  assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\);[^\n]*?if\(!u&&selectedCoordinator\)\{selectedCoordinator='';/);
 });
 test('chosen location shows a small fixed map preview instead of «Ubicación elegida» text; Ubicar en mapa still moves it', () => {
   assert.match(PointForm.html(), /<button type="button" class="pf-gps">[^]*?<\/button><div class="pf-gpsthumb" hidden title="Toca para mover la ubicación"/);
@@ -931,8 +933,8 @@ test('signed-in users get «Yo» and ✕ next to Coordinador to fill or clear th
   assert.match(pointformSrc, /setMe\(root, me\);/);
   assert.equal((template.match(/me:codeMe\(\)/g) || []).length, 2);
   assert.match(template, /\$\('#addBtn'\)\.onclick=\(\)=>\{showSent\(false\);PointForm\.setMe\(\$\('#pointFields'\),codeMe\(\)\);/);
-  assert.match(template, /telephone:body\.telephone,panels:body\.panels/);
-  assert.match(runner, /localStorage\.setItem\('codeUser',JSON\.stringify\(\{name:body\.name,telephone:body\.telephone\|\|'',panels:\[\{label:'Corredores',url:'\/runner\.html'\}\]\}\)\)/, 'signing in with a code on the runner page counts too');
+  assert.match(template, /telephone:body\.telephone,roles:body\.roles,panels:body\.panels/);
+  assert.match(runner, /localStorage\.setItem\('codeUser',JSON\.stringify\(\{name:body\.name,telephone:body\.telephone\|\|'',roles:body\.roles\|\|\[\],panels:\[\{label:'Corredores',url:'\/runner\.html'\}\]\}\)\)/, 'signing in with a code on the runner page counts too');
 });
 test('a point added by a code-signed-in user is published at once; otherwise it goes to review', () => {
   const fn = template.match(/async function submitPoint[^\n]*/)[0];
@@ -964,4 +966,21 @@ test('Usuarios can filter to users with an access code only', () => {
   assert.match(admin, /<label class="check"><input type="checkbox" id="userOnlyCode"> Solo con código<\/label>/);
   assert.match(admin, /rows=users\.filter\(u=>\(showOff\|\|!u\.disabled\)&&\(!onlyCode\|\|u\.hasAccessCode\)&&/);
   assert.match(admin, /\$\('#userOnlyCode'\)\.onchange=drawUsers;/);
+});
+test('public header shows «Mis carreras» only to a signed-in user with the runner role', () => {
+  assert.match(template, /<a class="navbtn" id="runnerNav" href="\/runner\.html" hidden>🚚 Mis carreras<\/a>/);
+  assert.match(template, /\$\('#runnerNav'\)\.hidden=!\(u&&\(\(u\.roles\|\|\[\]\)\.includes\('runner'\)/);
+  assert.match(template, /roles:body\.roles,panels:body\.panels/);
+  assert.match(runner, /roles:body\.roles\|\|\[\],panels:\[\{label:'Corredores'/);
+});
+test('public header hides the «Registro ciudadano · corte…» note when signed in', () => {
+  assert.match(template, /<span class="source">Registro ciudadano/);
+  assert.match(template, /body\.signed-in \.topright \.source\{display:none\}/);
+});
+test('runner header: ✕ to sign out (no «Cambiar nombre») and «Mapa público» link for code users', () => {
+  assert.match(runner, /<button type="button" id="logout" title="Salir" aria-label="Salir">✕<\/button>/);
+  assert.doesNotMatch(runner, /Cambiar nombre/);
+  assert.match(runner, /<a class="publink" id="publicNav" href="\/" hidden>← Mapa público<\/a>/);
+  assert.match(runner, /function syncPublicNav\(\)\{\$\('#publicNav'\)\.hidden=!localStorage\.getItem\('runnerCode'\)\}/);
+  assert.equal((runner.match(/syncPublicNav\(\)/g) || []).length, 4, 'defined, after sign-in or session check, and after sign-out');
 });
