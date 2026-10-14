@@ -672,7 +672,7 @@ func (a *App) userRoutes(mux *http.ServeMux) {
 		}
 		response(w, 201, u.admin())
 	})
-	// Ver el código de un usuario (👁 en Usuarios); la respuesta no se guarda en caché.
+	// Ver el código de un usuario (🔑 en Usuarios lo copia); la respuesta no se guarda en caché.
 	mux.HandleFunc("GET /api/admin/users/{id}/access-code", func(w http.ResponseWriter, r *http.Request) {
 		if !a.admin(w, r) {
 			return

@@ -53,6 +53,16 @@ func TestRunnerLiveLocationVisibleToCodeUsersOnly(t *testing.T) {
 	if !strings.Contains(body, `"name":"Rosa"`) || !strings.Contains(body, `"lat":7.43`) || strings.Contains(body, "Fufo") {
 		t.Fatalf("code user sees other runners but not himself: %s", body)
 	}
+	// On the runner panel, a code user sees the team too; a name-and-phone runner doesn't.
+	if w := s.crewCall("GET", "/api/runner/team", "", fufoRunner, ""); w.Code != 200 || !strings.Contains(w.Body.String(), `"name":"Rosa"`) || strings.Contains(w.Body.String(), "Fufo") {
+		t.Fatalf("code runner sees the others on the runner map: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.crewCall("GET", "/api/runner/team", "", rosaCookie, ""); w.Code != 403 {
+		t.Fatalf("runner without a code can't see the team: %d", w.Code)
+	}
+	if w := s.crewCall("GET", "/api/runner/team", "", nil, ""); w.Code != 401 {
+		t.Fatalf("team needs a session: %d", w.Code)
+	}
 	// Stopping, or an old position, removes the runner from the map.
 	rosa := rosaIDFrom(t, s, rosaCookie)
 	s.app.mu.Lock()

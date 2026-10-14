@@ -701,9 +701,9 @@ test('admin user management lists, adds, edits and disables users with roles and
 });
 test('Usuarios is its own admin page opened from the header and deep-linkable', () => {
   assert.match(admin, /<button type="button" role="menuitem" id="usersToggle">Usuarios<\/button>/);
-  assert.match(admin, /id="usersBack">← Volver al panel<\/button><h2 id="usersTitle">Usuarios<\/h2><button type="button" id="userNew">\+ Nuevo<\/button><button type="submit" form="userForm" id="userSaveTop">Guardar<\/button>/);
+  assert.match(admin, /id="usersBack">← Volver al panel<\/button><h2 id="usersTitle">Usuarios<\/h2><button type="button" id="userNew">\+ Nuevo<\/button><button type="button" id="userEdit">Editar<\/button><button type="button" id="userToggle">Desactivar<\/button><button type="submit" form="userForm" id="userSaveTop">Guardar<\/button>/);
   assert.match(admin, /#dashboard\.users-mode>:not\(#operations\)\{display:none!important\}#dashboard:not\(\.users-mode\)>#operations\{display:none!important\}/);
-  assert.match(admin, /history\.pushState\(null,'',on\?'\/admin\.html\?view=usuarios':'\/admin\.html'\)/);
+  assert.match(admin, /history\.pushState\(null,'',on\?'\/admin\.html\?view=usuarios'\+\(viewing\?'&user='\+encodeURIComponent\(viewingUser\):''\):'\/admin\.html'\)/, 'returning from a point keeps the open user');
   assert.match(admin, /else if\(q\.get\('view'\)==='usuarios'\)\{showUsers\(true,false\);/, 'reloading the deep link reopens Usuarios');
   assert.match(admin, /showUsers\(q\.get\('view'\)==='usuarios',false\)/, 'back/forward keeps the page in sync');
   // Need cards resolve assignees from every user, so migrated or placeholder users still show a name.
@@ -942,12 +942,17 @@ test('a point added by a code-signed-in user is published at once; otherwise it 
   assert.match(fn, /if\(res\.status===401&&await reloginWithCode\(\)\)res=await send\('\/api\/full\/points'\);if\(res\.status!==401\)return res;forgetCodeUser\(\)\}return send\('\/api\/submissions'\)/);
   assert.match(template, /saved\.status==='approved'\?'Punto publicado\. Ya aparece en el mapa y en la lista\.':'Se ha enviado tu solicitud\.'/);
 });
-test('Usuarios shows access codes masked; 👁 reveals one for 30 seconds', () => {
-  assert.match(admin, /<code data-code-for="\$\{clean\(u\.id\)\}">••••••<\/code><button type="button" class="eyebtn" data-reveal="\$\{clean\(u\.id\)\}"/);
-  assert.match(admin, /adminRequest\('\/api\/admin\/users\/'\+encodeURIComponent\(id\)\+'\/access-code'\)/, 'fetched only when revealing');
-  assert.match(admin, /codeTimers\[id\]=setTimeout\(\(\)=>hideCode\(id\),30000\)/);
-  assert.match(admin, /el\.textContent='••••••'/);
-  assert.doesNotMatch(admin, /después no se puede volver a ver/);
+test('Usuarios: 🔑 left of the name copies the access code and shows it in a tooltip for 5 seconds', () => {
+  assert.match(admin, /role="img" aria-label="\$\{u\.online\?'En línea':'Desconectado'\}"><\/span>\$\{keyBtn\(u\)\}<b>\$\{clean\(u\.name\)\}<\/b>/);
+  const src = admin.match(/const keyBtn=[^\n]*/)[0];
+  const keyBtn = new Function('clean', `${src};return keyBtn`)(String);
+  assert.match(keyBtn({id: 'u1', name: 'Ana', hasAccessCode: true}), /<span class="keytip"><button type="button" class="keybtn" data-copy-code="u1" title="Copiar código de acceso"[^>]*>🔑<\/button><span class="tip" role="status" hidden><\/span><\/span>/);
+  assert.equal(keyBtn({id: 'u2', name: 'Beto'}), '<span class="keyslot"></span>', 'no key without a code; names stay aligned');
+  assert.match(admin, /adminRequest\('\/api\/admin\/users\/'\+encodeURIComponent\(id\)\+'\/access-code'\)/, 'fetched only when copying');
+  assert.match(admin, /navigator\.clipboard\.writeText\(c\)/);
+  assert.match(admin, /'Copiado: '\+c:c\+' \(cópialo a mano\)'/, 'the code is still shown if the clipboard is unavailable');
+  assert.match(admin, /keyTips\[id\]=setTimeout\(\(\)=>\{tip\.hidden=true;delete keyTips\[id\]\},5000\)/);
+  assert.doesNotMatch(admin, /data-reveal|eyebtn|••••••/, 'no more 👁 masked code');
 });
 test('admin header: Usuarios and Generar boletín live in a ☰ menu that opens and closes', () => {
   assert.match(admin, /<button type="button" class="menubtn" id="menuToggle" aria-expanded="false" aria-controls="adminMenu"[^>]*>☰<\/button><div class="adminmenu" id="adminMenu" role="menu" hidden><button type="button" role="menuitem" id="usersToggle">Usuarios<\/button><button type="button" role="menuitem" id="boletinToggle">Generar boletín<\/button><a role="menuitem" class="boletinlink" href="\/report\/boletin_general\.html"[^>]*>Ver último boletín ↗<\/a><button type="button" role="menuitem" id="passwordToggle">Cambiar contraseña maestra<\/button><\/div>/);
@@ -998,11 +1003,25 @@ test('Usuarios: «+ Nuevo» top right opens the user form as its own page (like 
   assert.doesNotMatch(ops.slice(0, ops.indexOf('id="userForm"')), /Corredores y constructores también pueden registrarse|runner\.html ↗/, 'no intro text or links');
   assert.match(admin, /#operations\.user-form-mode \.userbar,#operations\.user-form-mode #userList,[^{]*#operations:not\(\.user-form-mode\) #userForm,#operations:not\(\.user-form-mode\) #userSaveTop\{display:none!important\}/);
   assert.match(admin, /\$\('#userNew'\)\.onclick=\(\)=>openUserForm\('new'\);/);
-  assert.match(admin, /if\(edit\)\{openUserForm\(u\.id\);return\}/);
-  assert.match(admin, /history\.pushState\(null,'','\/admin\.html\?view=usuarios&user='\+encodeURIComponent\(id\)\)/);
-  assert.match(admin, /if\(q\.get\('user'\)\)openUserForm\(q\.get\('user'\),false\)/, 'reloading the deep link reopens the form');
-  assert.match(admin, /\$\('#usersBack'\)\.onclick=\(\)=>userFormOpen\(\)\?closeUserForm\(\):showUsers\(false\);/, 'Cancelar returns to the list');
-  assert.match(admin, /await loadRunners\(\);render\(\);closeUserForm\(\);\$\('#usersNotice'\)\.textContent='Usuario guardado\.'/);
+  assert.match(admin, /history\.pushState\(null,'','\/admin\.html\?view=usuarios&user='\+encodeURIComponent\(id\)\+\(u\?'&edit=1':''\)\)/);
+  assert.match(admin, /const userFromUrl=q=>\{const id=q\.get\('user'\);if\(id==='new'\|\|q\.get\('edit'\)==='1'\)openUserForm\(id,false\);else openUserView\(id,false\)\};/);
+  assert.match(admin, /if\(q\.get\('user'\)\)userFromUrl\(q\)\}\};/, 'reloading the deep link reopens the view or the form');
+  assert.match(admin, /if\(q\.get\('view'\)==='usuarios'&&q\.get\('user'\)\)userFromUrl\(q\);else closeUserPage\(false\)/, 'back/forward too');
+  assert.match(admin, /\$\('#usersBack'\)\.onclick=\(\)=>userFormOpen\(\)\?cancelUserForm\(\):userViewOpen\(\)\?closeUserPage\(\):showUsers\(false\);/);
+  assert.match(admin, /function cancelUserForm\(\)\{const id=editingUser;if\(id\)openUserView\(id\);else closeUserPage\(\)\}/, 'Cancelar goes back to the user view, or to the list for a new one');
+  assert.match(admin, /await loadRunners\(\);render\(\);openUserView\(saved\.id\);\$\('#usersNotice'\)\.textContent='Usuario guardado\.'/, 'saving shows the saved user');
+});
+test('Usuarios list: «Abrir» opens the user in view mode with Editar and Activar/Desactivar', () => {
+  assert.match(admin, /<button type="button" data-user-open="\$\{clean\(u\.id\)\}">Abrir<\/button>/);
+  assert.doesNotMatch(admin, /data-user-edit|data-user-toggle/, 'edit and disable live in the view, not the list');
+  assert.match(admin, /const open=e\.target\.closest\('\[data-user-open\]'\);if\(open\)openUserView\(open\.dataset\.userOpen\)/);
+  assert.match(admin, /history\.pushState\(null,'','\/admin\.html\?view=usuarios&user='\+encodeURIComponent\(id\)\)\}/, 'deep link to the view');
+  assert.match(admin, /#operations\.user-view-mode \.userbar,#operations\.user-view-mode #userList,#operations\.user-view-mode #userNew,#operations:not\(\.user-view-mode\) #userView,#operations:not\(\.user-view-mode\) #userEdit,#operations:not\(\.user-view-mode\) #userToggle\{display:none!important\}/);
+  assert.match(admin, /\$\('#userEdit'\)\.onclick=\(\)=>openUserForm\(viewingUser\);/);
+  assert.match(admin, /t\.textContent=u\.disabled\?'Activar':'Desactivar';t\.classList\.toggle\('quiet-red',!u\.disabled\)/);
+  assert.match(admin, /\$\('#userToggle'\)\.onclick=async e=>\{[^\n]*askConfirm\(`¿Desactivar a \$\{u\.name\}\?`[^\n]*'PATCH',\{disabled:!u\.disabled\}\);await loadRunners\(\)/);
+  assert.match(admin, /drawUsers\(\);if\(userViewOpen\(\)\)drawUserView\(\);runnerOptions\(\)\}/, 'the view refreshes after a change');
+  assert.match(admin, /\$\('#userView'\)\.onclick=\$\('#userList'\)\.onclick;/, '🔑 and en ruta runs work in the view too');
 });
 test('without media storage, upload buttons are hidden and a short notice shows (runner and admin)', () => {
   assert.match(runner, /fetch\('\/api\/media\/status',\{cache:'no-store'\}\)\.then\(r=>r\.json\(\)\)\.then\(s=>\{mediaOn=!!s\.enabled;/);
@@ -1019,10 +1038,10 @@ test('runner footer shows the user ID with a copy button; Usuarios shows and sea
   assert.match(admin, /fold\(u\.name\+' '\+u\.telephone\+' '\+u\.id\)\.includes\(q\)/, 'search by ID');
 });
 test('Usuarios shows a green/grey dot before each name and the last active time', () => {
-  assert.match(admin, /<span class="presence\$\{u\.online\?' on':''\}" title="\$\{u\.online\?'En línea':'Desconectado'\}"[^>]*><\/span><b>\$\{clean\(u\.name\)\}<\/b>/);
+  assert.match(admin, /<span class="presence\$\{u\.online\?' on':''\}" title="\$\{u\.online\?'En línea':'Desconectado'\}"[^>]*><\/span>\$\{keyBtn\(u\)\}<b>\$\{clean\(u\.name\)\}<\/b>/);
   assert.match(admin, /\$\{u\.online\?'En línea':u\.lastActiveAt\?'Activo '\+clean\(stamp\(u\.lastActiveAt\)\):'Sin actividad'\}/);
   assert.match(admin, /\.presence\{[^}]*background:#b5c0c3[^}]*\}\.presence\.on\{background:#23a35a/);
-  assert.match(admin, /setInterval\(\(\)=>\{if\(\$\('#dashboard'\)\.classList\.contains\('users-mode'\)&&!userFormOpen\(\)&&!Object\.keys\(codeTimers\)\.length\)Promise\.all\(\[loadRunners\(\),adminRequest\('\/api\/admin\/needs'\)/, 'refreshes users and their runs');
+  assert.match(admin, /setInterval\(\(\)=>\{if\(\$\('#dashboard'\)\.classList\.contains\('users-mode'\)&&!userFormOpen\(\)&&!Object\.keys\(keyTips\)\.length\)Promise\.all\(\[loadRunners\(\),adminRequest\('\/api\/admin\/needs'\)/, 'refreshes users and their runs');
 });
 test('Usuarios lists each runner\'s en ruta runs (point and needs), with a count, and opens the point on click', () => {
   const src = [admin.match(/const userRuns=[^\n]*/)[0], admin.match(/const userRunsHtml=[^\n]*/)[0]].join('\n');
@@ -1041,15 +1060,35 @@ test('Usuarios lists each runner\'s en ruta runs (point and needs), with a count
   assert.match(html, /<button type="button" class="user-run" data-open-camp="c1" title="Abrir el punto">📍 <b>C-1<\/b> · Venao <small>· en ruta desde Oct 14<\/small><i>Agua<\/i><\/button>/);
   assert.equal(userRunsHtml([]), '');
   assert.match(admin, /<span class="enruta-box" title="Carreras en ruta"><b>\$\{runs\.length\}<\/b> en ruta<\/span>/);
-  assert.match(admin, /const open=e\.target\.closest\('\[data-open-camp\]'\);if\(open\)\{campReturn='usuarios';openEditor\(open\.dataset\.openCamp\)/);
+  assert.match(admin, /const run=e\.target\.closest\('\[data-open-camp\]'\);if\(run\)\{campReturn='usuarios';openEditor\(run\.dataset\.openCamp\)/);
   assert.match(admin, /\$\{online\} en línea · 🚚 \$\{enRoute\}/);
 });
 test('a point opened from Usuarios goes back to Usuarios («← Usuarios»), otherwise to the panel', () => {
-  assert.match(admin, /if\(open\)\{campReturn='usuarios';openEditor\(open\.dataset\.openCamp\)/);
+  assert.match(admin, /if\(run\)\{campReturn='usuarios';openEditor\(run\.dataset\.openCamp\)/);
   assert.match(admin, /\$\('#closeCampEditor'\)\.textContent=editing\?'Cancelar':campReturn==='usuarios'\?'← Usuarios':'← Volver';/);
   assert.match(admin, /else if\(campReturn==='usuarios'\)\{closeEditor\(false\);showUsers\(true\)\}else closeEditor\(\)/);
   assert.match(admin, /function closeEditor\(navigate=true\)\{campReturn='';/, 'leaving the point forgets where it came from');
   assert.ok(admin.indexOf("let campReturn=''") < admin.indexOf('async function openEditor('), 'declared before openEditor');
+});
+test('runner page asks the runner to turn on live location after signing in («Ahora no» lasts until the tab closes)', () => {
+  const fn = runner.match(/async function offerLive\(\)[^\n]*/)[0];
+  assert.match(fn, /if\(!map\|\|agentMode\|\|!csrf\|\|watchId!==null\|\|liveOffered\|\|sessionStorage\.getItem\('runnerLiveAsked'\)\)return;liveOffered=true;/, 'not for agents, not when already live, once per load');
+  assert.match(fn, /askConfirm\('¿Activar tu ubicación en vivo\?',\{yes:'📍 Activar',no:'Ahora no',/);
+  assert.match(fn, /\)\)\{if\(watchId===null\)startLive\(\)\}else sessionStorage\.setItem\('runnerLiveAsked','1'\)\}$/);
+  assert.match(fn, /p\.state==='denied'/, 'explains a browser block');
+  assert.match(runner, /syncPublicNav\(\);await refresh\(\);loadTeam\(\);return offerLive\(\)\}if\(await relogin\(\)\)\{await refresh\(\);loadTeam\(\);return offerLive\(\)\}showGate\(\)/, 'on page load with a session');
+  assert.match(runner, /await startSession\(accessCode\?\{accessCode\}:\{name,telephone\}\);await refresh\(\);loadTeam\(\);offerLive\(\)\}/, 'after signing in at the gate');
+  assert.match(runner, /sessionStorage\.removeItem\('runnerLiveAsked'\);liveOffered=false;/, 'the next person on the device is asked too');
+});
+test('runner page: code users see the other live runners as orange trucks, like the public map', () => {
+  const fn = runner.match(/async function loadTeam\(\)[^\n]*/)[0];
+  assert.match(fn, /if\(csrf&&localStorage\.getItem\('runnerCode'\)\)\{try\{const r=await fetch\('\/api\/runner\/team'/, 'only for code sign-ins; otherwise the trucks are removed');
+  assert.match(fn, /html:runnerTruck,/);
+  assert.match(fn, /for\(const \[id,pin\] of teamPins\)if\(!seen\.has\(id\)\)\{map\.removeLayer\(pin\);teamPins\.delete\(id\)\}/);
+  assert.equal(runner.match(/const runnerTruck='[^']*'/)[0], template.match(/const runnerTruck='[^']*'/)[0], 'same truck as the public map');
+  assert.match(runner, /setInterval\(loadTeam,15000\);/);
+  assert.match(runner, /await refresh\(\);loadTeam\(\);return offerLive\(\)\}if\(await relogin\(\)\)\{await refresh\(\);loadTeam\(\);return offerLive\(\)\}/);
+  assert.match(runner, /render\(\);loadTeam\(\);\$\('#gateForm'\)\.reset\(\);showGate\(\)\}/, 'signing out clears them');
 });
 test('runner live location is shared with the team; code users see other runners as small orange trucks on the public map', () => {
   assert.match(runner, /function shareLocation\(p\)\{if\(agentMode\|\|!csrf\)return;[^\n]*Date\.now\(\)-sharedAt<15000&&\(!map\|\|map\.distance\(sharedPos,here\)<50\)\)return;[^\n]*api\('\/api\/runner\/location','POST'/, 'every 15 s or after 50 m');

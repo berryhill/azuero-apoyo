@@ -69,29 +69,50 @@ func (a *App) locationRoutes(mux *http.ServeMux, runners *crew) {
 		if !ok {
 			return
 		}
-		now := time.Now()
-		a.mu.Lock()
-		live := map[string]liveLocation{}
-		for id, loc := range a.locations {
-			if now.Sub(loc.At) > locationTTL {
-				delete(a.locations, id)
-			} else if id != me.ID {
-				live[id] = loc
-			}
-		}
-		a.mu.Unlock()
-		list := []runnerOnMap{}
-		a.db.View(func(tx *bolt.Tx) error {
-			for id, loc := range live {
-				u, found := getUser(tx, id)
-				if !found || u.Disabled || !u.has(roleRunner) {
-					continue
-				}
-				list = append(list, runnerOnMap{ID: id, Name: u.Name, Lat: loc.Lat, Lon: loc.Lon, Accuracy: loc.Accuracy, At: loc.At.UTC().Format(time.RFC3339), Seconds: int(now.Sub(loc.At).Seconds())})
-			}
-			return nil
-		})
-		sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
-		response(w, 200, list)
+		response(w, 200, a.liveRunners(me.ID))
 	})
+	// Panel de corredores: quien entró con código (corredor o agente) también ve a los demás en su mapa.
+	// Quien tiene código solo puede entrar con él, así que «tiene código» equivale a «entró con código».
+	mux.HandleFunc("GET /api/runner/team", func(w http.ResponseWriter, r *http.Request) {
+		s, ok := a.crewSession(runners, w, r)
+		if !ok {
+			return
+		}
+		var u User
+		var found bool
+		a.db.View(func(tx *bolt.Tx) error { u, found = getUser(tx, s.runnerID); return nil })
+		if !found || u.Disabled || u.CodeHash == "" {
+			fail(w, 403, "Solo quienes entran con código ven al equipo en el mapa.")
+			return
+		}
+		response(w, 200, a.liveRunners(u.ID))
+	})
+}
+
+// liveRunners: corredores activos con ubicación reciente, sin incluir a exclude; las posiciones vencidas se borran.
+func (a *App) liveRunners(exclude string) []runnerOnMap {
+	now := time.Now()
+	a.mu.Lock()
+	live := map[string]liveLocation{}
+	for id, loc := range a.locations {
+		if now.Sub(loc.At) > locationTTL {
+			delete(a.locations, id)
+		} else if id != exclude {
+			live[id] = loc
+		}
+	}
+	a.mu.Unlock()
+	list := []runnerOnMap{}
+	a.db.View(func(tx *bolt.Tx) error {
+		for id, loc := range live {
+			u, found := getUser(tx, id)
+			if !found || u.Disabled || !u.has(roleRunner) {
+				continue
+			}
+			list = append(list, runnerOnMap{ID: id, Name: u.Name, Lat: loc.Lat, Lon: loc.Lon, Accuracy: loc.Accuracy, At: loc.At.UTC().Format(time.RFC3339), Seconds: int(now.Sub(loc.At).Seconds())})
+		}
+		return nil
+	})
+	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
+	return list
 }
