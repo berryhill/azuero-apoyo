@@ -1200,7 +1200,7 @@ test('admin ☰ menu: «Requerir revisión de puntos» toggles whether public po
 test('«Solo Nuestro Equipo»: code users can limit the public list/map and runner needs to points added by a code user', () => {
   assert.match(template, /<button type="button" class="stat fstat teambtn" id="teamOnly" aria-pressed="false"><b id="teamCount">—<\/b><span>SOLO NUESTRO EQUIPO<\/span><\/button>/);
   assert.match(template, /body:not\(\.signed-in\) \.coordwrap,body:not\(\.signed-in\) \.teambtn\{display:none!important\}/, 'only with a code sign-in');
-  assert.match(template, /const teamPoint=r=>r\.source==='user';/);
+  assert.match(template, /const teamPoint=r=>!!r\.team;/, 'team comes from runners with a code (server-side)');
   assert.match(template, /const coordRows=\(\)=>all\(\)\.filter\(r=>\(!teamOnly\|\|teamPoint\(r\)\)&&/, 'filters the list, the map and the counts');
   assert.match(template, /if\(!u&&\(selectedCoordinator\|\|teamOnly\)\)\{selectedCoordinator='';teamOnly=false;/, 'signing out clears it');
   assert.match(runner, /<button type="button" class="teamonly" id="teamOnly" aria-pressed="false">👥 Solo Nuestro Equipo<\/button>/);

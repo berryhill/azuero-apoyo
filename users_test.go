@@ -473,10 +473,6 @@ func TestCodeUserPointIsPublishedWithoutReview(t *testing.T) {
 	if strings.Contains(pts, "addedBy") || strings.Contains(pts, "Fufo\",\"needs") {
 		t.Fatalf("Agregado por is private: %s", pts)
 	}
-	// «Solo Nuestro Equipo»: the public data marks it with source "user"; the runner panel with camp.team.
-	if !strings.Contains(pts, `"source":"user"`) {
-		t.Fatalf("team points are recognizable on the public map: %s", pts)
-	}
 	var needs struct{ Available []runnerNeed }
 	json.Unmarshal(s.crewCall("GET", "/api/runner/needs", "", runner, "").Body.Bytes(), &needs)
 	team := map[string]bool{}
@@ -666,5 +662,39 @@ func TestUsuariosShowsOnlineAndLastActive(t *testing.T) {
 	s.crewCall("GET", "/api/runner/needs", "", login.Result().Cookies()[0], "")
 	if !users()[rosa].Online {
 		t.Fatal("activity marks the runner online again")
+	}
+}
+
+// «Solo Nuestro Equipo» on the public page: a point counts when one of its needs has a runner who signs in with an access code.
+func TestFullPointsMarkCampsServedByCodeRunners(t *testing.T) {
+	s := newServiceHarness(t)
+	coded := s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)["id"].(string)
+	plain := s.expect("POST", "/api/admin/runners", `{"name":"Ana","telephone":"6999-2222"}`, 201)["id"].(string)
+	other := s.expect("POST", "/api/admin/points", `{"code":"C-2","area":"Cañas","place":"Escuela","contact":"X","phone":"6555-0000"}`, 201)["id"].(string)
+	idle := s.expect("POST", "/api/admin/points", `{"code":"C-3","area":"Tonosí","place":"Iglesia","contact":"X","phone":"6555-0001"}`, 201)["id"].(string)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","status":"OPEN","urgency":"urgente","runnerId":"`+coded+`"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+other+"/needs", `{"need":"Comida","status":"OPEN","urgency":"urgente","runnerId":"`+plain+`"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+idle+"/needs", `{"need":"Ropa","status":"OPEN","urgency":"urgente"}`, 201)
+	var viewer *http.Cookie
+	for _, c := range s.call("POST", "/api/session/code", `{"accessCode":"FUFO12"}`, false).Result().Cookies() {
+		if c.Name == "viewer_session" {
+			viewer = c
+		}
+	}
+	r := httptest.NewRequest("GET", "/api/full/points", nil)
+	r.AddCookie(viewer)
+	w := httptest.NewRecorder()
+	s.h.ServeHTTP(w, r)
+	var full []Point
+	json.Unmarshal(w.Body.Bytes(), &full)
+	team := map[string]bool{}
+	for _, p := range full {
+		team[p.ID] = p.Team
+	}
+	if len(team) != 3 || !team[s.camp] || team[other] || team[idle] {
+		t.Fatalf("only the camp with a code runner is team: %v", team)
+	}
+	if pts := s.call("GET", "/api/points", "", false).Body.String(); strings.Contains(pts, `"team"`) {
+		t.Fatalf("the public data has no team mark: %s", pts)
 	}
 }

@@ -77,6 +77,9 @@ type Point struct {
 	// Usuario con código de acceso que publicó el punto (ID y nombre completo); lo fija el servidor y solo lo ve administración.
 	AddedBy     string `json:"addedBy,omitempty"`
 	AddedByName string `json:"addedByName,omitempty"`
+	// «Solo Nuestro Equipo»: alguna necesidad del punto tiene asignado un corredor que entra con código.
+	// Solo sale en la vista completa (/api/full/points); nunca se guarda.
+	Team bool `json:"team,omitempty"`
 }
 
 // FieldChange guarda el valor que tenía un campo hasta la edición que lo cambió (Until).
@@ -819,6 +822,29 @@ func aggregateCamp(tx *bolt.Tx, id string) (string, string, error) {
 	return status, urgency, err
 }
 
+// teamCamps: puntos con alguna necesidad de suministros asignada a un corredor activo que entra con código.
+func teamCamps(tx *bolt.Tx) (map[string]bool, error) {
+	team, coded := map[string]bool{}, map[string]bool{}
+	err := tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
+		var n CampNeed
+		if e := json.Unmarshal(v, &n); e != nil {
+			return e
+		}
+		if n.RunnerID == "" || isRepair(n) || team[n.CampID] {
+			return nil
+		}
+		ok, seen := coded[n.RunnerID]
+		if !seen {
+			u, found := getUser(tx, n.RunnerID)
+			ok = found && !u.Disabled && u.CodeHash != ""
+			coded[n.RunnerID] = ok
+		}
+		team[n.CampID] = ok
+		return nil
+	})
+	return team, err
+}
+
 // publicPoints: puntos aprobados para el público; reveal (quien entró con código) conserva en «necesidades»
 // los artículos de las carreras reservadas.
 func (a *App) publicPoints(w http.ResponseWriter, reveal bool) {
@@ -827,6 +853,12 @@ func (a *App) publicPoints(w http.ResponseWriter, reveal bool) {
 		reserved, e := reservedNeedItems(tx)
 		if e != nil {
 			return e
+		}
+		team := map[string]bool{}
+		if reveal {
+			if team, e = teamCamps(tx); e != nil {
+				return e
+			}
 		}
 		return tx.Bucket(submissions).ForEach(func(k, v []byte) error {
 			var p Point
@@ -846,6 +878,7 @@ func (a *App) publicPoints(w http.ResponseWriter, reveal bool) {
 				if !reveal {
 					p.Needs = withoutReservedItems(p.Needs, reserved[p.ID])
 				}
+				p.Team = team[p.ID]
 				points = append(points, publicPoint(p))
 			}
 			return nil
@@ -913,7 +946,7 @@ func (a *App) routes() http.Handler {
 			failField(w, 400, "members", err.Error())
 			return
 		}
-		p.History, p.Checkups = nil, nil
+		p.History, p.Checkups, p.Team = nil, nil, false
 		p.AddedBy, p.AddedByName = "", ""
 		if by != nil {
 			p.AddedBy, p.AddedByName = by.ID, by.Name
