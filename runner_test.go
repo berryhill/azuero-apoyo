@@ -74,8 +74,8 @@ func TestRunnerSessionReusesRunnerByName(t *testing.T) {
 
 func TestRunnerTakeCompleteReleaseAndFollowup(t *testing.T) {
 	s := newServiceHarness(t)
-	n1 := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","urgency":"Tomorrow"}`, 201)["id"].(string)
-	n2 := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Food","urgency":"Today"}`, 201)["id"].(string)
+	n1 := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","urgency":"normal"}`, 201)["id"].(string)
+	n2 := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Food","urgency":"urgente"}`, 201)["id"].(string)
 	ana, luis := s.runnerLogin("Ana"), s.runnerLogin("Luis")
 
 	_, available, raw := ana.needs()
@@ -117,7 +117,7 @@ func TestRunnerTakeCompleteReleaseAndFollowup(t *testing.T) {
 		t.Fatalf("followup: %d %s", w.Code, w.Body.String())
 	}
 	all := s.call("GET", "/api/admin/needs", "", true).Body.String()
-	if !strings.Contains(all, `"status":"COMPLETED"`) || !strings.Contains(all, `"need":"More water","status":"OPEN","urgency":"Urgent"`) {
+	if !strings.Contains(all, `"status":"COMPLETED"`) || !strings.Contains(all, `"need":"More water","status":"OPEN","urgency":"urgente"`) {
 		t.Fatalf("admin view: %s", all)
 	}
 	r := httptest.NewRequest("POST", "/api/runner/needs/"+n1+"/take", strings.NewReader("{}"))
@@ -132,7 +132,7 @@ func TestRunnerTakeCompleteReleaseAndFollowup(t *testing.T) {
 
 func TestNeedTimestamps(t *testing.T) {
 	s := newServiceHarness(t)
-	id := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","urgency":"Today"}`, 201)["id"].(string)
+	id := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","urgency":"urgente"}`, 201)["id"].(string)
 	ana := s.runnerLogin("Ana")
 	ana.call("POST", "/api/runner/needs/"+id+"/take", "{}")
 	ana.call("POST", "/api/runner/needs/"+id+"/release", "{}")

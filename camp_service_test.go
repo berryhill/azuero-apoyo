@@ -86,7 +86,7 @@ func TestCampServiceNeedsAndPublicPrivacy(t *testing.T) {
 	s := newServiceHarness(t)
 	runner := s.expect("POST", "/api/admin/runners", `{"name":"Ana","telephone":"6999-1111"}`, 201)
 	id := runner["id"].(string)
-	n := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Bring potable water","status":"OPEN","urgency":"Today","runnerId":"`+id+`"}`, 201)
+	n := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Bring potable water","status":"OPEN","urgency":"urgente","runnerId":"`+id+`"}`, 201)
 	if n["need"] != "Bring potable water" || n["runnerId"] != id {
 		t.Fatalf("need: %v", n)
 	}
@@ -95,7 +95,7 @@ func TestCampServiceNeedsAndPublicPrivacy(t *testing.T) {
 		t.Fatalf("public: %d %s", pub.Code, pub.Body.String())
 	}
 	points := s.call("GET", "/api/points", "", false)
-	if !bytes.Contains(points.Body.Bytes(), []byte(`"campStatus":"OPEN"`)) || !bytes.Contains(points.Body.Bytes(), []byte(`"highestUrgency":"Today"`)) || bytes.Contains(points.Body.Bytes(), []byte("6999-1111")) {
+	if !bytes.Contains(points.Body.Bytes(), []byte(`"campStatus":"OPEN"`)) || !bytes.Contains(points.Body.Bytes(), []byte(`"highestUrgency":"urgente"`)) || bytes.Contains(points.Body.Bytes(), []byte("6999-1111")) {
 		t.Fatalf("aggregate: %s", points.Body.String())
 	}
 }
@@ -123,12 +123,12 @@ func TestCampServiceWriteProtectionAndValidation(t *testing.T) {
 }
 func TestCampServicePatchAggregationAndCampEdit(t *testing.T) {
 	s := newServiceHarness(t)
-	first := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","urgency":"Tomorrow"}`, 201)
-	second := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Medicine","urgency":"Urgent"}`, 201)
+	first := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","urgency":"normal"}`, 201)
+	second := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Medicine","urgency":"urgente"}`, 201)
 	s.expect("PATCH", "/api/admin/needs/"+first["id"].(string), `{"status":"IN_PROGRESS"}`, 200)
 	s.expect("PATCH", "/api/admin/needs/"+second["id"].(string), `{"status":"COMPLETED"}`, 200)
 	points := s.call("GET", "/api/points", "", false).Body.String()
-	if !strings.Contains(points, `"campStatus":"IN_PROGRESS"`) || !strings.Contains(points, `"highestUrgency":"Tomorrow"`) {
+	if !strings.Contains(points, `"campStatus":"IN_PROGRESS"`) || !strings.Contains(points, `"highestUrgency":"normal"`) {
 		t.Fatalf("aggregate: %s", points)
 	}
 	s.expect("PATCH", "/api/admin/needs/"+first["id"].(string), `{"status":"DELETED"}`, 200)
@@ -169,7 +169,7 @@ func TestCampServicePatchAndNoNeeds(t *testing.T) {
 	if edited["name"] != "Ana" || edited["telephone"] != "6999-2222" {
 		t.Fatalf("runner edit: %v", edited)
 	}
-	n := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","urgency":"Today"}`, 201)
+	n := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","urgency":"urgente"}`, 201)
 	if n["updatedAt"] == nil || n["updatedAt"] == "" {
 		t.Fatalf("created need lacks updatedAt: %v", n)
 	}
@@ -218,7 +218,7 @@ func TestCampServiceSeedRefreshPreservesCampNote(t *testing.T) {
 }
 func TestCampServicePersists(t *testing.T) {
 	s := newServiceHarness(t)
-	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Fuel","urgency":"Eventually"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Fuel","urgency":"normal"}`, 201)
 	path := s.app.db.Path()
 	s.app.db.Close()
 	reopened, err := openApp(path, ".")
@@ -237,12 +237,12 @@ func TestAdminNeedsListAllCamps(t *testing.T) {
 	if w := s.call("GET", "/api/admin/needs", "", false); w.Code != 401 {
 		t.Fatalf("unauthenticated: %d", w.Code)
 	}
-	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","status":"OPEN","urgency":"Tomorrow"}`, 201)
-	gone := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Old","status":"OPEN","urgency":"Today"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","status":"OPEN","urgency":"normal"}`, 201)
+	gone := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Old","status":"OPEN","urgency":"urgente"}`, 201)
 	s.expect("PATCH", "/api/admin/needs/"+gone["id"].(string), `{"status":"DELETED"}`, 200)
 	w := s.call("GET", "/api/admin/needs", "", true)
 	var list []CampNeed
-	if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil || len(list) != 1 || list[0].CampID != s.camp || list[0].Urgency != "Tomorrow" {
+	if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil || len(list) != 1 || list[0].CampID != s.camp || list[0].Urgency != "normal" {
 		t.Fatalf("needs: %d %s", w.Code, w.Body.String())
 	}
 }
@@ -251,9 +251,9 @@ func TestPublicPointsListNeedStatuses(t *testing.T) {
 	if points := s.call("GET", "/api/points", "", false).Body.String(); strings.Contains(points, "needStatuses") {
 		t.Fatalf("no needs: %s", points)
 	}
-	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","status":"OPEN","urgency":"Today"}`, 201)
-	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Food","status":"COMPLETED","urgency":"Tomorrow"}`, 201)
-	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Old","status":"DELETED","urgency":"Today"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Water","status":"OPEN","urgency":"urgente"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Food","status":"COMPLETED","urgency":"normal"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Old","status":"DELETED","urgency":"urgente"}`, 201)
 	if points := s.call("GET", "/api/points", "", false).Body.String(); !strings.Contains(points, `"needStatuses":["OPEN","COMPLETED"]`) {
 		t.Fatalf("statuses: %s", points)
 	}
@@ -279,7 +279,7 @@ func TestPublicNeedReportRequiresRequesterAndOpensImmediately(t *testing.T) {
 	if w := s.call("POST", "/api/camps/missing/needs", `{"need":"Agua","requesterName":"Eva","requesterPhone":"6555-1234"}`, false); w.Code != 404 {
 		t.Fatalf("unknown camp: %d", w.Code)
 	}
-	if w := s.call("POST", path, `{"need":"Agua potable","urgency":"Today","requesterName":" Eva  Ruiz ","requesterPhone":"6555-1234"}`, false); w.Code != 201 || !strings.Contains(w.Body.String(), `"status":"OPEN"`) {
+	if w := s.call("POST", path, `{"need":"Agua potable","urgency":"urgente","requesterName":" Eva  Ruiz ","requesterPhone":"6555-1234"}`, false); w.Code != 201 || !strings.Contains(w.Body.String(), `"status":"OPEN"`) {
 		t.Fatalf("report: %d %s", w.Code, w.Body.String())
 	}
 	public := s.call("GET", path, "", false).Body.String()
@@ -310,7 +310,7 @@ func TestNewPointNeedsBecomeOpenCampNeedOnceLive(t *testing.T) {
 	}
 	decide("approved")
 	list := needsOf(created["id"])
-	if len(list) != 1 || list[0].Need != "Agua y pañales" || list[0].Status != "OPEN" || list[0].Urgency != "Eventually" || list[0].RequesterPhone != "" {
+	if len(list) != 1 || list[0].Need != "Agua y pañales" || list[0].Status != "OPEN" || list[0].Urgency != "normal" || list[0].RequesterPhone != "" {
 		t.Fatalf("approved point need: %+v", list)
 	}
 	decide("archived")
@@ -342,7 +342,7 @@ func TestNewPointNeedsBecomeOpenCampNeedOnceLive(t *testing.T) {
 
 func TestArchivedPointHidesItAndItsNeedsUntilRecovered(t *testing.T) {
 	s := newServiceHarness(t)
-	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua archivada","urgency":"Today"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua archivada","urgency":"urgente"}`, 201)
 	runner := s.runnerLogin("Luis")
 	visible := func() (public, runnerRaw string, needs int) {
 		_, _, runnerRaw = runner.needs()
