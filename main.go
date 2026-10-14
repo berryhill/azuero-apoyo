@@ -252,9 +252,11 @@ type App struct {
 	attempts       map[string]attempt
 	// Códigos de acceso incorrectos por IP de quien visita (ver signInWithCode).
 	codeAttempts map[string]attempt
-	static       string
-	router       *router
-	media        mediaStore
+	// Última vez que cada usuario hizo algo con su sesión (en memoria; se guarda en el usuario cada 2 minutos).
+	lastSeen map[string]time.Time
+	static   string
+	router   *router
+	media    mediaStore
 	// mediaOn: se pueden subir fotos y videos (almacenamiento de objetos, o MEDIA_LOCAL_DISK=1 para desarrollo local).
 	mediaOn bool
 }
@@ -368,7 +370,7 @@ func openApp(path, static string) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{db: db, static: static, sessions: map[string]session{}, runnerSessions: map[string]runnerSession{}, builderSessions: map[string]runnerSession{}, viewerSessions: map[string]runnerSession{}, attempts: map[string]attempt{}, codeAttempts: map[string]attempt{}, router: newRouter(), media: newMediaStore(path)}
+	a := &App{db: db, static: static, sessions: map[string]session{}, runnerSessions: map[string]runnerSession{}, builderSessions: map[string]runnerSession{}, viewerSessions: map[string]runnerSession{}, attempts: map[string]attempt{}, codeAttempts: map[string]attempt{}, lastSeen: map[string]time.Time{}, router: newRouter(), media: newMediaStore(path)}
 	err = db.Update(func(tx *bolt.Tx) error {
 		if _, e := tx.CreateBucketIfNotExists(submissions); e != nil {
 			return e
@@ -1946,6 +1948,7 @@ func (a *App) crewSession(c *crew, w http.ResponseWriter, r *http.Request) (runn
 		fail(w, 403, "CSRF token required")
 		return runnerSession{}, false
 	}
+	a.touch(s.runnerID)
 	return s, true
 }
 func (a *App) runnerRoutes(mux *http.ServeMux) {
@@ -2039,6 +2042,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 
 // startCrewSession abre una sesión de ese equipo para el usuario y deja su cookie.
 func (a *App) startCrewSession(w http.ResponseWriter, r *http.Request, c *crew, userID string, agent bool) runnerSession {
+	a.touch(userID)
 	token := randomToken()
 	s := runnerSession{runnerID: userID, csrf: randomToken(), expires: time.Now().Add(12 * time.Hour), agent: agent}
 	a.mu.Lock()

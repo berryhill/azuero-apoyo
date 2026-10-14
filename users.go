@@ -46,6 +46,8 @@ type User struct {
 	Note string `json:"note,omitempty"`
 	// Orden en que la persona quiere hacer sus carreras en curso (IDs de necesidades).
 	RunOrder []string `json:"runOrder,omitempty"`
+	// Última actividad con sesión (panel de corredor/constructor o vista completa), guardada cada 2 minutos como máximo.
+	LastActiveAt string `json:"lastActiveAt,omitempty"`
 }
 
 // adminUser es lo que ve el panel: sin el hash del código.
@@ -59,10 +61,53 @@ type adminUser struct {
 	CreatedAt     string   `json:"createdAt,omitempty"`
 	UpdatedAt     string   `json:"updatedAt,omitempty"`
 	Note          string   `json:"note,omitempty"`
+	LastActiveAt  string   `json:"lastActiveAt,omitempty"`
+	Online        bool     `json:"online"`
 }
 
 func (u User) admin() adminUser {
-	return adminUser{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Roles: u.Roles, Disabled: u.Disabled, HasAccessCode: u.CodeHash != "", CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, Note: u.Note}
+	return adminUser{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Roles: u.Roles, Disabled: u.Disabled, HasAccessCode: u.CodeHash != "", CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, Note: u.Note, LastActiveAt: u.LastActiveAt}
+}
+
+// En línea: usó su sesión en los últimos 5 minutos (el panel de corredor consulta cada 30 s mientras está abierto).
+const (
+	onlineWindow = 5 * time.Minute
+	persistEvery = 2 * time.Minute
+)
+
+// touch anota actividad del usuario: en memoria siempre y en su registro como máximo cada 2 minutos.
+func (a *App) touch(id string) {
+	if id == "" {
+		return
+	}
+	now := time.Now()
+	a.mu.Lock()
+	prev := a.lastSeen[id]
+	a.lastSeen[id] = now
+	a.mu.Unlock()
+	if now.Sub(prev) < persistEvery {
+		return
+	}
+	a.db.Update(func(tx *bolt.Tx) error {
+		u, ok := getUser(tx, id)
+		if !ok {
+			return nil
+		}
+		u.LastActiveAt = now.UTC().Format(time.RFC3339)
+		return putJSON(tx.Bucket(usersBucket), id, u)
+	})
+}
+
+// withPresence completa «en línea» y la última actividad (la de memoria es más reciente que la guardada).
+func (a *App) withPresence(u adminUser) adminUser {
+	a.mu.Lock()
+	seen, ok := a.lastSeen[u.ID]
+	a.mu.Unlock()
+	if ok {
+		u.Online = time.Since(seen) < onlineWindow
+		u.LastActiveAt = seen.UTC().Format(time.RFC3339)
+	}
+	return u
 }
 func (u User) has(role string) bool { return slices.Contains(u.Roles, role) }
 func (u User) runner() Runner {
@@ -397,6 +442,7 @@ func orderRuns(runs []runnerNeed, order []string) []runnerNeed {
 
 // startViewerSession abre la vista completa de la página pública (solo lectura) para quien entró con código.
 func (a *App) startViewerSession(w http.ResponseWriter, r *http.Request, userID string) {
+	a.touch(userID)
 	token := randomToken()
 	s := runnerSession{runnerID: userID, expires: time.Now().Add(12 * time.Hour)}
 	a.mu.Lock()
@@ -429,6 +475,7 @@ func (a *App) viewer(w http.ResponseWriter, r *http.Request) (User, bool) {
 		fail(w, 401, "login required")
 		return User{}, false
 	}
+	a.touch(u.ID)
 	return u, true
 }
 
@@ -594,7 +641,7 @@ func (a *App) userRoutes(mux *http.ServeMux) {
 		}
 		list := []adminUser{}
 		err := a.db.View(func(tx *bolt.Tx) error {
-			return eachUser(tx, func(u User) error { list = append(list, u.admin()); return nil })
+			return eachUser(tx, func(u User) error { list = append(list, a.withPresence(u.admin())); return nil })
 		})
 		if serviceError(w, err) {
 			return

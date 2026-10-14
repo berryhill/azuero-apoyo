@@ -445,7 +445,7 @@ test('admin approved card lists people with phones (no cédula) and opens a read
   assert.match(admin, /\$\('#editCamp'\)\.onclick=\(\)=>openEditor\(activeCamp,true,true\)/);
   assert.match(editor, /<button type="submit" form="campEditForm" class="edit-only">Guardar punto<\/button>/);
   assert.match(editor, /<div class="form-actions"><button type="button" class="quiet-red" id="archiveCamp">Archivar punto<\/button><span class="spacer"><\/span><button type="button" class="quiet-red" id="cancelCampEdit">Cancelar<\/button><button type="submit">Guardar punto<\/button><\/div><\/form>/);
-  assert.match(admin, /\$\('#closeCampEditor'\)\.textContent=editing\?'Cancelar':'← Volver';\$\('#closeCampEditor'\)\.classList\.toggle\('quiet-red',editing\);\$\('#adminFoot'\)\.hidden=editing;/);
+  assert.match(admin, /\$\('#closeCampEditor'\)\.textContent=editing\?'Cancelar':campReturn==='usuarios'\?'← Usuarios':'← Volver';\$\('#closeCampEditor'\)\.classList\.toggle\('quiet-red',editing\);\$\('#adminFoot'\)\.hidden=editing;/);
   assert.match(admin, /#campEditor\.edit-mode>:not\(\.camp-head\):not\(#campEditDetails\)\{display:none!important\}/);
   assert.match(admin, /L\.map\('campMap',\{dragging:false,zoomControl:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,boxZoom:false,keyboard:false\}\)/);
 });
@@ -1017,4 +1017,37 @@ test('runner footer shows the user ID with a copy button; Usuarios shows and sea
   assert.match(runner, /navigator\.clipboard\.writeText\(userId\)/);
   assert.match(admin, /<small class="user-id" title="ID de usuario: \$\{clean\(u\.id\)\}">ID \$\{clean\(u\.id\.slice\(0,8\)\)\}<\/small>/);
   assert.match(admin, /fold\(u\.name\+' '\+u\.telephone\+' '\+u\.id\)\.includes\(q\)/, 'search by ID');
+});
+test('Usuarios shows a green/grey dot before each name and the last active time', () => {
+  assert.match(admin, /<span class="presence\$\{u\.online\?' on':''\}" title="\$\{u\.online\?'En línea':'Desconectado'\}"[^>]*><\/span><b>\$\{clean\(u\.name\)\}<\/b>/);
+  assert.match(admin, /\$\{u\.online\?'En línea':u\.lastActiveAt\?'Activo '\+clean\(stamp\(u\.lastActiveAt\)\):'Sin actividad'\}/);
+  assert.match(admin, /\.presence\{[^}]*background:#b5c0c3[^}]*\}\.presence\.on\{background:#23a35a/);
+  assert.match(admin, /setInterval\(\(\)=>\{if\(\$\('#dashboard'\)\.classList\.contains\('users-mode'\)&&!userFormOpen\(\)&&!Object\.keys\(codeTimers\)\.length\)Promise\.all\(\[loadRunners\(\),adminRequest\('\/api\/admin\/needs'\)/, 'refreshes users and their runs');
+});
+test('Usuarios lists each runner\'s en ruta runs (point and needs), with a count, and opens the point on click', () => {
+  const src = [admin.match(/const userRuns=[^\n]*/)[0], admin.match(/const userRunsHtml=[^\n]*/)[0]].join('\n');
+  const allNeeds = [
+    {id: 'n1', campId: 'c1', runnerId: 'r1', status: 'IN_PROGRESS', need: 'Agua', enRouteAt: '2026-10-14T10:00:00Z'},
+    {id: 'n2', campId: 'c1', runnerId: 'r1', status: 'OPEN', need: 'Comida'},
+    {id: 'n3', campId: 'c2', runnerId: 'r1', status: 'IN_PROGRESS', need: 'Techo', kind: 'repair'},
+    {id: 'n4', campId: 'c2', runnerId: 'r2', status: 'IN_PROGRESS', need: 'Pan'},
+  ];
+  const points = [{id: 'c1', code: 'C-1', area: 'Venao'}, {id: 'c2', code: 'C-2', area: 'Cañas'}];
+  const {userRuns, userRunsHtml} = new Function('allNeeds', 'points', 'clean', 'stamp', 'needChips', `${src};return {userRuns,userRunsHtml}`)(allNeeds, points, String, () => 'Oct 14', n => `<i>${n.need}</i>`);
+  const runs = userRuns({id: 'r1', roles: ['runner']});
+  assert.deepEqual(runs.map(n => n.id), ['n1'], 'only their en ruta supply runs');
+  assert.deepEqual(userRuns({id: 'r1', roles: ['builder']}), [], 'only for runners');
+  const html = userRunsHtml(runs);
+  assert.match(html, /<button type="button" class="user-run" data-open-camp="c1" title="Abrir el punto">📍 <b>C-1<\/b> · Venao <small>· en ruta desde Oct 14<\/small><i>Agua<\/i><\/button>/);
+  assert.equal(userRunsHtml([]), '');
+  assert.match(admin, /<span class="enruta-box" title="Carreras en ruta"><b>\$\{runs\.length\}<\/b> en ruta<\/span>/);
+  assert.match(admin, /const open=e\.target\.closest\('\[data-open-camp\]'\);if\(open\)\{campReturn='usuarios';openEditor\(open\.dataset\.openCamp\)/);
+  assert.match(admin, /\$\{online\} en línea · 🚚 \$\{enRoute\}/);
+});
+test('a point opened from Usuarios goes back to Usuarios («← Usuarios»), otherwise to the panel', () => {
+  assert.match(admin, /if\(open\)\{campReturn='usuarios';openEditor\(open\.dataset\.openCamp\)/);
+  assert.match(admin, /\$\('#closeCampEditor'\)\.textContent=editing\?'Cancelar':campReturn==='usuarios'\?'← Usuarios':'← Volver';/);
+  assert.match(admin, /else if\(campReturn==='usuarios'\)\{closeEditor\(false\);showUsers\(true\)\}else closeEditor\(\)/);
+  assert.match(admin, /function closeEditor\(navigate=true\)\{campReturn='';/, 'leaving the point forgets where it came from');
+  assert.ok(admin.indexOf("let campReturn=''") < admin.indexOf('async function openEditor('), 'declared before openEditor');
 });

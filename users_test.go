@@ -608,3 +608,47 @@ func TestRunnerSessionReportsUserID(t *testing.T) {
 		t.Fatalf("session check returns the ID: %s", got)
 	}
 }
+
+func TestUsuariosShowsOnlineAndLastActive(t *testing.T) {
+	s := newServiceHarness(t)
+	never := s.expect("POST", "/api/admin/users", `{"name":"Nunca","telephone":"6999-1111","roles":["runner"]}`, 201)["id"].(string)
+	login := s.call("POST", "/api/runner/session", `{"name":"Rosa","telephone":"6000-0000"}`, false)
+	var body map[string]any
+	json.Unmarshal(login.Body.Bytes(), &body)
+	rosa := body["id"].(string)
+	users := func() map[string]adminUser {
+		var list []adminUser
+		json.Unmarshal(s.call("GET", "/api/admin/users", "", true).Body.Bytes(), &list)
+		out := map[string]adminUser{}
+		for _, u := range list {
+			out[u.ID] = u
+		}
+		return out
+	}
+	got := users()
+	if !got[rosa].Online || got[rosa].LastActiveAt == "" {
+		t.Fatalf("signed-in runner is online with a last active time: %+v", got[rosa])
+	}
+	if got[never].Online || got[never].LastActiveAt != "" {
+		t.Fatalf("a user who never signed in is offline with no date: %+v", got[never])
+	}
+	// The time is saved on the user, so it survives a restart.
+	s.app.db.View(func(tx *bolt.Tx) error {
+		if u, _ := getUser(tx, rosa); u.LastActiveAt == "" {
+			t.Fatal("last active time saved on the user")
+		}
+		return nil
+	})
+	// Ten minutes without activity: offline, but the last active time stays.
+	s.app.mu.Lock()
+	s.app.lastSeen[rosa] = time.Now().Add(-10 * time.Minute)
+	s.app.mu.Unlock()
+	if u := users()[rosa]; u.Online || u.LastActiveAt == "" {
+		t.Fatalf("idle runner: %+v", u)
+	}
+	// Using the panel again brings them back online.
+	s.crewCall("GET", "/api/runner/needs", "", login.Result().Cookies()[0], "")
+	if !users()[rosa].Online {
+		t.Fatal("activity marks the runner online again")
+	}
+}
