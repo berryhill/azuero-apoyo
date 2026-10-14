@@ -15,6 +15,7 @@ func TestCodeUserAssignsRunnerAndPacksFromPublicDetail(t *testing.T) {
 	off := s.expect("POST", "/api/admin/users", `{"name":"Apagado","telephone":"6999-3333","roles":["runner"]}`, 201)["id"].(string)
 	s.expect("PATCH", "/api/admin/users/"+off, `{"disabled":true}`, 200)
 	builder := s.expect("POST", "/api/admin/users", `{"name":"Bea","telephone":"6999-4444","roles":["builder"],"accessCode":"BEA123"}`, 201)["id"].(string)
+	s.team("Norte", fufo, builder)
 	need := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","urgency":"normal"}`, 201)["id"].(string)
 	done := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Toldas","urgency":"normal","status":"COMPLETED"}`, 201)["id"].(string)
 	var viewer *http.Cookie
@@ -45,8 +46,8 @@ func TestCodeUserAssignsRunnerAndPacksFromPublicDetail(t *testing.T) {
 	}
 	var crew []crewChoice
 	json.Unmarshal(call("GET", "/api/full/crew", "", viewer).Body.Bytes(), &crew)
-	if len(crew) != 2 || crew[0].ID != fufo || !crew[0].Code || crew[1].ID != ana || crew[1].Code {
-		t.Fatalf("active runners, code users first: %+v", crew)
+	if len(crew) != 2 || crew[0].ID != fufo || !crew[0].Team || crew[1].ID != ana || crew[1].Team {
+		t.Fatalf("active runners, own team first: %+v", crew)
 	}
 	if body := call("GET", "/api/full/crew", "", viewer).Body.String(); strings.Contains(body, "6999") || strings.Contains(body, builder) {
 		t.Fatalf("no phones, no builders: %s", body)

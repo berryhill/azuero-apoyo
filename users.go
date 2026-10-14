@@ -48,6 +48,8 @@ type User struct {
 	RunOrder []string `json:"runOrder,omitempty"`
 	// Última actividad con sesión (panel de corredor/constructor o vista completa), guardada cada 2 minutos como máximo.
 	LastActiveAt string `json:"lastActiveAt,omitempty"`
+	// Equipo (ver teams.go); solo para usuarios con código de acceso.
+	TeamID string `json:"teamId,omitempty"`
 }
 
 // adminUser es lo que ve el panel: sin el hash del código.
@@ -63,10 +65,11 @@ type adminUser struct {
 	Note          string   `json:"note,omitempty"`
 	LastActiveAt  string   `json:"lastActiveAt,omitempty"`
 	Online        bool     `json:"online"`
+	TeamID        string   `json:"teamId,omitempty"`
 }
 
 func (u User) admin() adminUser {
-	return adminUser{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Roles: u.Roles, Disabled: u.Disabled, HasAccessCode: u.CodeHash != "", CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, Note: u.Note, LastActiveAt: u.LastActiveAt}
+	return adminUser{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Roles: u.Roles, Disabled: u.Disabled, HasAccessCode: u.CodeHash != "", CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, Note: u.Note, LastActiveAt: u.LastActiveAt, TeamID: u.TeamID}
 }
 
 // En línea: usó su sesión en los últimos 5 minutos (el panel de corredor consulta cada 30 s mientras está abierto).
@@ -381,15 +384,17 @@ func needItems(text string) []string {
 	return items
 }
 
-// reservedNeedItems junta, por punto, los artículos (normalizados) de sus necesidades asignadas a corredores con código.
-func reservedNeedItems(tx *bolt.Tx) (map[string]map[string]bool, error) {
+// reservedNeedItems junta, por punto, los artículos (normalizados) de sus necesidades asignadas a corredores con código
+// que no son del equipo de quien mira (t; con me vacío, todas).
+func reservedNeedItems(t *teamView) (map[string]map[string]bool, error) {
+	tx := t.tx
 	items := map[string]map[string]bool{}
 	err := tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
 		var n CampNeed
 		if e := json.Unmarshal(v, &n); e != nil {
 			return e
 		}
-		if n.Status == "DELETED" || isRepair(n) || !reservedNeed(tx, n) {
+		if n.Status == "DELETED" || isRepair(n) || !t.hidden(n) {
 			return nil
 		}
 		if items[n.CampID] == nil {
@@ -619,6 +624,15 @@ func applyUserFields(tx *bolt.Tx, u *User, f map[string]json.RawMessage) error {
 		}
 		u.CodeHash, u.AccessCode = hash, code
 	}
+	if _, ok := f["teamId"]; ok {
+		u.TeamID = fieldText(f, "teamId")
+		if _, found := getTeam(tx, u.TeamID); u.TeamID != "" && !found {
+			return userFieldError{"teamId", "Ese equipo ya no existe. Recarga la página."}
+		}
+	}
+	if u.TeamID != "" && u.CodeHash == "" {
+		return userFieldError{"teamId", "Solo los usuarios con código de acceso pueden estar en un equipo. Asígnale un código."}
+	}
 	return nil
 }
 
@@ -636,7 +650,7 @@ func userError(w http.ResponseWriter, err error) bool {
 }
 
 func (a *App) userRoutes(mux *http.ServeMux) {
-	fields := map[string]int{"name": 120, "telephone": 40, "accessCode": 64, "roles": 0, "disabled": 0}
+	fields := map[string]int{"name": 120, "telephone": 40, "accessCode": 64, "roles": 0, "disabled": 0, "teamId": 120}
 	mux.HandleFunc("GET /api/admin/users", func(w http.ResponseWriter, r *http.Request) {
 		if !a.admin(w, r) {
 			return

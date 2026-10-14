@@ -67,7 +67,7 @@ func (a *App) locationRoutes(mux *http.ServeMux, runners *crew) {
 		a.dropLocation(s.runnerID)
 		response(w, 200, map[string]string{"status": "stopped"})
 	})
-	// Vista completa (entró con código): los otros corredores con ubicación reciente, sin incluir a quien consulta.
+	// Vista completa (entró con código): los otros corredores de su equipo (y los sin código) con ubicación reciente.
 	mux.HandleFunc("GET /api/full/runners", func(w http.ResponseWriter, r *http.Request) {
 		me, ok := a.viewer(w, r)
 		if !ok {
@@ -75,7 +75,7 @@ func (a *App) locationRoutes(mux *http.ServeMux, runners *crew) {
 		}
 		response(w, 200, a.liveRunners(me.ID))
 	})
-	// Panel de corredores: quien entró con código (corredor o agente) también ve a los demás en su mapa.
+	// Panel de corredores: quien entró con código (corredor o agente) también ve a su equipo en su mapa.
 	// Quien tiene código solo puede entrar con él, así que «tiene código» equivale a «entró con código».
 	mux.HandleFunc("GET /api/runner/team", func(w http.ResponseWriter, r *http.Request) {
 		s, ok := a.crewSession(runners, w, r)
@@ -178,7 +178,8 @@ func (a *App) pruneStoredLocations() error {
 	})
 }
 
-// liveRunners: corredores (o usuarios con código) activos con ubicación reciente, sin incluir a exclude; las posiciones vencidas se borran.
+// liveRunners: corredores sin código y compañeros de equipo de exclude, activos con ubicación reciente, sin incluir a exclude
+// (los usuarios con código de otro equipo no salen); las posiciones vencidas se borran.
 func (a *App) liveRunners(exclude string) []runnerOnMap {
 	now := time.Now()
 	a.mu.Lock()
@@ -198,9 +199,10 @@ func (a *App) liveRunners(exclude string) []runnerOnMap {
 	}
 	list := []runnerOnMap{}
 	a.db.View(func(tx *bolt.Tx) error {
+		tv := newTeamView(tx, exclude)
 		for id, loc := range live {
 			u, found := getUser(tx, id)
-			if !found || u.Disabled || !u.has(roleRunner) && u.CodeHash == "" {
+			if !found || u.Disabled || (u.CodeHash == "" && !u.has(roleRunner)) || (u.CodeHash != "" && !tv.mate(id)) {
 				continue
 			}
 			list = append(list, runnerOnMap{ID: id, Name: u.Name, Lat: loc.Lat, Lon: loc.Lon, Accuracy: loc.Accuracy, At: loc.At.UTC().Format(time.RFC3339), Seconds: int(now.Sub(loc.At).Seconds())})

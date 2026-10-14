@@ -15,13 +15,22 @@ import (
 type crewChoice struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
-	Code bool   `json:"code,omitempty"`
+	// Team: es del equipo de quien asigna (se muestra primero, con la etiqueta «Equipo»).
+	Team bool `json:"team,omitempty"`
 }
 
 var errNeedClosed = errors.New("Esta necesidad ya no está abierta ni en ruta.")
+var errOtherTeam = errors.New("Esta carrera la lleva otro equipo.")
 
-// fullNeed carga una necesidad de suministros (no reparación) de un punto aprobado; abierta o en ruta.
-func (a *App) fullNeed(tx *bolt.Tx, id string) (CampNeed, error) {
+// assignable: a quien entró con código le salen los corredores de su equipo y los que no tienen código;
+// los corredores con código de otro equipo (o sin equipo) no.
+func assignable(t *teamView, u User) bool {
+	return !u.Disabled && u.has(roleRunner) && (u.CodeHash == "" || t.mate(u.ID))
+}
+
+// fullNeed carga, para quien entró con código (me), una necesidad de suministros (no reparación) de un punto aprobado;
+// abierta o en ruta, y que no lleve un corredor de otro equipo.
+func (a *App) fullNeed(tx *bolt.Tx, id, me string) (CampNeed, error) {
 	var n CampNeed
 	v := tx.Bucket(needsBucket).Get([]byte(id))
 	if v == nil {
@@ -33,30 +42,48 @@ func (a *App) fullNeed(tx *bolt.Tx, id string) (CampNeed, error) {
 	if !a.campExists(tx, n.CampID) || isRepair(n) || n.Status == "DELETED" {
 		return n, errMissing
 	}
+	if newTeamView(tx, me).hidden(n) {
+		return n, errOtherTeam
+	}
 	if n.Status != "OPEN" && n.Status != "IN_PROGRESS" {
 		return n, errNeedClosed
 	}
 	return n, nil
 }
 
+// fullNeedError: 403 si es de otro equipo, 409 si ya se cerró.
+func fullNeedError(w http.ResponseWriter, err error) bool {
+	switch {
+	case errors.Is(err, errOtherTeam):
+		fail(w, 403, err.Error())
+	case errors.Is(err, errNeedClosed):
+		fail(w, 409, err.Error())
+	default:
+		return serviceError(w, err)
+	}
+	return true
+}
+
 func (a *App) fullNeedRoutes(mux *http.ServeMux) {
-	// Corredores activos para «Asignar conductor»: primero los que entran con código, luego por nombre. Sin teléfonos.
+	// Corredores activos para «Asignar conductor»: primero los del equipo de quien asigna, luego por nombre. Sin teléfonos.
 	mux.HandleFunc("GET /api/full/crew", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := a.viewer(w, r); !ok {
+		me, ok := a.viewer(w, r)
+		if !ok {
 			return
 		}
 		list := []crewChoice{}
 		a.db.View(func(tx *bolt.Tx) error {
+			tv := newTeamView(tx, me.ID)
 			return eachUser(tx, func(u User) error {
-				if !u.Disabled && u.has(roleRunner) {
-					list = append(list, crewChoice{ID: u.ID, Name: u.Name, Code: u.CodeHash != ""})
+				if assignable(tv, u) {
+					list = append(list, crewChoice{ID: u.ID, Name: u.Name, Team: u.CodeHash != ""})
 				}
 				return nil
 			})
 		})
 		sort.SliceStable(list, func(i, j int) bool {
-			if list[i].Code != list[j].Code {
-				return list[i].Code
+			if list[i].Team != list[j].Team {
+				return list[i].Team
 			}
 			return foldText(list[i].Name) < foldText(list[j].Name)
 		})
@@ -80,7 +107,8 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 	// Asignar, cambiar o quitar el conductor: como en administración, al asignar una necesidad abierta pasa a «En ruta»
 	// y al quitarlo vuelve a «Abierta».
 	mux.HandleFunc("POST /api/full/needs/{id}/runner", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := a.viewer(w, r); !ok {
+		me, ok := a.viewer(w, r)
+		if !ok {
 			return
 		}
 		f, ok := decodeFields(w, r, map[string]int{"runnerId": 120})
@@ -92,13 +120,13 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 		var name string
 		err := a.db.Update(func(tx *bolt.Tx) error {
 			var e error
-			if n, e = a.fullNeed(tx, r.PathValue("id")); e != nil {
+			if n, e = a.fullNeed(tx, r.PathValue("id"), me.ID); e != nil {
 				return e
 			}
 			// runnerId vacío quita el conductor: la necesidad vuelve a «Abierta».
 			if runnerID != "" {
 				u, found := getUser(tx, runnerID)
-				if !found || u.Disabled || !u.has(roleRunner) {
+				if !found || !assignable(newTeamView(tx, me.ID), u) {
 					return errInvalid
 				}
 				name = u.Name
@@ -108,21 +136,20 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 			enRouteOnAssign(&n, before)
 			return putNeed(tx.Bucket(needsBucket), &n)
 		})
-		if errors.Is(err, errNeedClosed) {
-			fail(w, 409, err.Error())
-			return
-		}
-		if serviceError(w, err) {
+		if fullNeedError(w, err) {
 			return
 		}
 		response(w, 200, map[string]any{"id": n.ID, "status": n.Status, "runnerName": name, "enRouteAt": n.EnRouteAt})
 	})
-	// Foto de partida desde la ficha: en necesidades abiertas o en ruta; quien entró con código ve las fotos de partida.
-	pickupOK := func(tx *bolt.Tx, n CampNeed) error {
-		if !a.campExists(tx, n.CampID) || isRepair(n) || n.Status != "OPEN" && n.Status != "IN_PROGRESS" {
-			return errMissing
+	// Foto de partida desde la ficha: en necesidades abiertas o en ruta; quien entró con código ve las fotos de partida,
+	// salvo las de carreras de otro equipo.
+	pickupOK := func(me string) func(tx *bolt.Tx, n CampNeed) error {
+		return func(tx *bolt.Tx, n CampNeed) error {
+			if !a.campExists(tx, n.CampID) || isRepair(n) || n.Status != "OPEN" && n.Status != "IN_PROGRESS" || newTeamView(tx, me).hidden(n) {
+				return errMissing
+			}
+			return nil
 		}
-		return nil
 	}
 	mux.HandleFunc("POST /api/full/needs/{id}/media", func(w http.ResponseWriter, r *http.Request) {
 		u, ok := a.viewer(w, r)
@@ -133,14 +160,15 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 			failField(w, 400, "stage", "Desde la ficha solo se agregan fotos de partida.")
 			return
 		}
-		a.receiveMedia(w, r, u.ID, u.Name, pickupOK)
+		a.receiveMedia(w, r, u.ID, u.Name, pickupOK(u.ID))
 	})
 	mux.HandleFunc("GET /api/full/media/{need}/{media}", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := a.viewer(w, r); !ok {
+		u, ok := a.viewer(w, r)
+		if !ok {
 			return
 		}
 		a.serveMedia(w, r, func(tx *bolt.Tx, n CampNeed) error {
-			if !a.campExists(tx, n.CampID) || isRepair(n) {
+			if !a.campExists(tx, n.CampID) || isRepair(n) || newTeamView(tx, u.ID).hidden(n) {
 				return errMissing
 			}
 			return nil
@@ -162,16 +190,12 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 		var n CampNeed
 		err = a.db.Update(func(tx *bolt.Tx) error {
 			var e error
-			if n, e = a.fullNeed(tx, r.PathValue("id")); e != nil {
+			if n, e = a.fullNeed(tx, r.PathValue("id"), u.ID); e != nil {
 				return e
 			}
 			return addPacking(tx, &n, lines, u.ID, u.Name)
 		})
-		if errors.Is(err, errNeedClosed) {
-			fail(w, 409, err.Error())
-			return
-		}
-		if serviceError(w, err) {
+		if fullNeedError(w, err) {
 			return
 		}
 		response(w, 200, map[string]any{"id": n.ID, "packing": n.Packing})

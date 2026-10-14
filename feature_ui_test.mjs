@@ -1029,7 +1029,7 @@ test('Usuarios can sort by name or by creation date, newest or oldest first', ()
   const list = [{name: 'B', createdAt: '2026-10-02T00:00:00Z'}, {name: 'Old'}, {name: 'A', createdAt: '2026-10-05T00:00:00Z'}];
   assert.deepEqual(order('newest', list), ['A', 'B', 'Old'], 'users without a date (migrated) sort as oldest');
   assert.deepEqual(order('oldest', list), ['Old', 'B', 'A']);
-  assert.match(admin, /Creado \$\{clean\(stamp\(u\.createdAt\)\)\}/);
+  assert.match(admin, /data-label=\"Creado\">\$\{u\.createdAt\?`<small class=\"user-created\" title=\"Creado\">\$\{clean\(stamp\(u\.createdAt\)\)\}<\/small>`/);
 });
 test('Usuarios: «+ Nuevo» top right opens the user form as its own page (like camp needs), no intro text', () => {
   const ops = admin.slice(admin.indexOf('id="operations"'));
@@ -1045,7 +1045,7 @@ test('Usuarios: «+ Nuevo» top right opens the user form as its own page (like 
   assert.match(admin, /await loadRunners\(\);render\(\);openUserView\(saved\.id\);\$\('#usersNotice'\)\.textContent='Usuario guardado\.'/, 'saving shows the saved user');
 });
 test('Usuarios list: «Abrir» opens the user in view mode with Editar and Activar/Desactivar', () => {
-  assert.match(admin, /<button type="button" data-user-open="\$\{clean\(u\.id\)\}">Abrir<\/button>/);
+  assert.match(admin, /<button type="button" class="uc-open" data-user-open="\$\{clean\(u\.id\)\}">Abrir<\/button>/);
   assert.doesNotMatch(admin, /data-user-edit|data-user-toggle/, 'edit and disable live in the view, not the list');
   assert.match(admin, /const open=e\.target\.closest\('\[data-user-open\]'\);if\(open\)openUserView\(open\.dataset\.userOpen\)/);
   assert.match(admin, /history\.pushState\(null,'','\/admin\.html\?view=usuarios&user='\+encodeURIComponent\(id\)\)\}/, 'deep link to the view');
@@ -1074,7 +1074,7 @@ test('Usuarios shows a green/grey dot before each name and the last active time'
   assert.match(admin, /<span class="presence\$\{u\.online\?' on':''\}" title="\$\{u\.online\?'En línea':'Desconectado'\}"[^>]*><\/span>\$\{keyBtn\(u\)\}<b>\$\{clean\(u\.name\)\}<\/b>/);
   assert.match(admin, /\$\{u\.online\?'En línea':u\.lastActiveAt\?'Activo '\+clean\(stamp\(u\.lastActiveAt\)\):'Sin actividad'\}/);
   assert.match(admin, /\.presence\{[^}]*background:#b5c0c3[^}]*\}\.presence\.on\{background:#23a35a/);
-  assert.match(admin, /setInterval\(\(\)=>\{if\(\$\('#dashboard'\)\.classList\.contains\('users-mode'\)&&!userFormOpen\(\)&&!Object\.keys\(keyTips\)\.length\)Promise\.all\(\[loadRunners\(\),adminRequest\('\/api\/admin\/needs'\)/, 'refreshes users and their runs');
+  assert.match(admin, /setInterval\(\(\)=>\{if\(\$\('#dashboard'\)\.classList\.contains\('users-mode'\)&&!userFormOpen\(\)&&!renamingTeam&&!\$\('#teamsBox'\)\.contains\(document\.activeElement\)&&!\$\('#userBatch'\)\.contains\(document\.activeElement\)&&!Object\.keys\(keyTips\)\.length\)Promise\.all\(\[loadRunners\(\),adminRequest\('\/api\/admin\/needs'\)/, 'refreshes users and their runs');
 });
 test('Usuarios lists each runner\'s en ruta runs (point and needs), with a count, and opens the point on click', () => {
   const src = [admin.match(/const userRuns=[^\n]*/)[0], admin.match(/const userRunsHtml=[^\n]*/)[0]].join('\n');
@@ -1256,7 +1256,7 @@ test('public detail for code users: each open/en ruta need can get a conductor a
   assert.match(template, /<div class="picker assignpick" id="assignPicker" hidden><input id="assignSearch" type="search" placeholder="Buscar conductor…"/);
   assert.ok(template.indexOf('id="assignPicker"') < template.indexOf('<script>'), 'markup exists before the script binds it');
   assert.match(template, /crewCache=\{at:Date\.now\(\),list:await fullGet\('\/api\/full\/crew'\)\}/, 'the server lists code users first');
-  assert.match(template, /c\.code\?'<small>Equipo<\/small>':''/);
+  assert.match(template, /c\.team\?'<small>Equipo<\/small>':''/);
   assert.match(template, /fullJSON\('\/api\/full\/needs\/'\+encodeURIComponent\(need\)\+'\/runner',\{runnerId:id\}\)/);
   assert.match(template, /PointForm\.openPacking\(\{subtitle:[^\n]*fullJSON\('\/api\/full\/needs\/'\+encodeURIComponent\(id\)\+'\/packing',\{items:lines\}\)/, 'same packing dialog as admin and runners');
   assert.match(template, /\.length;drawTeamNeeds\(\)\}/, 'refreshed with the list and after each save');
@@ -1287,4 +1287,131 @@ test('public detail: Maps, Compartir and Reportar are small footer buttons; code
   const draw = template.match(/function drawTeamNeeds\(\)[^\n]*/)[0];
   assert.match(draw, /^function drawTeamNeeds\(\)\{const box=\$\('#teamNeeds'\);if\(!box\)\{/, 'draws nothing without the team section');
   assert.doesNotMatch(template.match(/function serviceNeedsHtml[^\n]*/)[0], /runnerName|packing|media/, 'the public need list never shows them');
+});
+
+test('Usuarios › Equipos: create/rename teams; a two-column table assigns each user with a team type-ahead, select all, and batch actions', () => {
+  assert.match(admin, /<details id="teamsBox" class="teams-box"><summary>👥 Equipos <small id="teamsCount"><\/small><\/summary>/);
+  assert.match(admin, /<form id="teamNewForm" class="team-new"><input name="name" maxlength="80" required/);
+  assert.match(admin, /#operations\.user-form-mode #teamsBox,#operations\.user-view-mode #teamsBox,#operations\.user-form-mode #userBatch,#operations\.user-view-mode #userBatch\{display:none!important\}/, 'only on the list');
+  assert.match(admin, /<label>Equipo<select name="teamId"><option value="">Sin equipo<\/option><\/select><\/label>/);
+  assert.match(admin, /const data=\{[^}]*roles,teamId:form\.elements\.teamId\.value\};/, 'saved with the user');
+  assert.match(admin, /<table class="team-users" id="teamUsers"><thead><tr><th><input type="checkbox" id="teamSelAll" aria-label="Seleccionar todos"><\/th><th>Usuario<\/th><th>Equipo<\/th><\/tr><\/thead><tbody><\/tbody><\/table>/);
+  assert.match(admin, /<div class="team-batch" id="teamBatch" hidden><b id="teamSelCount"><\/b><input id="teamBatchInput" list="teamNames"[^>]*><button type="button" id="teamBatchAssign">Asignar equipo<\/button><button type="button" class="quiet-red" id="teamBatchRemove">Quitar del equipo<\/button><\/div>/);
+  assert.match(admin, /!\$\('#teamsBox'\)\.contains\(document\.activeElement\)/, 'the 30 s refresh never interrupts typing a team');
+  const fold = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const clean = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  const src = ['drawTeams', 'drawTeamUsers', 'syncTeamSel'].map(f => admin.match(new RegExp(`function ${f}\\(\\)?[^\\n]*`))[0]).concat([admin.match(/const teamSel=[^\n]*/)[0], admin.match(/const teamRows=[^\n]*/)[0], admin.match(/const teamByName=[^\n]*/)[0]]).join('\n');
+  const els = {}; const el = k => els[k] ??= {value: ''};
+  const teams = [{id: 't1', name: 'Norte <b>'}, {id: 't2', name: 'Peñas'}];
+  const users = [{id: 'u1', name: 'Fufo', teamId: 't1', hasAccessCode: true, roles: ['runner']}, {id: 'u2', name: 'Bea', hasAccessCode: true, roles: ['agent']}, {id: 'u3', name: 'Ana', hasAccessCode: false, roles: ['runner']}];
+  const api = new Function('$', 'teams', 'users', 'renamingTeam', 'clean', 'fold', 'teamName', 'roleNames', `${src};return {drawTeams, teamSel, teamByName}`)(el, teams, users, null, clean, fold, id => teams.find(t => t.id === id)?.name || '', {runner: 'Corredor', agent: 'Agente'});
+  api.drawTeams();
+  const body = el('#teamUsers tbody').innerHTML;
+  assert.match(el('#teamNames').innerHTML, /<option value="Norte &lt;b&gt;"><\/option><option value="Peñas">/, 'type-ahead list of teams');
+  assert.match(el('#teamList').innerHTML, /<b>👥 Norte &lt;b&gt;<\/b><small>1 miembro<\/small>/);
+  assert.equal((body.match(/<tr/g) || []).length, 3, 'every user is listed');
+  assert.match(body, /data-team-sel="u1"[^>]*><\/td><td><b>Fufo<\/b>[^]*?<input class="team-pick" list="teamNames" data-team-user="u1" value="Norte &lt;b&gt;" placeholder="Sin equipo"/);
+  assert.match(body, /<td><\/td><td><b>Ana<\/b>[^]*?Sin código: no puede estar en un equipo/, 'no checkbox or team picker without a code');
+  assert.equal(el('#teamBatch').hidden, true, 'batch bar only with a selection');
+  api.teamSel.add('u1'); api.teamSel.add('u2'); api.drawTeams();
+  assert.equal(el('#teamSelAll').checked, true, 'all selectable users selected');
+  assert.equal(el('#teamBatch').hidden, false);
+  assert.equal(el('#teamSelCount').textContent, '2 seleccionados');
+  api.teamSel.delete('u2'); api.drawTeams();
+  assert.equal(el('#teamSelAll').indeterminate, true);
+  assert.equal(api.teamByName(' penas '), 't2', 'typed names match without case or accents');
+  assert.equal(api.teamByName(''), '', 'empty = no team');
+  assert.equal(api.teamByName('Nada'), null);
+  el('#teamUserSearch').value = 'peñas'; api.drawTeams();
+  assert.match(el('#teamUsers tbody').innerHTML, /Sin coincidencias/);
+});
+test('public assign picker tags teammates with «Equipo»; the server lists only own team and runners without a code', () => {
+  assert.match(template, /c\.team\?'<small>Equipo<\/small>':''/);
+});
+
+test('Usuarios: checkboxes per user; selected users that no longer match the search stay below the results; batch move/deactivate', () => {
+  assert.doesNotMatch(admin, /id="userSelAll"/, 'select-all is a button over the results, not a filter checkbox');
+  assert.match(admin, /<div class="user-batch" id="userBatch" hidden><b id="userSelCount"><\/b><span class="teampop-wrap"><button type="button" id="userBatchMove" aria-haspopup="listbox" aria-expanded="false">👥 Mover a equipo ▾<\/button><div class="teampop" id="teamPop" hidden><input id="teamPopSearch" type="search" placeholder="Buscar o crear equipo…"[^>]*role="combobox"[^>]*><div id="teamPopList" role="listbox"[^>]*><\/div><\/div><\/span><button type="button" class="quiet" id="userBatchUnteam">Quitar del equipo<\/button><button type="button" class="quiet-red" id="userBatchOff">Desactivar<\/button><button type="button" class="quiet" id="userBatchOn">Activar<\/button><button type="button" class="linkbtn" id="userBatchClear">Limpiar selección<\/button><\/div>/);
+  assert.match(admin, /\.user-batch\{position:sticky;top:0/, 'the batch bar stays in view while scrolling');
+  const src = [admin.match(/const userSel=[^\n]*/)[0], admin.match(/const userHead=[^\n]*/)[0], admin.match(/const userCard=[^\n]*/)[0], ...['userResults', 'drawUsers', 'syncUserSel', 'batchUsers'].map(f => admin.match(new RegExp(`(async )?function ${f}\\([^\\n]*`))[0])].join('\n');
+  const els = {}; const el = k => els[k] ??= {value: '', checked: false, querySelectorAll: () => []};
+  el('#userRole').value = ''; el('#userTeam').value = ''; el('#userSort').value = 'name';
+  const users = [{id: 'u1', name: 'Fufo', roles: ['runner'], hasAccessCode: true}, {id: 'u2', name: 'Bea', roles: ['agent'], hasAccessCode: true, teamId: 't1'}, {id: 'u3', name: 'Ana', roles: ['runner'], hasAccessCode: false}];
+  const patched = [];
+  const fold = s => String(s).toLowerCase();
+  const api = new Function('$', 'users', 'fold', 'clean', 'userRuns', 'userRunsHtml', 'keyBtn', 'phoneBtn', 'teamChip', 'roleNames', 'stamp', 'patchUsers', `${src};return {userSel, drawUsers, batchUsers}`)(el, users, fold, s => String(s ?? ''), () => [], () => '', () => '', () => '', () => '', {}, s => s, async (ids, body) => { patched.push([ids, body]); return ids.includes('u3') ? [{id: 'u3', text: 'Ana: no'}] : []; });
+  api.drawUsers();
+  assert.equal(el('#userBatch').hidden, true);
+  assert.doesNotMatch(el('#userList').innerHTML, /users-chosen/, 'no Seleccionados group without a selection');
+  assert.match(el('#userList').innerHTML, /<input type="checkbox" class="user-sel" data-user-sel="u1" aria-label="Seleccionar a Fufo">/);
+  api.userSel.add('u1'); api.userSel.add('u3');
+  el('#userSearch').value = 'bea'; api.drawUsers();
+  let html = el('#userList').innerHTML;
+  const chosen = html.indexOf('<details class="users-group users-chosen" open><summary>☑ Seleccionados (2)<button type="button" class="sel-all" data-unsel-all>☐ Deseleccionar todos</button></summary>'), results = html.indexOf('<div class="users-group users-results"><h3>Resultados (1)');
+  assert.ok(chosen > 0 && results > chosen, 'collapsible Seleccionados on top, Resultados (not collapsible) below');
+  assert.ok(html.indexOf('Seleccionar a Fufo') < results && html.indexOf('Seleccionar a Ana') < results, 'every selected user is grouped on top, even outside the search');
+  assert.ok(html.indexOf('Seleccionar a Bea') > results);
+  assert.match(html, /user-card sel"><input type="checkbox" class="user-sel" data-user-sel="u1" aria-label="Seleccionar a Fufo" checked>/);
+  assert.match(html, /<button type="button" class="sel-all" data-sel-results>☑ Seleccionar el resultado<\/button>/);
+  assert.equal(el('#userBatch').hidden, false);
+  assert.equal(el('#userSelCount').textContent, '2 seleccionados');
+  el('#userSearch').value = ''; api.drawUsers();
+  html = el('#userList').innerHTML;
+  assert.match(html, /<h3>Resultados \(1\) <small>· 2 ya seleccionados arriba<\/small>/, 'selected users are not repeated in the results');
+  assert.equal((html.match(/data-user-sel="u1"/g) || []).length, 1);
+  api.userSel.add('u2'); api.drawUsers();
+  assert.match(el('#userList').innerHTML, /Resultados \(0\)[^]*Todos los resultados ya están seleccionados\./);
+  api.userSel.delete('u2');
+  assert.match(admin, /if\(!e\.target\.closest\('\[data-sel-results\]'\)\)return;for\(const u of userResults\(\)\)userSel\.add\(u\.id\);drawUsers\(\)/, 'adds to the selection; others stay');
+  assert.match(admin, /if\(!e\.target\.closest\('\[data-unsel-all\]'\)\)return;e\.preventDefault\(\);userSel\.clear\(\);drawUsers\(\)/, 'un-select all, without folding the group');
+  assert.match(admin, /addEventListener\('toggle',e=>\{if\(e\.target\.matches\('\.users-chosen'\)\)selOpen=e\.target\.open\},true\)/, 'collapsed state survives redraws');
+  return api.batchUsers(u => u.hasAccessCode, {teamId: 't1'}, ['movido a Norte', 'movidos a Norte'], 'tiene código').then(() => {
+    assert.deepEqual(patched, [[['u1'], {teamId: 't1'}]], 'users without a code are skipped');
+    assert.deepEqual([...api.userSel], ['u3'], 'changed users leave the selection; skipped ones stay');
+    assert.match(el('#usersNotice').textContent, /^1 usuario movido a Norte\. 1 no cumplía la condición \(tiene código\) y sigue marcado\.$/);
+  });
+});
+
+test('batch «Mover a equipo» is a team search dropdown that can also create the team and move the selection there', async () => {
+  const src = ['let popHl=0;', admin.match(/function teamPopOptions\(\)[^\n]*/)[0], admin.match(/function drawTeamPop\(\)[^\n]*/)[0], admin.match(/async function pickTeamPop\([^\n]*/)[0]].join('\n');
+  const els = {}; const el = k => els[k] ??= {value: '', textContent: '', focus() {}, setAttribute() {}, hidden: false};
+  el('#teamPopList .hl').scrollIntoView = () => {};
+  const fold = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const clean = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  let teams = [{id: 't1', name: 'Norte'}, {id: 't2', name: 'Peñas'}];
+  const users = [{id: 'u1', name: 'Fufo', teamId: 't1', hasAccessCode: true}, {id: 'u2', name: 'Bea', hasAccessCode: true}];
+  const calls = [];
+  const adminRequest = async (url, method, body) => { calls.push([url, method, body]); return {id: 't3', name: body.name}; };
+  const loadRunners = async () => { teams = [...teams, {id: 't3', name: 'Sur'}]; };
+  const batchUsers = async (want, body, done) => { calls.push(['batch', body, done[1]]); el('#usersNotice').textContent = '1 usuario movido a Sur.'; };
+  const api = new Function('$', 'getTeams', 'users', 'userSel', 'fold', 'clean', 'adminRequest', 'loadRunners', 'batchUsers', 'openTeamPop', `const teamName=id=>getTeams().find(t=>t.id===id)?.name||'';${src.replace(/(?<!\/)\bteams\b/g, 'getTeams()')};return {drawTeamPop, teamPopOptions, pickTeamPop}`)(el, () => teams, users, new Set(['u2']), fold, clean, adminRequest, loadRunners, batchUsers, () => {});
+  api.drawTeamPop();
+  assert.match(el('#teamPopList').innerHTML, /<button type="button" role="option" data-pop="0" aria-selected="true" class="hl">👥 Norte <small>1 miembro<\/small><\/button><button[^>]*data-pop="1"[^>]*>👥 Peñas <small>0 miembros<\/small>/, 'teams with member counts');
+  el('#teamPopSearch').value = 'penas';
+  assert.deepEqual(api.teamPopOptions().map(o => o.name || o.create), ['Peñas'], 'matches without accents; no create when the name exists');
+  el('#teamPopSearch').value = '  Sur  ';
+  api.drawTeamPop();
+  assert.match(el('#teamPopList').innerHTML, /data-pop="0" aria-selected="true" class="hl create">＋ Crear equipo «Sur» y mover aquí<\/button>/);
+  await api.pickTeamPop(0);
+  assert.deepEqual(calls[0], ['/api/admin/teams', 'POST', {name: 'Sur'}], 'creates the team');
+  assert.deepEqual(calls[1], ['batch', {teamId: 't3'}, 'movidos a Sur'], 'then moves the selection into it');
+  assert.equal(el('#usersNotice').textContent, 'Equipo «Sur» creado. 1 usuario movido a Sur.');
+  assert.match(admin, /if\(e\.key==='ArrowDown'\|\|e\.key==='ArrowUp'\)[^\n]*else if\(e\.key==='Enter'\)\{e\.preventDefault\(\);pickTeamPop\(popHl\)\}else if\(e\.key==='Escape'\)/, 'keyboard: arrows, Enter, Esc');
+});
+
+test('Usuarios: every user is a row with the same columns (Usuario, Accesos, Equipo, Actividad, Creado) under a header; labeled lines on phones', () => {
+  assert.match(admin, /const userHead='<div class="user-head" aria-hidden="true"><span><\/span><span>Usuario<\/span><span>Accesos<\/span><span>Equipo<\/span><span>Actividad<\/span><span>Creado<\/span><span><\/span><\/div>';/);
+  assert.match(admin, /\.user-card,\.user-head\{display:grid;grid-template-columns:22px minmax\(190px,2\.2fr\)[^}]*\}/, 'rows and header share one column grid');
+  assert.match(admin, /@media\(max-width:720px\)\{\.user-head\{display:none\}[^}]*\}[^@]*\.uc-col:before\{content:attr\(data-label\)/, 'phones: one labeled line per column');
+  assert.match(admin, /\$\{userHead\}\$\{chosen\.map\(userCard\)/);
+  assert.match(admin, /rest\.length\?userHead\+rest\.map\(userCard\)/);
+  const card = new Function('userRuns', 'userSel', 'clean', 'keyBtn', 'phoneBtn', 'roleNames', 'teamChip', 'stamp', 'userRunsHtml', `${admin.match(/const userCard=[^\n]*/)[0]};return userCard`)(() => [], new Set(), s => String(s ?? ''), () => '', () => '', {runner: 'Corredor'}, u => u.teamId ? '<span class="team-chip">👥 Norte</span>' : '', s => s, () => '');
+  const a = card({id: 'u1abcdefgh', name: 'Fufo', roles: ['runner'], teamId: 't1', online: true, createdAt: '1 oct'});
+  const b = card({id: 'u2abcdefgh', name: 'Ana', roles: [], disabled: true});
+  const cols = h => [...h.matchAll(/<div class="uc-col" data-label="([^"]+)">/g)].map(m => m[1]);
+  assert.deepEqual(cols(a), ['Accesos', 'Equipo', 'Actividad', 'Creado']);
+  assert.deepEqual(cols(b), cols(a), 'same columns for every user, so they line up');
+  assert.match(a, /data-label="Equipo"><span class="team-chip">👥 Norte<\/span>/);
+  assert.match(b, /data-label="Accesos"><span class="uc-none">—<\/span>[^]*data-label="Equipo"><span class="uc-none">Sin equipo<\/span>[^]*Sin actividad[^]*data-label="Creado"><span class="uc-none">—<\/span>/, 'empty values are shown, not skipped');
+  assert.match(b, /<b>Ana<\/b><span class="role-chip off">Desactivado<\/span>/);
 });

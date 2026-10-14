@@ -97,8 +97,9 @@ func rosaIDFrom(t *testing.T, s *serviceHarness, c *http.Cookie) string {
 
 func TestCodeUserSharesLocationFromPublicMap(t *testing.T) {
 	s := newServiceHarness(t)
-	s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)
-	s.expect("POST", "/api/admin/users", `{"name":"Bea","telephone":"6999-2222","roles":["builder"],"accessCode":"BEA123"}`, 201)
+	s.team("Norte",
+		s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)["id"].(string),
+		s.expect("POST", "/api/admin/users", `{"name":"Bea","telephone":"6999-2222","roles":["builder"],"accessCode":"BEA123"}`, 201)["id"].(string))
 	viewer := func(code string) *http.Cookie {
 		for _, c := range s.call("POST", "/api/session/code", `{"accessCode":"`+code+`"}`, false).Result().Cookies() {
 			if c.Name == "viewer_session" {
@@ -129,7 +130,7 @@ func TestCodeUserSharesLocationFromPublicMap(t *testing.T) {
 		t.Fatalf("share: %d %s", w.Code, w.Body.String())
 	}
 	if body := call("GET", "/api/full/runners", "", fufo).Body.String(); !strings.Contains(body, `"name":"Bea"`) {
-		t.Fatalf("code users see each other: %s", body)
+		t.Fatalf("teammates see each other: %s", body)
 	}
 	if body := call("GET", "/api/full/runners", "", bea).Body.String(); strings.Contains(body, "Bea") {
 		t.Fatalf("not herself: %s", body)
@@ -172,8 +173,9 @@ func TestCodeSignInReturnsOwnID(t *testing.T) {
 
 func TestLiveLocationStoredInDatabaseAndSurvivesRestart(t *testing.T) {
 	s := newServiceHarness(t)
-	s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)
-	s.expect("POST", "/api/admin/users", `{"name":"Bea","telephone":"6999-2222","roles":["builder"],"accessCode":"BEA123"}`, 201)
+	s.team("Norte",
+		s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)["id"].(string),
+		s.expect("POST", "/api/admin/users", `{"name":"Bea","telephone":"6999-2222","roles":["builder"],"accessCode":"BEA123"}`, 201)["id"].(string))
 	viewer := func(h http.Handler, code string) *http.Cookie {
 		r := httptest.NewRequest("POST", "/api/session/code", strings.NewReader(`{"accessCode":"`+code+`"}`))
 		r.Header.Set("Content-Type", "application/json")

@@ -77,7 +77,7 @@ type Point struct {
 	// Usuario con código de acceso que publicó el punto (ID y nombre completo); lo fija el servidor y solo lo ve administración.
 	AddedBy     string `json:"addedBy,omitempty"`
 	AddedByName string `json:"addedByName,omitempty"`
-	// «Solo Nuestro Equipo»: alguna necesidad del punto tiene asignado un corredor que entra con código.
+	// «Solo Nuestro Equipo»: lo agregó alguien del equipo de quien mira o alguna necesidad la lleva alguien de su equipo.
 	// Solo sale en la vista completa (/api/full/points); nunca se guarda.
 	Team bool `json:"team,omitempty"`
 }
@@ -419,7 +419,7 @@ func openApp(path, static string) (*App, error) {
 
 // migrate pone al día los datos guardados (al arrancar y después de importar un respaldo, que puede ser más viejo).
 func (a *App) migrate() error {
-	for _, step := range []func(*bolt.Tx) error{migrateUsers, seedPackingItems, splitLegacyRepairs, migrateNeedUrgency} {
+	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateNeedUrgency} {
 		if err := a.db.Update(step); err != nil {
 			return err
 		}
@@ -823,43 +823,19 @@ func aggregateCamp(tx *bolt.Tx, id string) (string, string, error) {
 	return status, urgency, err
 }
 
-// teamCamps: puntos con alguna necesidad de suministros asignada a un corredor activo que entra con código.
-func teamCamps(tx *bolt.Tx) (map[string]bool, error) {
-	team, coded := map[string]bool{}, map[string]bool{}
-	err := tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
-		var n CampNeed
-		if e := json.Unmarshal(v, &n); e != nil {
-			return e
-		}
-		if n.RunnerID == "" || isRepair(n) || team[n.CampID] {
-			return nil
-		}
-		ok, seen := coded[n.RunnerID]
-		if !seen {
-			u, found := getUser(tx, n.RunnerID)
-			ok = found && !u.Disabled && u.CodeHash != ""
-			coded[n.RunnerID] = ok
-		}
-		team[n.CampID] = ok
-		return nil
-	})
-	return team, err
-}
-
-// publicPoints: puntos aprobados para el público; reveal (quien entró con código) conserva en «necesidades»
-// los artículos de las carreras reservadas.
-func (a *App) publicPoints(w http.ResponseWriter, reveal bool) {
+// publicPoints: puntos aprobados para el público; viewer (quien entró con código) conserva en «necesidades»
+// los artículos de las carreras reservadas de su equipo y ve qué puntos son de su equipo.
+func (a *App) publicPoints(w http.ResponseWriter, viewer string) {
 	points := []Point{}
 	err := a.db.View(func(tx *bolt.Tx) error {
-		reserved, e := reservedNeedItems(tx)
+		tv := newTeamView(tx, viewer)
+		reserved, e := reservedNeedItems(tv)
 		if e != nil {
 			return e
 		}
-		team := map[string]bool{}
-		if reveal {
-			if team, e = teamCamps(tx); e != nil {
-				return e
-			}
+		team, e := teamCamps(tv)
+		if e != nil {
+			return e
 		}
 		return tx.Bucket(submissions).ForEach(func(k, v []byte) error {
 			var p Point
@@ -876,9 +852,7 @@ func (a *App) publicPoints(w http.ResponseWriter, reveal bool) {
 				if p.NeedStatuses, e = campNeedStatuses(tx, p.ID); e != nil {
 					return e
 				}
-				if !reveal {
-					p.Needs = withoutReservedItems(p.Needs, reserved[p.ID])
-				}
+				p.Needs = withoutReservedItems(p.Needs, reserved[p.ID])
 				p.Team = team[p.ID]
 				points = append(points, publicPoint(p))
 			}
@@ -894,7 +868,7 @@ func (a *App) publicPoints(w http.ResponseWriter, reveal bool) {
 func (a *App) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { response(w, 200, map[string]string{"status": "ok"}) })
-	mux.HandleFunc("GET /api/points", func(w http.ResponseWriter, r *http.Request) { a.publicPoints(w, false) })
+	mux.HandleFunc("GET /api/points", func(w http.ResponseWriter, r *http.Request) { a.publicPoints(w, "") })
 	// reviewed: administración (campos internos, código propio). publish: queda aprobado al guardar
 	// (administración, o un usuario que entró con su código de acceso).
 	// Una solicitud pública también se publica si administración apagó la revisión (ver settings.go).
@@ -1405,7 +1379,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		if !a.admin(w, r) {
 			return
 		}
-		a.listNeeds(w, r.PathValue("id"), false, false)
+		a.listNeeds(w, r.PathValue("id"), false, "")
 	})
 	mux.HandleFunc("GET /api/admin/needs", func(w http.ResponseWriter, r *http.Request) {
 		if !a.admin(w, r) {
@@ -1429,7 +1403,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		}
 		response(w, 200, list)
 	})
-	mux.HandleFunc("GET /api/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) { a.listNeeds(w, r.PathValue("id"), true, false) })
+	mux.HandleFunc("GET /api/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) { a.listNeeds(w, r.PathValue("id"), true, "") })
 	mux.HandleFunc("POST /api/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
 		if !a.guard(w, r) {
 			return
@@ -1876,7 +1850,7 @@ type runnerCamp struct {
 	Coords      []float64 `json:"coords,omitempty"`
 	// Contactos del punto para que el corredor llame antes de tomar la carrera; nunca en páginas públicas.
 	Contacts []runnerContact `json:"contacts,omitempty"`
-	// team: lo agregó un usuario con código (filtro «Solo Nuestro Equipo»).
+	// team: lo agregó alguien del equipo de quien mira o una carrera la lleva alguien de su equipo (filtro «Solo Nuestro Equipo»).
 	Team bool `json:"team,omitempty"`
 }
 type runnerContact struct {
@@ -2039,13 +2013,13 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	})
 	// Vista completa: los mismos datos públicos, pero con el detalle de las carreras reservadas.
 	mux.HandleFunc("GET /api/full/points", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := a.viewer(w, r); ok {
-			a.publicPoints(w, true)
+		if u, ok := a.viewer(w, r); ok {
+			a.publicPoints(w, u.ID)
 		}
 	})
 	mux.HandleFunc("GET /api/full/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := a.viewer(w, r); ok {
-			a.listNeeds(w, r.PathValue("id"), true, true)
+		if u, ok := a.viewer(w, r); ok {
+			a.listNeeds(w, r.PathValue("id"), true, u.ID)
 		}
 	})
 	// Tu propio ID (tocar tu nombre en la página pública lo copia), para sesiones guardadas antes de que se incluyera.
@@ -2074,6 +2048,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.settingsRoutes(mux)
 	a.backupRoutes(mux)
 	a.fullNeedRoutes(mux)
+	a.teamRoutes(mux)
 	mux.HandleFunc("POST /api/runner/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := a.crewSession(runners, w, r); !ok {
 			return
@@ -2239,6 +2214,11 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 		}
 		mine, available := []runnerNeed{}, []runnerNeed{}
 		err := a.db.View(func(tx *bolt.Tx) error {
+			tv := newTeamView(tx, s.runnerID)
+			team, e := teamCamps(tv)
+			if e != nil {
+				return e
+			}
 			camps := map[string]runnerCamp{}
 			if e := tx.Bucket(submissions).ForEach(func(_, v []byte) error {
 				var p Point
@@ -2246,9 +2226,9 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					return e
 				}
 				if p.Status == "approved" {
-					contacts, team := campContacts(p), p.AddedBy != ""
+					contacts := campContacts(p)
 					p = publicPoint(p)
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team}
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID]}
 				}
 				return nil
 			}); e != nil {
@@ -2274,8 +2254,8 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					item.Media = n.Media
 				}
 				if s.agent {
-					// Los agentes ven todo lo abierto o en ruta para armar listas de empaque.
-					if n.Status == "OPEN" || n.Status == "IN_PROGRESS" {
+					// Los agentes ven lo abierto o en ruta para armar listas de empaque, salvo las carreras de otro equipo.
+					if (n.Status == "OPEN" || n.Status == "IN_PROGRESS") && !tv.hidden(n) {
 						available = append(available, item)
 					}
 				} else if who == s.runnerID && n.Status == "IN_PROGRESS" {
@@ -2529,7 +2509,7 @@ func (a *App) boletinRoutes(mux *http.ServeMux) {
 		}
 		b := Boletin{Cut: nowStamp(), Donor: fieldText(f, "donor"), Points: []BoletinPoint{}}
 		err := a.db.Update(func(tx *bolt.Tx) error {
-			reserved, e := reservedNeedItems(tx)
+			reserved, e := reservedNeedItems(newTeamView(tx, ""))
 			if e != nil {
 				return e
 			}
@@ -2630,10 +2610,12 @@ func serviceError(w http.ResponseWriter, err error) bool {
 	return true
 }
 
-// listNeeds: public quita datos privados; reveal (quien entró con código) además muestra el detalle de las carreras reservadas.
-func (a *App) listNeeds(w http.ResponseWriter, id string, public, reveal bool) {
+// listNeeds: public quita datos privados; viewer (quien entró con código) además ve conductor, empaque y fotos de partida,
+// salvo en las carreras que lleva un corredor con código de otro equipo, que ve como el público.
+func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer string) {
 	list := []CampNeed{}
 	err := a.db.View(func(tx *bolt.Tx) error {
+		tv := newTeamView(tx, viewer)
 		if !a.campExists(tx, id) {
 			return errMissing
 		}
@@ -2644,7 +2626,8 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public, reveal bool) {
 			}
 			if n.CampID == id && n.Status != "DELETED" && !(public && isRepair(n)) {
 				if public {
-					reserved := reservedNeed(tx, n)
+					reserved := tv.hidden(n)
+					reveal := viewer != "" && !reserved
 					// Quien entró con código ve el nombre del conductor asignado y la lista de empaque (para asignar y empacar desde la ficha).
 					if reveal && n.RunnerID != "" {
 						if u, found := getUser(tx, n.RunnerID); found {
@@ -2668,7 +2651,7 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public, reveal bool) {
 					if n.Need, _ = splitRepair(n.Need); n.Need == "" {
 						return nil
 					}
-					if reserved && !reveal {
+					if reserved {
 						n = CampNeed{ID: n.ID, CampID: n.CampID, Status: n.Status, Urgency: n.Urgency}
 					}
 				}
