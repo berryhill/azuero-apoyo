@@ -420,7 +420,7 @@ test('need priority is only Normal / Urgente on every page', () => {
 });
 test('admin approved card lists people with phones (no cédula) and opens a read-only camp view', () => {
   const card = admin.match(/function render\(\)[^\n]*/)[0];
-  assert.doesNotMatch(card, /Gestionar punto y necesidades|data-copy-id|Copiar enlace|Abrir ficha pública|data-decision="archived"/);
+  assert.doesNotMatch(card, /Gestionar punto y necesidades|data-copy-id|Copiar enlace|Abrir ficha pública/);
   assert.match(card, /p\.status==='approved'\?peopleLine\(p\)/);
   const src = ['clean', 'labels', 'contactKeys', 'memberList', 'peopleOf', 'peopleLine', 'campViewHtml'].map(k => admin.match(new RegExp(`const ${k}=[^\\n]*`))[0]).join('\n');
   const {peopleLine, campViewHtml} = new Function(`${src};return {peopleLine,campViewHtml}`)();
@@ -1160,4 +1160,20 @@ test('public header: a code sign-in puts a gold glowing ring around the logo', (
 test('signed-in headers show just the name, without «Hola,»', () => {
   const builder = readFileSync(new URL('./builder.html', import.meta.url), 'utf8');
   for (const page of [template, runner, builder]) assert.doesNotMatch(page, /Hola, /);
+});
+test('admin list: filter by Agregado por, sort by recent/código/área/coordinador, and Archivar on approved cards', () => {
+  assert.match(admin, /<div class="listtools"><label>Agregado por<select id="addedByFilter"><\/select><\/label><label>Ordenar<select id="sortBy"><option value="recent">Más recientes<\/option><option value="code">Código<\/option><option value="area">Área<\/option><option value="coord">Coordinador<\/option><\/select><\/label><\/div><p id="count"/);
+  assert.match(admin, /&&\(!addedByFilter\|\|\(addedByFilter==='__none__'\?!p\.addedBy:p\.addedBy===addedByFilter\)\)&&/);
+  const src = ['byText', 'newest', 'pointSort'].map(k => admin.match(new RegExp(`const ${k}=[^\\n]*`))[0]).join('\n') + '\n' + admin.match(/function pointOrder\(\)[^\n]*/)[0];
+  const order = (sortBy, view, rows) => rows.slice().sort(new Function('sortBy', 'view', `${src};return pointOrder()`)(sortBy, view)).map(p => p.code);
+  const rows = [{code: 'B', area: 'Venao', coordinator: 'Zoe', created: '2026-10-01T00:00:00Z'}, {code: 'A', area: 'Ávila', coordinator: '', created: '2026-10-03T00:00:00Z'}, {code: 'C', area: 'Pedasí', coordinator: 'Ana', created: '2026-10-02T00:00:00Z'}];
+  assert.deepEqual(order('', 'approved', rows), ['A', 'B', 'C'], 'approved default: código');
+  assert.deepEqual(order('', 'pending', rows), ['A', 'C', 'B'], 'por revisar default: most recent first');
+  assert.deepEqual(order('recent', 'approved', rows), ['A', 'C', 'B']);
+  assert.deepEqual(order('area', 'approved', rows), ['A', 'C', 'B'], 'Ávila, Pedasí, Venao');
+  assert.deepEqual(order('coord', 'approved', rows), ['C', 'B', 'A'], 'no coordinator last');
+  const card = admin.match(/function render\(\)[^\n]*/)[0];
+  assert.match(card, /p\.status==='approved'\?`<div><button class="reject" data-id="\$\{clean\(p\.id\)\}" data-decision="archived">Archivar<\/button><\/div>`/);
+  assert.match(admin, /if\(b\.dataset\.decision==='archived'&&!confirm\(archiveQuestion\)\)return;/, 'asks before archiving; Recuperar punto undoes it');
+  assert.match(admin, /\$\('#archiveCamp'\)\.onclick=async e=>\{if\(!activeCamp\|\|!confirm\(archiveQuestion\)\)return;/);
 });
