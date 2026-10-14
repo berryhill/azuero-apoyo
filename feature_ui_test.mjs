@@ -77,7 +77,7 @@ test('public page never labels points as "Aprobado"', () => {
 });
 test('public Buscar also takes Google Maps links or coordinates and drops a temporary pin to register or open in Maps', () => {
   assert.doesNotMatch(template, /id="gpsCheck"/, 'no separate Verifica GPS box');
-  assert.match(template, /<input class="topsearch" id="search" type="search" placeholder="Buscar… o pega un enlace de Google Maps"/);
+  assert.match(template, /<input class="topsearch" id="search" type="search" placeholder="Buscar…"/);
   const grab = re => template.match(re)[0];
   const src = [grab(/function coordsFromMapLink[^\n]*?:null\}/), grab(/function isMapLink[^\n]*/)].join('\n');
   const {coordsFromMapLink, isMapLink} = new Function(`${src};return {coordsFromMapLink,isMapLink}`)();
@@ -101,7 +101,7 @@ test('public Buscar: «!code» + Enter signs in with an access code, with no hin
   assert.doesNotMatch(template, /placeholder="[^"]*(código|!)/i, 'the placeholder does not reveal it');
   assert.match(template, /<span class="codeuser" id="codeUser" hidden><\/span>/);
   const show = template.match(/function showCodeUser\(\)[^\n]*/)[0];
-  assert.match(show, /<a href="\$\{clean\(home\)\}">Hola, \$\{clean\(u\.name\)\}<\/a>/, 'just the name, linking to their panel');
+  assert.match(show, /<a href="\$\{clean\(home\)\}">\$\{clean\(u\.name\)\}<\/a>`:clean\(u\.name\)/, 'just the name, linking to their panel');
   assert.doesNotMatch(show, /p\.label/, 'no role or panel names in the header');
 });
 test('public map has an opt-in "my location" control with a distinct person pin kept in the browser', () => {
@@ -1003,7 +1003,7 @@ test('runner header: ✕ to sign out (no «Cambiar nombre») and «Mapa público
   assert.match(runner, /<button type="button" id="logout" title="Salir" aria-label="Salir">✕<\/button>/);
   assert.doesNotMatch(runner, /Cambiar nombre/);
   assert.match(runner, /<a class="publink" id="publicNav" href="\/" hidden>← Mapa público<\/a>/);
-  assert.match(runner, /function syncPublicNav\(\)\{\$\('#publicNav'\)\.hidden=!localStorage\.getItem\('runnerCode'\)\}/);
+  assert.match(runner, /function syncPublicNav\(\)\{\$\('#publicNav'\)\.hidden=!localStorage\.getItem\('runnerCode'\);/);
   assert.equal((runner.match(/syncPublicNav\(\)/g) || []).length, 4, 'defined, after sign-in or session check, and after sign-out');
 });
 test('Usuarios can sort by name or by creation date, newest or oldest first', () => {
@@ -1152,6 +1152,12 @@ test('narrow screens: ¡Ayuda! / + Agregar punto and Mis carreras get their own 
   assert.match(template, /\$\('#addBtnBar'\)\.onclick=\(\)=>\$\('#addBtn'\)\.click\(\);/, 'same action as the header button');
 });
 test('public header: a code sign-in puts a gold glowing ring around the logo', () => {
+  assert.match(runner, /body\.code-user \.logo\{box-shadow:0 0 0 2px #10263a,0 0 0 4px #ffd166,0 0 16px 5px #ffd16680\}/, 'same ring on the runner page');
+  assert.match(runner, /document\.body\.classList\.toggle\('code-user',!!localStorage\.getItem\('runnerCode'\)\)/);
   assert.match(template, /body\.signed-in \.logo\{box-shadow:0 0 0 2px #10263a,0 0 0 4px #ffd166,0 0 16px 5px #ffd16680\}/);
   assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\)/, 'only while signed in with a code');
+});
+test('signed-in headers show just the name, without «Hola,»', () => {
+  const builder = readFileSync(new URL('./builder.html', import.meta.url), 'utf8');
+  for (const page of [template, runner, builder]) assert.doesNotMatch(page, /Hola, /);
 });
