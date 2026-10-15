@@ -9,6 +9,9 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-15**
+- Runners cards: map/Maps buttons top right, people breakdown before «Necesita», no tap-to-select highlight (§7).
+- Add point: team members are the coordinator by default (card with «Cambiar»); new «Familias» count (§5).
+- Comando: «Agregado por» filter (Todos / Míos / Equipo), «Filtros ▾» on phones, clearer rows with icons (§10).
 - **Live location is strictly team-only** on every page: runners without a code (no team) and other teams no longer
   appear on anyone's map, and Supply sees a runner's position only if they are on its team (§7, §8, §15).
 - Supply: «📍 Centro» is a button with a typeahead list (no always-open text box), «Solo mi equipo» switch on the same
@@ -123,7 +126,12 @@ Details:
 ## 5. Points
 
 A point has zone/area, place, directions, GPS (Maps link or coordinates), coordinator and contacts, counts (people,
-adults, children, babies, elderly, disability), reported needs and notes.
+adults, children, babies, elderly, disability, **families**), reported needs and notes.
+
+**Coordinator when adding a point**: if the person adding it is signed in and **on a team**, they are the coordinator
+by default: a card «Coordinador · Ada Agente · Tú · Equipo · phone» with **«Cambiar»** instead of fields. «Cambiar»
+opens empty fields to write someone else; «↺ Soy yo» puts them back. Without a team, the usual fields (there is no
+«Yo» button anymore).
 
 **States**
 
@@ -215,8 +223,11 @@ On phones, «Lista / Mapa» switch between the list and the map.
   highlighted.
 - **Picking from the list** (card or «Ver en el mapa»): the map centers on the point and opens a short popup with
   «¡Yo lo llevo!» and «Ver en la lista».
-- **Card**: point, «Necesita» (what the point asked for) separate from «📦 Lo que llevas» (packing list), contacts,
-  map/Maps/share buttons. With a supply center: «📦 Recoger en acopio: Villa Marina · Julie» plus phone.
+- **Card**: point name with the 📍 «Ver en el mapa» and Maps buttons at the **top right**; then where it is; then how many
+  people with the breakdown and icons («40 personas · 20 adultos · 15 niños · 9 familias», zeros left out) and how
+  long ago it was reported; then «Necesita» (what the point asked for) separate from «📦 Lo que llevas» (packing list),
+  contacts, and at the bottom share + the action. Tapping the card background does nothing (no highlight); a card you
+  jump to from the map flashes briefly. With a supply center: «📦 Recoger en acopio: Villa Marina · Julie» plus phone.
 - **Packing list**, **📷 Foto de partida**, **✓ Completé** (the confirmation shows what is being delivered and allows
   delivery photos) and «No puedo continuar» (the need goes back to open).
 - **After completing**: «📝 Actualizar necesidad» (opens the same need checklist to record what is still missing,
@@ -328,6 +339,12 @@ In «Actualizar necesidad», **«Ya no necesita nada»** asks **«¿Alguien la s
   `COMPLETED` under that person with the original items, like a finished run. A new name creates the runner with
   their phone.
 
+**Filters**: status (Todos / Por revisar / Aprobados) and **«Agregado por»**: Todos, «Míos» (added by me) and «Equipo»
+(added by anyone on my team; only for agents on a team), each with its count. On phones the rest (area, need type,
+order, «Sin GPS», need chips) fold behind **«Filtros ▾»**, which shows how many are active; they wrap to fit.
+
+**Rows**: a short line «Revisado hace 1 h · por Ada (tú)» (or «Creado / Suplido hace …»; exact date on hover), the
+point name, a line with small icons for place, people and coordinator, then the counters, «Checkup» and «Editar».
 Point rows and need cards show the gold «Verificado por equipo» badge with the team name. Editing a repair need shows
 its materials, which can be changed. Works on phones (single column).
 

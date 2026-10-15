@@ -17,6 +17,7 @@
     adult: svg('<circle cx="12" cy="4.5" r="2.5"/><path d="M12 8v7M8 11h8M12 15l-3 6M12 15l3 6"/>'),
     child: svg('<circle cx="12" cy="8" r="2.5"/><path d="M12 11v5M9 13h6M12 16l-2 4M12 16l2 4"/>'),
     baby: svg('<circle cx="12" cy="12" r="8"/><path d="M9.5 11h.01M14.5 11h.01M9.5 14.5a3.5 3.5 0 0 0 5 0"/>'),
+    family: svg('<circle cx="7" cy="6" r="2.5"/><circle cx="17" cy="6" r="2.5"/><circle cx="12" cy="12" r="2"/><path d="M3 21v-5a4 4 0 0 1 8 0"/><path d="M13 21v-5a4 4 0 0 1 8 0"/><path d="M9.5 21v-2.5a2.5 2.5 0 0 1 5 0V21"/>'),
     elder: svg('<circle cx="10" cy="4.5" r="2.2"/><path d="M10 7.5l-1 6 3 3v5M9 13.5l-3 7.5M10 9l4 2M16 11v10"/>'),
     disabled: svg('<circle cx="11" cy="4" r="2"/><path d="M11 7v6h5l3 6M11 10h5"/><path d="M8 11.5a5 5 0 1 0 6.5 6.5"/>'),
     drop: svg('<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>'),
@@ -72,7 +73,7 @@
 .pf-hint{font-size:12px;color:#5b6f76;margin:2px 0 10px;line-height:1.4}.pf-hint b{color:#9a4c2f}.pf-sub{font-size:12px;font-weight:800;color:#2d7f86;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px}
 .pf .pf-gps{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:2px 0 0;padding:13px;border:0;border-radius:10px;background:#1d6f7a;color:#fff;font-size:15px;font-weight:800}
 .pf .pf-gps:hover{background:#175d66}.pf .pf-gps:disabled{opacity:.6;cursor:wait}.pf-gpsthumb{height:140px;margin:8px 0 0;border-radius:10px;overflow:hidden;border:1px solid #cad9d9;cursor:pointer;background:#dfe8e8}.pf-gpsthumb[hidden]{display:none}.pf-gpsthumb .leaflet-control-attribution{font-size:9px}.pf-thumbpin{width:24px;height:24px;background:#c62828;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 7px #0006}.pf-gpsmsg{font-size:12px;color:#36505a;margin:6px 0 0}.pf-gpsmsg:empty{display:none}
-.pf-me-btns{display:inline-flex;gap:4px;margin-left:auto}.pf .pf-ico:has(.pf-me-btns){width:100%}.pf .pf-yo{margin:0;padding:2px 9px;border:1px solid #2d7f86;border-radius:12px;background:#eaf6f3;color:#1d6f7a;font:inherit;font-size:11px;font-weight:800;cursor:pointer}.pf .pf-clearcoord{display:inline-flex;margin:0;padding:3px;border:0;border-radius:6px;background:none;color:#8a9ca1;cursor:pointer}.pf .pf-clearcoord svg{width:14px;height:14px}.pf .pf-clearcoord:hover{background:#f2e7e3;color:#9a4536}.pf-members{margin-top:8px}.pf-member{display:grid;grid-template-columns:22px 2fr 1.4fr .7fr 1.3fr 26px;grid-template-areas:'num name phone age ced del';gap:6px;align-items:center;padding:4px 0}.pf-mnum{grid-area:num;font-size:13px;font-weight:800;color:#2d7f86;text-align:right}.pf-m-name{grid-area:name}.pf-m-phone{grid-area:phone}.pf-m-age{grid-area:age}.pf-m-cedula{grid-area:ced}.pf-member .pf-remove{grid-area:del}.pf-member:last-child .pf-remove{visibility:hidden}.pf .pf-member input{min-width:0;margin-top:0}
+.pf-me-btns{display:inline-flex;gap:4px;margin-left:auto}.pf .pf-ico:has(.pf-me-btns){width:100%}.pf .pf-yo{margin:0;padding:2px 9px;border:1px solid #2d7f86;border-radius:12px;background:#eaf6f3;color:#1d6f7a;font:inherit;font-size:11px;font-weight:800;cursor:pointer}.pf .pf-clearcoord{display:inline-flex;margin:0;padding:3px;border:0;border-radius:6px;background:none;color:#8a9ca1;cursor:pointer}.pf .pf-clearcoord svg{width:14px;height:14px}.pf .pf-clearcoord:hover{background:#f2e7e3;color:#9a4536}.pf-members{margin-top:8px}.pf label[hidden]{display:none!important}.pf-coordme{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid #b9d3d8;border-radius:12px;background:#f3faf9}.pf-cm-ico{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#e3f4ec;color:#19745f;flex:none}.pf-cm-txt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}.pf-cm-txt small{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#64808a}.pf-cm-txt b{font-size:16px;color:#173c46}.pf-cm-sub{font-size:13px;color:#4b6670}.pf .pf-cm-change{flex:none;margin:0;padding:8px 12px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#173c46;font-weight:800;font-size:13px;cursor:pointer}.pf .pf-backme{margin-left:8px;padding:2px 8px;border:1px solid #b9d3d8;border-radius:999px;background:#fff;color:#19745f;font-size:12px;font-weight:800;cursor:pointer}.pf-member{display:grid;grid-template-columns:22px 2fr 1.4fr .7fr 1.3fr 26px;grid-template-areas:'num name phone age ced del';gap:6px;align-items:center;padding:4px 0}.pf-mnum{grid-area:num;font-size:13px;font-weight:800;color:#2d7f86;text-align:right}.pf-m-name{grid-area:name}.pf-m-phone{grid-area:phone}.pf-m-age{grid-area:age}.pf-m-cedula{grid-area:ced}.pf-member .pf-remove{grid-area:del}.pf-member:last-child .pf-remove{visibility:hidden}.pf .pf-member input{min-width:0;margin-top:0}
 .pf .pf-remove{display:inline-flex;margin:0;padding:3px;border:0;border-radius:6px;background:none;color:#8a9ca1}.pf .pf-remove:hover{background:#f2e7e3;color:#9a4536}
 .pf-needs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.pf-needgroup{grid-column:1/-1;margin:6px 0 -2px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#64808a}.pf-needgroup:first-child{margin-top:0}.pf-needitem{min-width:0}.pf-needitem.has-opts:has(input[data-need]:checked){grid-column:1/-1;border:1px solid #2d7f86;border-radius:11px;background:#f6fbfa}.pf-needitem.has-opts:has(input[data-need]:checked) .pf-need span{border:0;background:none}.pf-needitem .pf-datanet{margin:0;padding:0 10px 10px}
 .pf-datanet-label small{font-weight:600;color:#667982;margin-left:4px}.pf-pills{display:flex;flex-wrap:wrap;gap:6px}.pf-pill{display:inline-flex;flex-direction:row;align-items:center;gap:7px;min-height:42px;padding:8px 10px;border:1.5px solid #cad9d9;border-radius:10px;background:#fff;color:#173c46;text-align:left;cursor:pointer;font:inherit}.pf-pill b{font-size:14px}.pf-pill small{font-size:11px;color:#667982;font-weight:500}.pf-pill[aria-pressed="true"]{border-color:#19745f;background:#e3f4ec}.pf-pill svg{color:#2d7f86;flex:none}.pf-swatch{display:inline-block;width:12px;height:12px;border-radius:50%;background:#b7c7ca;flex:none}.pf-swatch.pf-net-mat{display:none}.pf-other-input[hidden]{display:none}.pf-pill-other{border-style:dashed}.pf-other-input{display:block;width:100%;max-width:260px;margin:8px 0 0;padding:8px 10px;border:1px solid #cad9d9;border-radius:8px;font-size:15px;background:#fff}.pf-pill[aria-pressed="true"] b:before{content:"✓ ";color:#19745f}
@@ -162,7 +163,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     return days <= 1 ? {cls: 'soon', text: 'Mañana'} : {cls: days <= 2 ? 'soon' : 'ok', text: `En ${days} días`};
   }
   const serviceScheduled = (n, now = Date.now()) => n.kind === 'service' && n.status === 'OPEN' && Date.parse(n.nextDueAt || '') > now;
-  const COUNTS = [['people', 'Personas', 'people'], ['adults', 'Adultos', 'adult'], ['children', 'Niños', 'child'], ['babies', 'Bebés', 'baby'], ['olderAdults', 'Mayores', 'elder'], ['disabled', 'Discapacitados', 'disabled']];
+  const COUNTS = [['people', 'Personas', 'people'], ['adults', 'Adultos', 'adult'], ['children', 'Niños', 'child'], ['babies', 'Bebés', 'baby'], ['olderAdults', 'Mayores', 'elder'], ['disabled', 'Discapacitados', 'disabled'], ['families', 'Familias', 'family']];
 
   // Casillas de necesidades con iconos y «Otros»; también las usa el formulario de necesidades del panel.
   const pillMark = x => x[4] && icons[x[4]] ? icons[x[4]] : `<i class="pf-swatch pf-net-${esc(x[1])}"></i>`;
@@ -545,19 +546,25 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   }
   // Dibuja el formulario dentro de `root` (un contenedor dentro del <form>) y carga los datos de `point`.
   // `nearby`: función que devuelve los puntos del mapa de pantalla completa que se abre con «Enviar mi ubicación GPS».
-  // Con usuario conocido (entró con su código), «Yo» junto a Coordinador pone su nombre y teléfono; la ✕ borra ambos.
-  // me = {name, telephone} o null para quitar los botones.
+  // Quien entró con código y es de un equipo queda como coordinador por defecto: se muestra como una tarjeta (sin campos)
+  // con «Cambiar»; al cambiarlo aparecen los campos vacíos y «↺ Soy yo» lo devuelve. Sin equipo, los campos de siempre.
+  // me = {name, telephone, team} o null.
   function setMe(root, me) {
-    const label = root.querySelector('[name="coordinator"]')?.closest('label');
-    if (!label) return;
-    label.querySelector('.pf-me-btns')?.remove();
-    if (!me || !me.name) return;
-    label.querySelector('span').insertAdjacentHTML('beforeend', `<span class="pf-me-btns"><button type="button" class="pf-yo" title="Usar mi nombre y teléfono">Yo</button><button type="button" class="pf-clearcoord" title="Borrar coordinador y teléfono" aria-label="Borrar coordinador y teléfono">${icons.x}</button></span>`);
-    const set = (name, phone) => {
-      for (const [k, v] of [['coordinator', name], ['coordinatorPhone', phone]]) { const el = root.querySelector(`[name="${k}"]`); el.value = v; el.dispatchEvent(new Event('input', {bubbles: true})); }
-    };
-    label.querySelector('.pf-yo').onclick = e => { e.preventDefault(); set(me.name, me.telephone || ''); };
-    label.querySelector('.pf-clearcoord').onclick = e => { e.preventDefault(); set('', ''); root.querySelector('[name="coordinator"]').focus(); };
+    const coordEl = root.querySelector('[name="coordinator"]'), phoneEl = root.querySelector('[name="coordinatorPhone"]');
+    if (!coordEl || !phoneEl) return;
+    const grid = coordEl.closest('.pf-grid'), labels = [coordEl.closest('label'), phoneEl.closest('label')];
+    root.querySelector('.pf-coordme')?.remove();
+    root.querySelector('.pf-backme')?.remove();
+    labels.forEach(l => { l.hidden = false; });
+    if (!me || !me.name || !me.team) return;
+    const set = (name, phone) => { for (const [el, v] of [[coordEl, name], [phoneEl, phone]]) { el.value = v; el.dispatchEvent(new Event('input', {bubbles: true})); } };
+    const backLink = () => { const span = labels[0].querySelector('span'); span.insertAdjacentHTML('beforeend', '<button type="button" class="pf-backme" title="Ponerme como coordinador">↺ Soy yo</button>'); span.querySelector('.pf-backme').onclick = e => { e.preventDefault(); setMe(root, me); }; };
+    // Ya tiene otro coordinador escrito (p. ej. un borrador): se respeta, con la opción de ponerse uno.
+    if (coordEl.value.trim() && fold(coordEl.value) !== fold(me.name)) { backLink(); return; }
+    set(me.name, me.telephone || '');
+    labels.forEach(l => { l.hidden = true; });
+    grid.insertAdjacentHTML('beforebegin', `<div class="pf-coordme"><span class="pf-cm-ico">${icons.coordinator}</span><div class="pf-cm-txt"><small>Coordinador</small><b>${esc(me.name)}</b><span class="pf-cm-sub">Tú · ${esc(me.team)}${me.telephone ? ' · ' + esc(me.telephone) : ''}</span></div><button type="button" class="pf-cm-change">Cambiar</button></div>`);
+    root.querySelector('.pf-cm-change').onclick = e => { e.preventDefault(); root.querySelector('.pf-coordme').remove(); labels.forEach(l => { l.hidden = false; }); set('', ''); backLink(); coordEl.focus(); };
   }
 
   // Progreso del GPS dentro del formulario, sin bloquear: bajo el botón se ve la precisión en vivo y el campo de ubicación

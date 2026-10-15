@@ -248,8 +248,11 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				}
 				if p.Status == "approved" {
 					contacts := campContacts(p)
+					// Paneles con sesión: el equipo y quién verificó sí se muestran (publicPoint los quita).
+					vTeam, vBy := p.VerifiedTeam, p.VerifiedBy
 					p = publicPoint(p)
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt}
+					p.VerifiedTeam, p.VerifiedBy = vTeam, vBy
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Adults: p.Adults, Children: p.Children, Babies: p.Babies, OlderAdults: p.OlderAdults, Disabled: p.Disabled, Families: p.Families, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt}
 				}
 				return nil
 			}); e != nil {

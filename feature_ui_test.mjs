@@ -170,7 +170,7 @@ test('runner top nav links to the public Agregar punto form, which opens from #a
 });
 test('runner map pin popup shows the full need card with ¡Yo lo llevo! like the list', () => {
   const grab = re => runner.match(re)[0];
-  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/), grab(/function popupList[^\n]*/), grab(/function popupNeed[^\n]*/)].join('\n');
+  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/), grab(/function popupList[^\n]*/), grab(/function popupNeed[^\n]*/)].join('\n');
   // mine: carreras en curso; con 10 (el máximo) ya no se ofrece tomar otra.
   const make = (mine, available, agentMode = false) => new Function('mine', 'max', 'followup', 'available', 'apple', 'agentMode', `${src};return {popupNeed,popupList}`)(mine, 10, null, available, false, agentMode);
   const n = {id: 'n1', need: 'Agua <b>', urgency: 'urgente', camp: {id: 'c1', code: 'C-1', area: 'Cañas', coords: [7.4, -80.3]}};
@@ -249,7 +249,7 @@ test('camp needs show their creation time, or «Actualizado» once revised, in S
   assert.match(template, /title="\$\{clean\(needStamp\(at\)\)\}">\$\{clean\(agoEs\(at\)\)\}<\/small>/, 'just «hace 1 d»; the exact date on hover');
   assert.match(camp, /n\.revisedAt\?'Actualizado: '\+clean\(stamp\(n\.revisedAt\)\):'Creada: '\+\(n\.createdAt\?clean\(stamp\(n\.createdAt\)\)/);
   const grab = re => runner.match(re)[0];
-  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
+  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
   const needDetails = new Function('apple', 'AppNav', `${src};return needDetails`)(false, {phone: p => `[${p}]`});
   const camp1 = {id: 'c', code: 'C-1'};
   assert.match(needDetails({id: 'n', need: 'Agua', urgency: 'urgente', createdAt: '2026-10-01T12:00:00Z', camp: camp1}), /<small class="when" title="Reportada: Oct 1, 2026 [^"]+">hace \d+ d<\/small>/, 'just «hace 1 d» in the footer; what and the exact date on hover');
@@ -259,7 +259,7 @@ test('camp needs show their creation time, or «Actualizado» once revised, in S
 });
 test('runner need card lists the camp contact phones with copy / call / WhatsApp (shared nav.js phone)', () => {
   const grab = re => runner.match(re)[0];
-  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
+  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
   const needDetails = new Function('apple', 'AppNav', `${src};return needDetails`)(false, {phone: p => `[${p}]`});
   const html = needDetails({id: 'n', need: 'Agua', urgency: 'urgente', camp: {id: 'c', code: 'C-1', contacts: [{name: 'Ana', phone: '6555-1234'}, {phone: '+507 6000 0000'}]}});
   assert.match(html, /<li><svg[^]*?<\/svg><span>Ana \[6555-1234\]<\/span><\/li><li><svg[^]*?<\/svg><span>\[\+507 6000 0000\]<\/span><\/li>/, 'one icon line per contact');
@@ -302,7 +302,7 @@ test('point form groups fields into Dónde / Con quién / Qué necesitan, with a
   const who = pub.slice(pub.indexOf('¿Con quién estás?'), pub.indexOf('¿Qué necesitas?'));
   assert.ok(who.indexOf('name="coordinator"') < who.indexOf('name="coordinatorPhone"') && who.indexOf('name="coordinatorPhone"') < who.indexOf('name="people"'), 'coordinator first');
   for (const name of ['people', 'adults', 'children', 'babies', 'olderAdults', 'disabled']) assert.match(who, new RegExp(`name="${name}" data-filter="count" inputmode="numeric" maxlength="3"`), name);
-  assert.equal((who.match(/class="pf-ico"><svg/g) || []).length, 7, 'icons on coordinator and the six counts');
+  assert.equal((who.match(/class="pf-ico"><svg/g) || []).length, 8, 'icons on coordinator and the seven counts (with Familias)');
   assert.doesNotMatch(pub, /name="needs"|name="generator"/);
   assert.doesNotMatch(pub, /Agrega a alguien más/, 'a new empty row appears by itself');
 });
@@ -633,8 +633,9 @@ test('admin Checkup button (phone icon) asks for confirmation and the footer rea
 });
 test('count fields have − / + steppers, short labels, and keep the stored field names', () => {
   const who = PointForm.html();
-  assert.equal((who.match(/class="pf-numbtn pf-dec"/g) || []).length, 6);
-  assert.equal((who.match(/class="pf-numbtn pf-inc"/g) || []).length, 6);
+  assert.equal((who.match(/class="pf-numbtn pf-dec"/g) || []).length, 7);
+  assert.equal((who.match(/class="pf-numbtn pf-inc"/g) || []).length, 7);
+  assert.match(who, /Familias<\/span><span class="pf-num"><input name="families"/);
   // El campo va antes de los botones para que el <label> apunte al campo.
   assert.match(who, /<span class="pf-num"><input name="people"[^>]*><button type="button" class="pf-numbtn pf-dec"/);
   assert.match(who, /Mayores<\/span><span class="pf-num"><input name="olderAdults"/);
@@ -922,7 +923,7 @@ test('runner confirms completing or leaving a run in a Sí / No modal, not a bro
   assert.doesNotMatch(runner, /[^a-zA-Z]confirm\('¿Dejar esta carrera/);
 });
 test('runner panel shows priority only as an Urgente badge, never Normal', () => {
-  assert.match(runner, /\$\{n\.urgency==='urgente'\?'<span class="badge urgente">Urgente<\/span>':''\}\$\{cardMeta\(n\)\}<\/div>/);
+  assert.match(runner, /\$\{n\.urgency==='urgente'\?'<span class="badge urgente">Urgente<\/span>':''\}\$\{locButtons\(n\)\}<\/div>/);
   assert.match(runner, /data-need="\$\{clean\(n\.id\)\}">\$\{n\.urgency==='urgente'\?'Urgente: ':''\}/);
   assert.doesNotMatch(runner, /urgencyLabel\[n\.urgency\]/);
 });
@@ -992,12 +993,17 @@ test('chosen location shows a small fixed map preview instead of «Ubicación el
   assert.match(pointformSrc, /root\.querySelector\('\[name="gps"\]'\)\.addEventListener\('input', \(\) => drawGpsThumb\(root\)\);/, 'pasted links preview too');
   assert.match(pointformSrc, /d\.close\(\);\n      drawGpsThumb\(root\);/);
 });
-test('signed-in users get «Yo» and ✕ next to Coordinador to fill or clear their name and phone', () => {
+test('team members are the coordinator by default (a card with «Cambiar», no fields); «↺ Soy yo» puts them back; no «Yo» button', () => {
   const fn = pointformSrc.match(/function setMe\(root, me\) \{[^]*?\n  \}/)[0];
-  assert.match(fn, /if \(!me \|\| !me\.name\) return;/, 'only when the user is known');
-  assert.match(fn, /<button type="button" class="pf-yo" title="Usar mi nombre y teléfono">Yo<\/button><button type="button" class="pf-clearcoord"/);
-  assert.match(fn, /set\(me\.name, me\.telephone \|\| ''\)/);
-  assert.match(fn, /set\('', ''\)/);
+  assert.match(fn, /if \(!me \|\| !me\.name \|\| !me\.team\) return;/, 'only for a signed-in team member');
+  assert.doesNotMatch(pointformSrc, /class="pf-yo"/);
+  assert.match(fn, /<div class="pf-coordme"><span class="pf-cm-ico">\$\{icons\.coordinator\}<\/span><div class="pf-cm-txt"><small>Coordinador<\/small><b>\$\{esc\(me\.name\)\}<\/b><span class="pf-cm-sub">Tú · \$\{esc\(me\.team\)\}/);
+  assert.match(fn, /set\(me\.name, me\.telephone \|\| ''\);\s*labels\.forEach\(l => \{ l\.hidden = true; \}\);/, 'fields filled and hidden');
+  assert.match(fn, /<button type="button" class="pf-cm-change">Cambiar<\/button>/);
+  assert.match(fn, /set\('', ''\); backLink\(\); coordEl\.focus\(\);/, '«Cambiar»: empty fields and «↺ Soy yo»');
+  assert.match(fn, /if \(coordEl\.value\.trim\(\) && fold\(coordEl\.value\) !== fold\(me\.name\)\) \{ backLink\(\); return; \}/, 'someone else already typed: kept');
+  assert.match(template, /team:u\.team\|\|''\}/);
+  assert.match(template, /PointForm\.setMe\(\$\('#pointFields'\),codeMe\(\)\);refreshMeTeam\(\);/);
   assert.match(pointformSrc, /setMe\(root, me\);/);
   assert.equal((template.match(/me:codeMe\(\)/g) || []).length, 3, 'open, after send, after saving offline');
   assert.match(template, /\$\('#addBtn'\)\.onclick=\(\)=>\{showSent\(false\);\$\('#addTitle'\)\.textContent=[^;]*;PointForm\.setMe\(\$\('#pointFields'\),codeMe\(\)\);/);
@@ -1617,7 +1623,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.equal(stats([{status: 'COMPLETED'}]), '<small class="minorstats">1 completada</small>');
   assert.doesNotMatch(stats([{status: 'OPEN'}, {status: 'OPEN'}]), /class="route"|minorstats/, 'only what there is');
   assert.match(stats([{status: 'OPEN'}, {status: 'OPEN'}, {status: 'IN_PROGRESS'}]), /title="Por llevar"[^>]*>F<b>2<\/b><span>por llevar<\/span><\/div><div class="route" title="En camino"[^>]*>W<b>1<\/b><span>en camino<\/span>/);
-  assert.match(agent, /`<p class="summary">\$\{\[p\.place&&clean\(p\.place\),p\.people&&`<span title="\$\{clean\(p\.people\)\} personas">👥 \$\{clean\(p\.people\)\}<\/span>`,p\.coordinator&&'Coord\. '\+clean\(p\.coordinator\)\]/, 'summary: place · people · coordinator');
+  assert.match(agent, /`<p class="summary">\$\{\[p\.place&&`<span class="si" title="Lugar">\$\{icoPinS\}\$\{clean\(p\.place\)\}<\/span>`,p\.people&&`<span class="si" title="\$\{clean\(p\.people\)\} personas">\$\{icoTeamS\}\$\{clean\(p\.people\)\}<\/span>`,p\.coordinator&&`<span class="si" title="Coordinador">\$\{icoCoordS\}/, 'summary: place · people · coordinator, with small icons');
   assert.match(agent, /\(people\.find\(m=>m\.phone\)\|\|people\[0\]\)/, 'one contact with phone, «y N más»');
   assert.match(agent, /role=n\.kind==='repair'\?'Constructor':'Runner'/, '«Runner», the term used in the operation');
   // Runner box on each need: name, phone opens WhatsApp, call button, time en route.
@@ -1666,7 +1672,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   // Phone: an opened point shows on its own, with «← Puntos» back to the list.
   assert.match(agent, /function render\(\)\{document\.body\.classList\.toggle\('cmd-solo',!!openId\);/);
   assert.match(agent, /data-act="edit"[^`]*Editar datos<\/button><button type="button" class="act" data-act="checkup">/);
-  assert.match(agent, /\$\{open&&mode==='camp'\?'':`\$\{pending\|\|open\?'':`<button type="button" class="act checkpoint" data-act="checkup">\$\{icoPhone\}Checkup<\/button>`\}<button type="button" class="act editpoint" data-act="edit">\$\{icoEdit\}Editar punto<\/button>`\}<\/div>/, 'every row has Checkup (approved) and Editar punto');
+  assert.match(agent, /\$\{open&&mode==='camp'\?'':`\$\{pending\|\|open\?'':`<button type="button" class="act checkpoint" data-act="checkup">\$\{icoPhone\}Checkup<\/button>`\}<button type="button" class="act editpoint" data-act="edit">\$\{icoEdit\}Editar<span class="lg"> punto<\/span><\/button>`\}<\/div>/, 'every row has Checkup (approved) and Editar punto («Editar» on phones)');
   assert.match(agent, /data-act="edit"\$\{mode==='camp'\?' disabled':''\}>\$\{icoEdit\}Editar datos<\/button><button type="button" class="act go" data-act="approve">/, 'pending points can be corrected before approving');
   assert.match(agent, /<details class="dlog">\$\{checkupHtml\(p\)\}<\/details><details class="dlog">\$\{changelogHtml\(p\)\}<\/details>/);
   assert.match(agent, /PointForm\.render\(cf\.querySelector\('\.campfields'\),\{admin:true,edit:true,point:p\}\)/);
@@ -1675,9 +1681,11 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /send\('\/api\/agent\/needs\/'\+encodeURIComponent\(n\.id\),'PATCH',\{status:'COMPLETED'\}\)/);
   assert.match(agent, /send\('\/api\/agent\/decisions','POST',\{id,decision:'approved'\}\)/);
   assert.match(agent, /setInterval\(\(\)=>\{if\(csrf&&!document\.hidden&&!mode&&!\$\('#needDialog'\)\.open\)refresh\(\)\},30000\)/, 'no auto-refresh while a form or the need window is open');
-  // Row date: «Última vez suplido» from the latest completed need, else «Creado».
-  assert.match(agent, /return last\?`Última vez suplido: \$\{clean\(stamp\(last\)\)\}`:p\.source==='sheet'\?'Registro importado':`Creado: \$\{clean\(stamp\(p\.created\)\)\}`/);
-  assert.match(agent, /seen=p\.lastCheckup\|\|'';if\(seen&&seen>\(last\|\|''\)\)return `Última revisión: \$\{clean\(stamp\(seen\)\)\}`;/, 'a newer checkup or «Ya no necesita nada» shows as «Última revisión»');
+  // Row date, short and relative (exact date on hover): «Suplido hace 2 d» from the latest completed need, «Revisado hace
+  // 1 h» after a newer checkup or «Ya no necesita nada», else «Creado hace …»; then who added it («por Ada (tú)»).
+  assert.match(agent, /return \(last\?rel\('Suplido',last\):p\.source==='sheet'\?'Registro importado':rel\('Creado',p\.created\)\)\+addedBy\(p\)/);
+  assert.match(agent, /if\(seen&&seen>\(last\|\|''\)\)return rel\('Revisado',seen\)\+addedBy\(p\);/);
+  assert.match(agent, /const addedBy=p=>p\.addedByName\?` · por \$\{clean\([^`]*\)\}\$\{p\.addedBy===userId\?' \(tú\)':''\}`:'';/);
   assert.match(agent, /`<span class="chip text">\$\{clean\(part\)\}<\/span>`/, '«Otros» text without the other icon');
   assert.match(agent, /n\.createdAt&&'Solicitado: '\+stamp\(n\.createdAt\)/);
   // Tapping a need opens «Actualizar necesidad»: urgency, needs, «Ya no necesita nada» → quitar (DELETED).
@@ -1834,12 +1842,13 @@ test('admin: points without GPS use the crossed-pin icon (card title, review «D
   assert.match(admin, /<span class="nogpsline">\$\{noGpsIco\}Sin GPS: no aparece en el mapa<\/span>/);
 });
 
-test('runner: Ver en el mapa (or tapping a card background) centers the point with a flag, opens its card, and highlights the list card', () => {
+test('runner: Ver en el mapa centers the point with a flag, opens its card, and highlights the list card', () => {
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
   assert.match(runner, /function applyFocus\(\)\{[^\n]*map\.closePopup\(\);map\.setView\(pin\.getLatLng\(\),16\);/);
   assert.match(runner.match(/function applyFocus\(\)\{[^\n]*/)[0], /if\(n&&n\.camp\.id===focusCamp\)\{[^}]*pin\.openPopup\(\)\}/, 'chosen in the list: its card opens on the pin');
   assert.match(runner, /focused\?L\.marker\(camp\.coords,\{icon:L\.divIcon\(\{className:'',html:focusFlag,/, 'a flag instead of a bigger circle');
-  assert.match(runner, /const bg=!e\.target\.closest\('button,a,input,select,textarea,label,summary,\[data-pick\],\.telx'\)&&!String\(getSelection\(\)\)\.trim\(\)&&e\.target\.closest\('\[data-need\]'\);/, 'card background, not its buttons, phone links or a text selection');
+  assert.match(runner, /\$\('#feed'\)\.onclick=async e=>\{const where=e\.target\.closest\('\[data-where\]'\);/, 'only the 📍 button goes to the map: tapping the card background does nothing (no stuck highlight)');
+  assert.doesNotMatch(runner, /const bg=!e\.target\.closest/);
   assert.match(runner, /highlightNeed=n\.id;if\(!hasCoords\(n\)\)\{focusCamp=null;render\(\);fitAllPins\(\);return\}focusCamp=n\.camp\.id;pendingFocus=true;/, 'picking a card without GPS removes the old flag');
   assert.match(runner, /function goToNeed\(id\)\{tabFor\(id\);highlightNeed=id;if\(!hasCoords\(findNeed\(id\)\|\|\{camp:\{\}\}\)\)\{focusCamp=null;requestAnimationFrame\(fitAllPins\)\}/);
   assert.match(runner, /function fitAllPins\(\)\{if\(map&&pins\.length\)\{map\.closePopup\(\);map\.fitBounds\(pins\.map\(p=>p\.getLatLng\(\)\),/, 'no GPS: zoom out to all points');
@@ -1879,7 +1888,7 @@ test('packing list dialog is full screen on phones (not centered under the keybo
 
 test('runner run card: «hace 2 d» at the bottom next to «No puedo continuar»; people stay on top', () => {
   const card = readFileSync(new URL('./runner.html', import.meta.url), 'utf8').match(/function runCard[^\n]*/)[0];
-  assert.match(card, /\$\{cardMeta\(n,false\)\}/);
+  assert.match(card, /<span class="spacer"><\/span>\$\{locButtons\(n\)\}/, 'map and Maps buttons top right');
   assert.match(card, /<div class="runfoot">\$\{n\.revisedAt\|\|n\.createdAt\?`<small class="when"[^`]*`:'<span><\/span>'\}<button class="btn quit" type="button" data-release="\$\{id\}">No puedo continuar<\/button><\/div>/);
 });
 
@@ -2112,7 +2121,7 @@ test('admin «Por revisar»: check reports (one by one or all in view) and expor
   const csv = new Function(`${src};return pendingCsv`)()([{id: 'x1', code: 'P-1', area: 'Tonosí', place: 'Escuela, "la vieja"', coords: [7.4, -80.4], phone: '6000-0000', needs: 'Agua, Alimentos', extra: 'línea 1\nlínea 2', members: [{name: 'Ana', age: '7', cedula: '8-1-1'}]}]);
   assert.ok(csv.startsWith('﻿ID,Código,Recibido'), 'BOM so Excel reads the accents');
   const head = csv.slice(1).split('\r\n')[0], row = csv.slice(1).split('\r\n').slice(1).join('\r\n');
-  assert.equal(head.split(',').length, 28);
+  assert.equal(head.split(',').length, 29, 'every field, including Familias');
   assert.ok(row.startsWith('x1,P-1,,,Tonosí,"Escuela, ""la vieja""",,,7.4,-80.4,'), row);
   assert.ok(row.includes('"Agua, Alimentos"') && row.includes('"línea 1\nlínea 2"') && row.includes('Ana, 7 años, cédula 8-1-1'), row);
   assert.match(admin, /a\.download=`por-revisar-\$\{new Date\(\)\.toISOString\(\)\.slice\(0,10\)\}-\$\{list\.length\}\.csv`/);
@@ -2573,4 +2582,26 @@ test('Supply map: team runners in live (only my team, strict rule) even without 
   assert.match(page, /teamLive=data\.live\|\|\[\];/);
   assert.match(page, /for\(const r of teamLive\.filter\(r=>!shown\.has\(r\.id\)\)\)/, 'no duplicate truck for a runner already on a run');
   assert.match(page, /const fit=campPins\.length\?campPins:teamPins/, 'with no points, the map centers on the team');
+});
+
+test('runner cards: map pin and Maps top right; people count with breakdown before «Necesita»; no persistent selected color', () => {
+  const grab = re => runner.match(re)[0];
+  assert.match(grab(/function locButtons[^\n]*/), /<span class="cardloc">\$\{c\.coords\?`<button type="button" class="iconbtn gps" data-where=/);
+  assert.doesNotMatch(grab(/function needButtons[^\n]*/), /data-where|iconbtn gps/, 'bottom row: share only');
+  const peopleLine = new Function('clean', 'ico', 'stamp', 'agoEs', 'PointForm', `${grab(/const PPL=[^\n]*/)};${grab(/function peopleLine[^\n]*/)};return peopleLine`)(s => String(s), () => '<svg/>', () => 'x', () => 'hace 1 h', {icons: {adult: '<i>a</i>', child: '<i>c</i>', family: '<i>f</i>'}});
+  const html = peopleLine({createdAt: '2026-10-15T10:00:00Z', camp: {people: '60', adults: '30', children: '25', babies: '0', families: '12'}});
+  assert.match(html, /<span class="pc total"><svg\/><b>60<\/b> personas<\/span><span class="pc" title="30 adultos"><i>a<\/i><b>30<\/b> adultos<\/span><span class="pc" title="25 niños"><i>c<\/i><b>25<\/b> niños<\/span><span class="pc" title="12 familias"><i>f<\/i><b>12<\/b> familias<\/span>/, 'zeros left out');
+  assert.match(runner, /\$\{peopleLine\(n\)\}<div class="grp g-what"><span class="needlbl">Necesita<\/span>/);
+  assert.doesNotMatch(runner, /\.card\.selected\{background/);
+});
+
+test('Comando: «Agregado por» Todos / Míos / Mi equipo; on phones the other filters fold behind «Filtros ▾ (n)»', () => {
+  const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  assert.match(cmd, /<div class="seg whoseg" id="whoSeg" role="group" aria-label="Agregado por"><\/div><button type="button" class="morefilt" id="moreFilt" aria-expanded="false" aria-controls="moreBox">Filtros<b id="moreCount" hidden><\/b>/);
+  assert.match(cmd, /const whoTests=\{me:p=>!!userId&&p\.addedBy===userId,team:p=>!!myTeam\(\)&&!!p\.addedBy&&users\.find\(u=>u\.id===p\.addedBy\)\?\.teamId===myTeam\(\)\};/);
+  assert.match(cmd, /\.\.\.\(myTeam\(\)\?\[\['team','Equipo',icoTeamS\]\]:\[\]\)/, '«Equipo» (my team) only for agents on a team');
+  assert.match(cmd, /\(skip==='who'\|\|!filt\.who\|\|whoTests\[filt\.who\]\?\.\(p\)\)/);
+  assert.match(cmd, /const active=\[filt\.need,filt\.area,filt\.type,filt\.gps\]\.filter\(Boolean\)\.length;/, 'the badge counts active filters');
+  assert.match(cmd, /\.morebox\{display:none;grid-column:1\/-1\}\.filters\.open \.morebox\{display:flex;/);
+  assert.match(cmd, /\.morebox \.pills\{flex-wrap:wrap;overflow:visible\}/, 'need chips wrap instead of scrolling off the edge');
 });

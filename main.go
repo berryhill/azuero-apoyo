@@ -40,30 +40,32 @@ type Point struct {
 	Ordinal      string `json:"ordinal,omitempty"`
 	Coordinator  string `json:"coordinator,omitempty"`
 	// Teléfono del coordinador: privado como los demás contactos.
-	CoordinatorPhone string    `json:"coordinatorPhone,omitempty"`
-	Contact          string    `json:"contact,omitempty"`
-	Phone            string    `json:"phone,omitempty"`
-	Adults           string    `json:"adults,omitempty"`
-	OlderAdults      string    `json:"olderAdults,omitempty"`
-	Disabled         string    `json:"disabled,omitempty"`
-	SecondContact    string    `json:"secondContact,omitempty"`
-	SecondPhone      string    `json:"secondPhone,omitempty"`
-	ThirdContact     string    `json:"thirdContact,omitempty"`
-	ThirdPhone       string    `json:"thirdPhone,omitempty"`
-	Generator        string    `json:"generator,omitempty"`
-	Code             string    `json:"code"`
-	Area             string    `json:"area"`
-	Place            string    `json:"place"`
-	Needs            string    `json:"needs"`
-	People           string    `json:"people"`
-	Coords           []float64 `json:"coords"`
-	Created          string    `json:"created"`
-	Status           string    `json:"status"`
-	Decided          string    `json:"decided,omitempty"`
-	Note             string    `json:"note,omitempty"`
-	CampStatus       string    `json:"campStatus,omitempty"`
-	HighestUrgency   string    `json:"highestUrgency,omitempty"`
-	NeedStatuses     []string  `json:"needStatuses,omitempty"`
+	CoordinatorPhone string `json:"coordinatorPhone,omitempty"`
+	Contact          string `json:"contact,omitempty"`
+	Phone            string `json:"phone,omitempty"`
+	Adults           string `json:"adults,omitempty"`
+	OlderAdults      string `json:"olderAdults,omitempty"`
+	Disabled         string `json:"disabled,omitempty"`
+	// Familias (grupos familiares) en el punto; conteo como los demás.
+	Families       string    `json:"families,omitempty"`
+	SecondContact  string    `json:"secondContact,omitempty"`
+	SecondPhone    string    `json:"secondPhone,omitempty"`
+	ThirdContact   string    `json:"thirdContact,omitempty"`
+	ThirdPhone     string    `json:"thirdPhone,omitempty"`
+	Generator      string    `json:"generator,omitempty"`
+	Code           string    `json:"code"`
+	Area           string    `json:"area"`
+	Place          string    `json:"place"`
+	Needs          string    `json:"needs"`
+	People         string    `json:"people"`
+	Coords         []float64 `json:"coords"`
+	Created        string    `json:"created"`
+	Status         string    `json:"status"`
+	Decided        string    `json:"decided,omitempty"`
+	Note           string    `json:"note,omitempty"`
+	CampStatus     string    `json:"campStatus,omitempty"`
+	HighestUrgency string    `json:"highestUrgency,omitempty"`
+	NeedStatuses   []string  `json:"needStatuses,omitempty"`
 	// Personas del grupo; privadas (cédula y edad nunca salen del panel).
 	Members []Member `json:"members,omitempty"`
 	// Punto aprobado en el que se fusionó este reporte duplicado; no se puede volver a aprobar.
@@ -168,7 +170,7 @@ var phonePattern = regexp.MustCompile(`^[\d+\-\s()]*$`)
 
 // publicFormatError valida lo que el formulario público ya restringe: conteos y edades de 0 a 999 y teléfonos solo con números.
 func publicFormatError(p Point) (string, string) {
-	for field, v := range map[string]string{"people": p.People, "adults": p.Adults, "children": p.Children, "babies": p.Babies, "olderAdults": p.OlderAdults, "disabled": p.Disabled} {
+	for field, v := range map[string]string{"people": p.People, "adults": p.Adults, "children": p.Children, "babies": p.Babies, "olderAdults": p.OlderAdults, "disabled": p.Disabled, "families": p.Families} {
 		if !countPattern.MatchString(strings.TrimSpace(v)) {
 			return field, "Escribe solo números del 0 al 999."
 		}
@@ -1807,7 +1809,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 }
 
 // Campos editables de un punto aprobado y su largo máximo (0 = sin límite de texto o de solo lectura).
-var campFields = map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": noteLimit, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "needStatuses": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200, "members": 0, "coordinatorPhone": 40, "mergedInto": 0, "lastCheckup": 0, "history": 0, "checkups": 0, "clientRef": 0}
+var campFields = map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": noteLimit, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "needStatuses": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "families": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200, "members": 0, "coordinatorPhone": 40, "mergedInto": 0, "lastCheckup": 0, "history": 0, "checkups": 0, "clientRef": 0}
 
 // campFieldError rechaza campos de solo lectura y coordenadas fuera de Panamá.
 func campFieldError(f map[string]json.RawMessage) (string, string) {
@@ -2078,11 +2080,18 @@ type runnerSession struct {
 	agent bool
 }
 type runnerCamp struct {
-	ID          string    `json:"id"`
-	Code        string    `json:"code"`
-	Area        string    `json:"area"`
-	Place       string    `json:"place,omitempty"`
-	People      string    `json:"people,omitempty"`
+	ID     string `json:"id"`
+	Code   string `json:"code"`
+	Area   string `json:"area"`
+	Place  string `json:"place,omitempty"`
+	People string `json:"people,omitempty"`
+	// Desglose de personas (para «60 personas · 30 adultos · 20 niños…» en las tarjetas).
+	Adults      string    `json:"adults,omitempty"`
+	Children    string    `json:"children,omitempty"`
+	Babies      string    `json:"babies,omitempty"`
+	OlderAdults string    `json:"olderAdults,omitempty"`
+	Disabled    string    `json:"disabled,omitempty"`
+	Families    string    `json:"families,omitempty"`
 	Directions  string    `json:"directions,omitempty"`
 	Coordinator string    `json:"coordinator,omitempty"`
 	GPS         string    `json:"gps,omitempty"`
@@ -2355,7 +2364,15 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/full/me", func(w http.ResponseWriter, r *http.Request) {
 		if u, ok := a.viewer(w, r); ok {
 			roles, panels := a.accessOf(u.ID)
-			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "locationConsent": u.locationConsent() != "", "roles": roles, "panels": panels})
+			// team: nombre del equipo (vacío sin equipo); el formulario de punto pone a quien entra como coordinador.
+			team := ""
+			a.db.View(func(tx *bolt.Tx) error {
+				if t, ok := getTeam(tx, teamOf(tx, u.ID)); ok {
+					team = t.Name
+				}
+				return nil
+			})
+			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "telephone": u.Telephone, "team": team, "locationConsent": u.locationConsent() != "", "roles": roles, "panels": panels})
 		}
 	})
 	mux.HandleFunc("POST /api/full/logout", func(w http.ResponseWriter, r *http.Request) {
@@ -2567,8 +2584,11 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 				}
 				if p.Status == "approved" {
 					contacts := campContacts(p)
+					// Paneles con sesión: el equipo y quién verificó sí se muestran (publicPoint los quita).
+					vTeam, vBy := p.VerifiedTeam, p.VerifiedBy
 					p = publicPoint(p)
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt}
+					p.VerifiedTeam, p.VerifiedBy = vTeam, vBy
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Adults: p.Adults, Children: p.Children, Babies: p.Babies, OlderAdults: p.OlderAdults, Disabled: p.Disabled, Families: p.Families, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt}
 				}
 				return nil
 			}); e != nil {
