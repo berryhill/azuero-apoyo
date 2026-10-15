@@ -9,6 +9,11 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-15**
+- Supply: «🙋 ¡Yo abastezco!» replaces «Pedir runner»: several centers can offer the same need and the runner picks
+  where to pick up in «Pedidos»; «Asignar a runner»; «Despachadas» moved into 🕓 Historial; rename/archive centers;
+  team switch on the right; cards like Runners (map top right, people breakdown, contacts collapse after 2) (§7, §8).
+- Comando: «+ Agregar punto» opens the form inside Comando; «Creado por» is a full-name badge; person fields in the
+  point form have icons (§5, §10).
 - Runners cards: map/Maps buttons top right, people breakdown before «Necesita», no tap-to-select highlight (§7).
 - Add point: team members are the coordinator by default (card with «Cambiar»); new «Familias» count (§5).
 - Comando: «Agregado por» filter (Todos / Míos / Equipo), «Filtros ▾» on phones, clearer rows with icons (§10).
@@ -131,7 +136,8 @@ adults, children, babies, elderly, disability, **families**), reported needs and
 **Coordinator when adding a point**: if the person adding it is signed in and **on a team**, they are the coordinator
 by default: a card «Coordinador · Ada Agente · Tú · Equipo · phone» with **«Cambiar»** instead of fields. «Cambiar»
 opens empty fields to write someone else; «↺ Soy yo» puts them back. Without a team, the usual fields (there is no
-«Yo» button anymore).
+«Yo» button anymore). In «Personas del grupo», each field has its icon: person (name), phone, cake (age), ID card
+(cédula).
 
 **States**
 
@@ -233,6 +239,9 @@ On phones, «Lista / Mapa» switch between the list and the map.
 - **After completing**: «📝 Actualizar necesidad» (opens the same need checklist to record what is still missing,
   including a house repair, which goes to Builders) or «✓ No necesitan nada más».
 - **Gold badge**: a card shows the gold «Equipo …» badge next to the point name when a team verified the point or that need.
+- **«📦 Pedidos»**: open needs that one or more supply centers offered to supply. The card lists every offering center
+  (center, person, phone) with its own **«¡Yo lo llevo! · recojo aquí»**: pick the closest; the run is linked to that
+  center and shows «📦 Recoger en acopio: …».
 - **«Pedir a acopios»** (ask supply centers, on a run with no center): centers answer whether they can supply it; the
   card lists those that can («✓ 2 acopios pueden surtirla: elige el más cercano») and «Elegir» links the run to the
   chosen center.
@@ -249,8 +258,11 @@ On phones, «Lista / Mapa» switch between the list and the map.
 
 Top line: the **📍 Centro** button shows the chosen collection center («📍 Villa Marina ▾»; orange «Elige tu centro»
 when none). Tapping it opens the shared list of centers with a field to filter or type a new one («＋ Usar «…» (centro
-nuevo)»); picking saves it right away. Next to it, the **Solo mi equipo** switch. **Buscar** (runner, point or phone)
-is in the header like other pages (🔍 on phones).
+nuevo)»); picking saves it right away. At the bottom of that list, **«⚙ Administrar centros…»** (rarely needed) opens a
+window to **rename** a center (for everyone on it, history included) or **archive** it: it disappears from the list
+to choose from, but nothing is deleted (people keep it, runs and history stay intact) and **«↺ Recuperar»** brings it
+back; both ask for confirmation. The **Solo mi equipo** switch sits at the right of the same line. **Buscar** (runner,
+point or phone) is in the header like other pages (🔍 on phones).
 
 **Map**: the points of the open tab plus **your team's runners sharing live location** (orange trucks), even when they
 are not on a run of this center; with no points it centers on your team. Runners of other teams never appear.
@@ -260,14 +272,16 @@ Tabs:
 | Tab | Content |
 | --- | --- |
 | 📦 ¡A empacar! | Runs linked to this center, on the way, not dispatched yet: pack them and dispatch. |
-| 🚚 Despachadas | Linked runs already dispatched (still on the way). |
 | 🏃 ¡Abastéceme! | Runners with a run asking for a supply center: «✓ Puedo surtirlo» / «✗ No puedo» / «Retirar». |
-| 🙌 Por surtir (last) | Open needs this center could supply: «📣 Pedir runner» (request a runner) or «🏃 Asignar en persona» (assign in person). Below, «🚚 Ya en camino»: other people's runs, with «Pedir otro runner» / «Otro en persona». |
-| 🕓 Historial | Runs of this center already delivered in the last 30 days (up to 60, newest first): point, items, runner, when it left and when it was delivered, packing list and photos. Read only. On phones it is the small clock button to the right of «Lista / Mapa»; on desktop, the clock at the end of the tabs. |
+| 🙌 Por surtir (last) | Open needs: **«🙋 ¡Yo abastezco!»** offers to supply it (several centers can offer the same need; the runner chooses where to pick up, the closest) or «Retirar oferta»; **«🏃 Asignar a runner»** links it to this center with a runner who is here. The card says how many centers offer it. Below, «🚚 Ya en camino»: other people's runs, with «🙋 Abastezco otro envío» / «🏃 Asignar otro runner». |
+| 🕓 Historial | First **«🚚 Despachadas · en camino»** (dispatched, still on the way, with «Deshacer»), then **«✓ Entregadas»** of the last 30 days (up to 60, newest first): point, items, runner, when it left and when it was delivered, packing list and photos. On phones it is the clock button next to «Lista / Mapa»; on desktop, the clock at the end of the tabs. There is no separate «Despachadas» tab. |
 
 On phones each tab shows its icon above the name and the count below.
 
-**Card in three parts**
+**Cards** look like Runners cards: the 📍 map and Maps buttons at the top right, the people count with its breakdown
+before «Necesita», and contacts show the first 2 with «y N contactos más» to expand the rest (same on Runners).
+
+**Card in three parts** (runs of this center)
 
 1. **Runner**: name, phone, «La tomó hace…» (taken … ago), live («📍 Ver runner en el mapa») if sharing location and on
    your team, who
@@ -278,8 +292,8 @@ On phones each tab shows its icon above the name and the count below.
 
 **Each supply center only sees and dispatches the runs linked to it.** A run becomes linked to a center when:
 
-- the center requested a runner (in «Por surtir») and a runner accepted it in «Pedidos»;
-- the center assigned it in person;
+- the center offered it («¡Yo abastezco!») and a runner chose this center in «Pedidos»;
+- the center assigned it to a runner who was there («Asignar a runner»);
 - a runner asked for a center and chose this one;
 - the center sent «otro runner» (a new linked run).
 
@@ -289,24 +303,25 @@ points or runs by my team's runners; the runner picker shows only my team's runn
 ### Supply ↔ Runner flows
 
 ```
-A) Center requests a runner
-   Supply «🙌 Por surtir» → «📣 Pedir runner» ─▶ Runner sees it in «📦 Pedidos» (who, center, phone)
-   ─▶ «¡Yo lo llevo!» ─▶ run in the runner's «Yo» and in the center's «¡A empacar!»
-   ─▶ center packs + departure photo ─▶ «🚚 Despachada» ─▶ runner «✓ Completé»
+A) Centers offer to supply it
+   Supply «🙌 Por surtir» → «🙋 ¡Yo abastezco!» (one or more centers) ─▶ runners see it in «📦 Pedidos» with every
+   offering center (who, center, phone) ─▶ the runner taps «¡Yo lo llevo! · recojo aquí» on the closest
+   ─▶ run in the runner's «Yo» and in that center's «¡A empacar!»
+   ─▶ center packs + departure photo ─▶ «🚚 Despachada» (now in 🕓 Historial) ─▶ runner «✓ Completé»
 
-B) Runner in person
-   Supply «🏃 Asignar en persona» (pick the runner) ─▶ same as A from «¡A empacar!»
+B) Runner who is at the center
+   Supply «🏃 Asignar a runner» (pick the runner) ─▶ same as A from «¡A empacar!»
 
 C) Runner asks for a center
    Runner (in «Yo») «📣 Pedir a acopios» ─▶ centers see it in «🏃 ¡Abastéceme!»
    ─▶ «✓ Puedo surtirlo» (one or more) ─▶ runner «Elegir» the closest
    ─▶ run in that center's «¡A empacar!» ─▶ same as A
 
-D) Another runner on the same need
-   Supply «🙌 Por surtir» → «🚚 Ya en camino» ─▶ «Pedir otro runner» / «Otro en persona» ─▶ new run linked to this center
+D) Another shipment of the same need
+   Supply «🙌 Por surtir» → «🚚 Ya en camino» ─▶ «🙋 Abastezco otro envío» / «🏃 Asignar otro runner» ─▶ new run
 ```
 
-If a runner drops a run a center requested, it goes back to «Pedidos». If they drop one assigned in person, it
+If a runner drops a run that came from a center's offer, it goes back to «Pedidos» with that center still offering. If they drop one assigned in person, it
 becomes a normal open need. Dispatching doesn't change the state: the runner completes it.
 
 ---
@@ -324,7 +339,9 @@ shows them under the title as «PIDEN hojas de zinc · varilla …».
 
 ## 10. Command (`command.html`, agents)
 
-**Buscar** is in the header (on phones, the 🔍 button), like Runners, and «+ Agregar punto» is always at the top right.
+**Buscar** is in the header (on phones, the 🔍 button), like Runners, and «+ Agregar punto» is always at the top right:
+it opens the same point form **right in Comando** (no trip to the home page; a team agent is the coordinator by
+default) and publishes the point on «Guardar», opening it in the list.
 The totals are shown with icons: 📍 points (or «4/54» while searching or filtering) and 🕓 «por revisar»; on phones they
 are inside the «Puntos» tab. List of points with filters (state, area, need, urgent/open/on the way), a map, and an
 "en ruta" monitor. Each card:
@@ -343,7 +360,8 @@ In «Actualizar necesidad», **«Ya no necesita nada»** asks **«¿Alguien la s
 (added by anyone on my team; only for agents on a team), each with its count. On phones the rest (area, need type,
 order, «Sin GPS», need chips) fold behind **«Filtros ▾»**, which shows how many are active; they wrap to fit.
 
-**Rows**: a short line «Revisado hace 1 h · por Ada (tú)» (or «Creado / Suplido hace …»; exact date on hover), the
+**Rows**: a short line «Revisado hace 1 h» (or «Creado / Suplido hace …»; exact date on hover) with a **badge of who
+added it** (full name; green with «(tú)» if it was you), the
 point name, a line with small icons for place, people and coordinator, then the counters, «Checkup» and «Editar».
 Point rows and need cards show the gold «Verificado por equipo» badge with the team name. Editing a repair need shows
 its materials, which can be changed. Works on phones (single column).

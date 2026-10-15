@@ -264,6 +264,9 @@ type CampNeed struct {
 	// puede o no (SupplyOffers) y el corredor elige uno, que queda como SupplierID. Se borra si deja de estar en camino.
 	SupplyAskedAt string        `json:"supplyAskedAt,omitempty"`
 	SupplyOffers  []SupplyOffer `json:"supplyOffers,omitempty"`
+	// «¡Yo abastezco!»: acopios que ofrecen surtir esta necesidad Abierta (varios a la vez). El runner elige uno al
+	// tomarla (queda como SupplierID, con SupplierRequestedAt = cuándo lo ofreció). Se borran al dejar de estar Abierta.
+	OpenOffers []SupplyOffer `json:"openOffers,omitempty"`
 	// Otro runner a lo mismo: copia de la necesidad (SameAs = la original) que un acopio manda con otro runner; cada
 	// una tiene su runner, lista de empaque, fotos, despacho y «Completé» (así queda documentado cada envío).
 	SameAs string `json:"sameAs,omitempty"`
@@ -478,7 +481,7 @@ func openApp(path, static string) (*App, error) {
 
 // migrate pone al día los datos guardados (al arrancar y después de importar un respaldo, que puede ser más viejo).
 func (a *App) migrate() error {
-	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateNeedUrgency, ensureDonations, ensureSupplyCenters, ensureTeamInvites} {
+	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateOpenRequests, migrateNeedUrgency, ensureDonations, ensureSupplyCenters, ensureTeamInvites} {
 		if err := a.db.Update(step); err != nil {
 			return err
 		}
@@ -670,9 +673,16 @@ func putNeed(b *bolt.Bucket, n *CampNeed) error {
 	if n.Status != "IN_PROGRESS" && n.Status != "COMPLETED" {
 		n.DispatchedAt, n.DispatchedBy, n.DispatchedByName = "", "", ""
 	}
-	// Vuelve a Abierta sin pedido de acopio (se la habían asignado en persona): queda libre de ese acopio.
-	if n.Status == "OPEN" && n.SupplierRequestedAt == "" || n.Status == "DELETED" {
+	// Vuelve a Abierta: si venía de una oferta de acopio (o un pedido de antes), ese acopio sigue ofreciendo; si se la
+	// habían asignado en persona, queda libre. Abierta nunca tiene acopio fijo: solo ofertas.
+	if n.Status == "OPEN" && n.SupplierRequestedAt != "" && n.SupplierID != "" && offerIndex(n.OpenOffers, n.SupplierID) < 0 {
+		n.OpenOffers = append(n.OpenOffers, SupplyOffer{SupplierID: n.SupplierID, Can: true, At: n.SupplierRequestedAt})
+	}
+	if n.Status == "OPEN" || n.Status == "DELETED" {
 		n.SupplierID, n.SupplierRequestedAt = "", ""
+	}
+	if n.Status != "OPEN" {
+		n.OpenOffers = nil
 	}
 	if n.Status != "IN_PROGRESS" || n.SupplierID != "" {
 		n.SupplyAskedAt, n.SupplyOffers = "", nil
@@ -2148,8 +2158,10 @@ type runnerNeed struct {
 	// Despachada desde acopio (sigue en camino).
 	DispatchedAt string `json:"dispatchedAt,omitempty"`
 	// Pedido de acopio (Abierta) o acopio donde se recoge (en camino): quién, dónde y su teléfono para llamarle.
-	RequestedAt string        `json:"requestedAt,omitempty"`
-	Supplier    *supplierInfo `json:"supplier,omitempty"`
+	RequestedAt string `json:"requestedAt,omitempty"`
+	// «Pedidos»: acopios que ofrecen surtir esta necesidad Abierta; el runner elige de cuál la recoge.
+	OpenOffers []supplyOffer `json:"openOffers,omitempty"`
+	Supplier   *supplierInfo `json:"supplier,omitempty"`
 	// Pedido del corredor a los acopios (en su carrera): cuándo lo pidió y qué acopios dijeron que pueden surtirla.
 	SupplyAskedAt string        `json:"supplyAskedAt,omitempty"`
 	SupplyOffers  []supplyOffer `json:"supplyOffers,omitempty"`
@@ -2218,7 +2230,7 @@ func (c *crew) fail(w http.ResponseWriter, err error) bool {
 		fail(w, 403, err.Error())
 		return true
 	}
-	if errors.Is(err, c.busy) || errors.Is(err, c.taken) || errors.Is(err, c.notYours) {
+	if errors.Is(err, c.busy) || errors.Is(err, c.taken) || errors.Is(err, c.notYours) || errors.Is(err, errNotOffered) {
 		fail(w, 409, err.Error())
 		return true
 	}
@@ -2613,7 +2625,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					}
 				}
 				who := *c.assignee(&n)
-				item := runnerNeed{VerifiedTeam: n.VerifiedTeam, VerifiedBy: n.VerifiedBy, VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), Supplier: supplierOf(tx, n.SupplierID), SupplyAskedAt: n.SupplyAskedAt, SupplyOffers: offersFor(tx, n), Also: alsoFor(tx, groups, n), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
+				item := runnerNeed{VerifiedTeam: n.VerifiedTeam, VerifiedBy: n.VerifiedBy, VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), OpenOffers: openOffersFor(tx, n), Supplier: supplierOf(tx, n.SupplierID), SupplyAskedAt: n.SupplyAskedAt, SupplyOffers: offersFor(tx, n), Also: alsoFor(tx, groups, n), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
 				if item.Assigned {
 					item.Media = n.Media
 				} else if c.repair {
@@ -2714,6 +2726,14 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 			}
 			if len(active) >= c.max {
 				return c.busy
+			}
+			// Desde «Pedidos»: el runner elige de qué acopio la recoge (uno de los que ofrecieron); queda ligada a ese acopio.
+			if sup := r.URL.Query().Get("supplier"); sup != "" && !c.repair {
+				i := offerIndex(n.OpenOffers, sup)
+				if i < 0 {
+					return errNotOffered
+				}
+				n.SupplierID, n.SupplierRequestedAt = sup, n.OpenOffers[i].At
 			}
 			*who, n.Status, n.EnRouteAt = s.runnerID, "IN_PROGRESS", nowStamp()
 			// La carrera nueva va al final del orden de la persona; se descartan las que ya no están en curso.
@@ -3012,7 +3032,7 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 						}
 					}
 					n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName, n.SupplierID, n.SupplierRequestedAt = "", "", "", "", "", ""
-					n.SupplyAskedAt, n.SupplyOffers = "", nil
+					n.SupplyAskedAt, n.SupplyOffers, n.OpenOffers = "", nil, nil
 					n.VerifiedTeam, n.VerifiedBy = "", ""
 					if !reveal {
 						n.Packing, n.Media = nil, nil

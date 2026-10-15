@@ -25,9 +25,25 @@ const roleSupplier = "supplier"
 // mayúsculas, valor: el nombre como se escribió la primera vez).
 var supplyCentersBucket = []byte("supply_centers")
 
+// Centros archivados (clave: nombre normalizado): no salen en la lista para elegir, pero quien ya lo tiene lo conserva y
+// sus runs e historial no cambian. Se pueden recuperar.
+var archivedCentersBucket = []byte("supply_centers_archived")
+
 func ensureSupplyCenters(tx *bolt.Tx) error {
+	if _, err := tx.CreateBucketIfNotExists(archivedCentersBucket); err != nil {
+		return err
+	}
 	_, err := tx.CreateBucketIfNotExists(supplyCentersBucket)
 	return err
+}
+
+func archivedCenters(tx *bolt.Tx) []string {
+	list := []string{}
+	if b := tx.Bucket(archivedCentersBucket); b != nil {
+		b.ForEach(func(_, v []byte) error { list = append(list, string(v)); return nil })
+	}
+	sort.Slice(list, func(i, j int) bool { return foldText(list[i]) < foldText(list[j]) })
+	return list
 }
 
 // supplyCenters: los centros guardados más los que ya tienen las personas de Supply, sin repetir, en orden alfabético.
@@ -49,11 +65,72 @@ func supplyCenters(tx *bolt.Tx) ([]string, error) {
 		return nil, e
 	}
 	list := make([]string, 0, len(seen))
-	for _, v := range seen {
-		list = append(list, v)
+	arch := tx.Bucket(archivedCentersBucket)
+	for k, v := range seen {
+		if arch == nil || arch.Get([]byte(k)) == nil {
+			list = append(list, v)
+		}
 	}
 	sort.Slice(list, func(i, j int) bool { return foldText(list[i]) < foldText(list[j]) })
 	return list, nil
+}
+
+var errCenterExists = errors.New("Ya hay un centro con ese nombre. Elige otro nombre.")
+var errNoCenter = errors.New("Ese centro ya no está en la lista.")
+
+// renameCenter cambia el nombre de un centro en la lista compartida (o en la de archivados) y en todas las personas de
+// Supply que lo tienen; los runs muestran el centro de quien los despacha, así que el historial queda con el nombre nuevo.
+func renameCenter(tx *bolt.Tx, from, to string) error {
+	if foldText(from) == "" || foldText(to) == "" {
+		return errNoCenter
+	}
+	known, e := supplyCenters(tx)
+	if e != nil {
+		return e
+	}
+	all := append(known, archivedCenters(tx)...)
+	found := false
+	for _, c := range all {
+		if foldText(c) == foldText(from) {
+			found = true
+		} else if foldText(c) == foldText(to) {
+			return errCenterExists
+		}
+	}
+	if !found {
+		return errNoCenter
+	}
+	list, arch := tx.Bucket(supplyCentersBucket), tx.Bucket(archivedCentersBucket)
+	if e := list.Delete([]byte(foldText(from))); e != nil {
+		return e
+	}
+	if e := list.Put([]byte(foldText(to)), []byte(to)); e != nil {
+		return e
+	}
+	if arch.Get([]byte(foldText(from))) != nil {
+		if e := arch.Delete([]byte(foldText(from))); e != nil {
+			return e
+		}
+		if e := arch.Put([]byte(foldText(to)), []byte(to)); e != nil {
+			return e
+		}
+	}
+	var users []User
+	if e := eachUser(tx, func(u User) error {
+		if foldText(u.SupplyCenter) == foldText(from) {
+			users = append(users, u)
+		}
+		return nil
+	}); e != nil {
+		return e
+	}
+	for _, u := range users {
+		u.SupplyCenter, u.UpdatedAt = to, nowStamp()
+		if e := putJSON(tx.Bucket(usersBucket), u.ID, u); e != nil {
+			return e
+		}
+	}
+	return nil
 }
 
 var errNotARun = errors.New("Este run ya no está en camino.")
@@ -163,12 +240,66 @@ func supplierCanRequest(n CampNeed) bool {
 	return !isRepair(n) && n.Status == "OPEN" && n.RunnerID == "" && !serviceScheduled(n, time.Now())
 }
 
-// openRequest: cuándo pidió acopio un corredor, solo mientras la necesidad sigue esperando (Abierta).
+// migrateOpenRequests: los pedidos de antes (un solo acopio por necesidad Abierta) pasan a ser una oferta de ese acopio.
+// Idempotente; corre al abrir la base.
+func migrateOpenRequests(tx *bolt.Tx) error {
+	b := tx.Bucket(needsBucket)
+	var legacy []CampNeed
+	if e := b.ForEach(func(_, v []byte) error {
+		var n CampNeed
+		if e := json.Unmarshal(v, &n); e != nil {
+			return e
+		}
+		if n.Status == "OPEN" && n.SupplierRequestedAt != "" {
+			legacy = append(legacy, n)
+		}
+		return nil
+	}); e != nil {
+		return e
+	}
+	for _, n := range legacy {
+		if e := putNeed(b, &n); e != nil {
+			return e
+		}
+	}
+	return nil
+}
+
+// openRequest: desde cuándo algún acopio ofrece surtir la necesidad (la primera oferta), mientras sigue Abierta.
 func openRequest(n CampNeed) string {
 	if n.Status != "OPEN" {
 		return ""
 	}
-	return n.SupplierRequestedAt
+	first := ""
+	for _, o := range n.OpenOffers {
+		if o.Can && (first == "" || o.At < first) {
+			first = o.At
+		}
+	}
+	return first
+}
+
+func offerIndex(list []SupplyOffer, id string) int {
+	for i, o := range list {
+		if o.SupplierID == id && o.Can {
+			return i
+		}
+	}
+	return -1
+}
+
+// openOffersFor: acopios activos que ofrecen surtir la necesidad Abierta (para que el runner elija el más cercano).
+func openOffersFor(tx *bolt.Tx, n CampNeed) []supplyOffer {
+	if n.Status != "OPEN" || len(n.OpenOffers) == 0 {
+		return nil
+	}
+	out := []supplyOffer{}
+	for _, o := range n.OpenOffers {
+		if u, ok := getUser(tx, o.SupplierID); ok && o.Can && !u.Disabled && u.has(roleSupplier) {
+			out = append(out, supplyOffer{SupplierID: u.ID, Name: u.Name, Phone: u.Telephone, Center: u.SupplyCenter, At: o.At})
+		}
+	}
+	return out
 }
 
 var errRequestedElsewhere = errors.New("Otro acopio ya pidió un runner para esta necesidad.")
@@ -289,10 +420,14 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				run := supplierRun{runnerNeed: runnerNeed{Also: alsoFor(tx, groups, n), VerifiedTeam: n.VerifiedTeam, VerifiedBy: n.VerifiedBy, VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName}
 				if n.Status == "OPEN" {
 					run.Media, run.Packing = nil, nil
-					if n.SupplierRequestedAt != "" {
-						run.RequestedAt, run.RequestMine = n.SupplierRequestedAt, n.SupplierID == me.ID
-						if !run.RequestMine {
-							run.Supplier = supplierOf(tx, n.SupplierID)
+					// «¡Yo abastezco!»: si este acopio ya ofreció y cuántos acopios ofrecen en total.
+					run.RequestedAt = openRequest(n)
+					if offerIndex(n.OpenOffers, me.ID) >= 0 {
+						run.MyOffer, run.RequestMine = "can", true
+					}
+					for _, o := range n.OpenOffers {
+						if o.Can {
+							run.OfferedBy++
 						}
 					}
 					open = append(open, run)
@@ -369,11 +504,11 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if len(history) > historyMax {
 			history = history[:historyMax]
 		}
-		var centers []string
-		if e := a.db.View(func(tx *bolt.Tx) (e error) { centers, e = supplyCenters(tx); return e }); serviceError(w, e) {
+		var centers, archived []string
+		if e := a.db.View(func(tx *bolt.Tx) (e error) { centers, e = supplyCenters(tx); archived = archivedCenters(tx); return e }); serviceError(w, e) {
 			return
 		}
-		response(w, 200, map[string]any{"runs": runs, "open": open, "asks": asks, "enroute": enroute, "history": history, "live": a.liveRunners(me.ID), "runners": runners, "center": me.SupplyCenter, "centers": centers})
+		response(w, 200, map[string]any{"runs": runs, "open": open, "asks": asks, "enroute": enroute, "history": history, "live": a.liveRunners(me.ID), "runners": runners, "center": me.SupplyCenter, "centers": centers, "archivedCenters": archived})
 	})
 	// «Corredores piden»: este acopio puede surtir la carrera (can), no puede (can:false) o retira su oferta (withdraw).
 	mux.HandleFunc("POST /api/supplier/needs/{id}/offer", func(w http.ResponseWriter, r *http.Request) {
@@ -455,6 +590,78 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		}
 		response(w, 200, map[string]string{"center": center})
 	})
+	// Administrar centros (poco usado): renombrar o archivar/recuperar. Archivar solo lo quita de la lista para elegir;
+	// nada se borra.
+	mux.HandleFunc("POST /api/supplier/centers/manage", func(w http.ResponseWriter, r *http.Request) {
+		if _, _, ok := a.supplierSession(w, r); !ok {
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"center": 120, "rename": 120, "archive": 0})
+		if !ok {
+			return
+		}
+		center, to := strings.Join(strings.Fields(fieldText(f, "center")), " "), strings.Join(strings.Fields(fieldText(f, "rename")), " ")
+		var archive *bool
+		if raw, has := f["archive"]; has {
+			var v bool
+			if json.Unmarshal(raw, &v) != nil {
+				failField(w, 400, "archive", "Valor inválido.")
+				return
+			}
+			archive = &v
+		}
+		var centers, archived []string
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			switch {
+			case to != "":
+				if e := renameCenter(tx, center, to); e != nil {
+					return e
+				}
+			case archive != nil && *archive:
+				known, e := supplyCenters(tx)
+				if e != nil {
+					return e
+				}
+				name := ""
+				for _, c := range known {
+					if foldText(c) == foldText(center) {
+						name = c
+					}
+				}
+				if name == "" {
+					return errNoCenter
+				}
+				if e := tx.Bucket(supplyCentersBucket).Put([]byte(foldText(name)), []byte(name)); e != nil {
+					return e
+				}
+				if e := tx.Bucket(archivedCentersBucket).Put([]byte(foldText(name)), []byte(name)); e != nil {
+					return e
+				}
+			case archive != nil:
+				b := tx.Bucket(archivedCentersBucket)
+				if b.Get([]byte(foldText(center))) == nil {
+					return errNoCenter
+				}
+				if e := b.Delete([]byte(foldText(center))); e != nil {
+					return e
+				}
+			default:
+				return errNoCenter
+			}
+			var e error
+			centers, e = supplyCenters(tx)
+			archived = archivedCenters(tx)
+			return e
+		})
+		if errors.Is(err, errCenterExists) || errors.Is(err, errNoCenter) {
+			fail(w, 409, err.Error())
+			return
+		}
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 200, map[string]any{"centers": centers, "archived": archived})
+	})
 	// Pedir corredor (o cancelar el pedido): la necesidad sigue Abierta y aparece en «Pedidos» de los corredores.
 	mux.HandleFunc("POST /api/supplier/needs/{id}/request", func(w http.ResponseWriter, r *http.Request) {
 		me, _, ok := a.supplierSession(w, r)
@@ -483,24 +690,27 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			if !a.campExists(tx, n.CampID) || !supplierCanRequest(n) {
 				return errNotOpen
 			}
-			if n.SupplierRequestedAt != "" && n.SupplierID != me.ID {
-				return errRequestedElsewhere
+			// «¡Yo abastezco!»: varios acopios pueden ofrecer la misma necesidad; cancel retira la oferta de este acopio.
+			kept := n.OpenOffers[:0:0]
+			for _, o := range n.OpenOffers {
+				if o.SupplierID != me.ID {
+					kept = append(kept, o)
+				}
 			}
-			if cancel {
-				n.SupplierID, n.SupplierRequestedAt = "", ""
-			} else {
-				n.SupplierID, n.SupplierRequestedAt = me.ID, nowStamp()
+			if !cancel {
+				kept = append(kept, SupplyOffer{SupplierID: me.ID, Can: true, At: nowStamp()})
 			}
+			n.OpenOffers = kept
 			return putNeed(b, &n)
 		})
-		if errors.Is(err, errNotOpen) || errors.Is(err, errRequestedElsewhere) {
+		if errors.Is(err, errNotOpen) {
 			fail(w, 409, err.Error())
 			return
 		}
 		if serviceError(w, err) {
 			return
 		}
-		response(w, 200, map[string]any{"id": n.ID, "requestedAt": n.SupplierRequestedAt})
+		response(w, 200, map[string]any{"id": n.ID, "requestedAt": openRequest(n), "offered": offerIndex(n.OpenOffers, me.ID) >= 0})
 	})
 	// Otro runner a lo mismo: de una necesidad ya en camino se crea otro envío ligado a este acopio; con runnerId se
 	// asigna en persona (queda en camino), sin él se pide a los runners («Pedidos»).
@@ -530,7 +740,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			}
 			copy = CampNeed{ID: randomToken(), CampID: orig.CampID, Need: orig.Need, Urgency: orig.Urgency, Kind: orig.Kind, RequesterName: orig.RequesterName, RequesterPhone: orig.RequesterPhone, CreatedAt: nowStamp(), SameAs: groupOf(orig), SupplierID: me.ID}
 			if runnerID == "" {
-				copy.Status, copy.SupplierRequestedAt = "OPEN", nowStamp()
+				copy.Status, copy.OpenOffers = "OPEN", []SupplyOffer{{SupplierID: me.ID, Can: true, At: nowStamp()}}
 				return putNeed(b, &copy)
 			}
 			runner, found := getUser(tx, runnerID)
@@ -602,9 +812,6 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			}
 			if !a.campExists(tx, n.CampID) || !supplierCanRequest(n) {
 				return errNotOpen
-			}
-			if n.SupplierRequestedAt != "" && n.SupplierID != me.ID {
-				return errRequestedElsewhere
 			}
 			busy := 0
 			if e := b.ForEach(func(_, v []byte) error {

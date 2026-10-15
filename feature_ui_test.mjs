@@ -308,7 +308,8 @@ test('point form groups fields into Dónde / Con quién / Qué necesitan, with a
 });
 test('point form people: one compact numbered row each, always one empty row ready to fill', () => {
   assert.doesNotMatch(pointformSrc, /Persona \$\{i \+ 1\}<button/, 'no Persona N heading');
-  assert.match(pointformSrc, /<div class="pf-member"><span class="pf-mnum" aria-hidden="true">\$\{i \+ 1\}<\/span>\$\{memberFields\.map\(\(\[k, l, f\]\) => `<input class="pf-m-\$\{k\}" data-k="\$\{k\}" value="\$\{esc\(m\[k\]\)\}" placeholder="\$\{l\}"/);
+  assert.match(pointformSrc, /<div class="pf-member"><span class="pf-mnum" aria-hidden="true">\$\{i \+ 1\}<\/span>\$\{memberFields\.map\(\(\[k, l, f\]\) => `<span class="pf-mf pf-m-\$\{k\}"><span class="pf-mi" aria-hidden="true">\$\{icons\[memberIcons\[k\]\]\}<\/span><input data-k="\$\{k\}" value="\$\{esc\(m\[k\]\)\}" placeholder="\$\{l\}"/, 'person, phone, age and ID icons in the fields');
+  assert.match(pointformSrc, /const memberIcons = \{name: 'user', phone: 'phone', age: 'cake', cedula: 'idcard'\};/);
   assert.match(pointformSrc, /list = list\.filter\(memberFilled\);\n    list\.push\(\{\}\);/, 'saved people plus one empty row');
   assert.match(pointformSrc, /if \(last && \[\.\.\.last\.querySelectorAll\('input'\)\]\.some\(el => el\.value\.trim\(\)\)\) box\.insertAdjacentHTML\('beforeend', memberRow\(\{\}, rows\.length\)\);/, 'typing in the last row adds the next one');
   assert.match(pointformSrc, /grid-template-areas:'num name phone age ced del'/, 'one line per person on desktop');
@@ -1685,7 +1686,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   // 1 h» after a newer checkup or «Ya no necesita nada», else «Creado hace …»; then who added it («por Ada (tú)»).
   assert.match(agent, /return \(last\?rel\('Suplido',last\):p\.source==='sheet'\?'Registro importado':rel\('Creado',p\.created\)\)\+addedBy\(p\)/);
   assert.match(agent, /if\(seen&&seen>\(last\|\|''\)\)return rel\('Revisado',seen\)\+addedBy\(p\);/);
-  assert.match(agent, /const addedBy=p=>p\.addedByName\?` · por \$\{clean\([^`]*\)\}\$\{p\.addedBy===userId\?' \(tú\)':''\}`:'';/);
+  assert.match(agent, /const addedBy=p=>p\.addedByName\?`<span class="byb\$\{p\.addedBy===userId\?' me':''\}" title="Agregado por \$\{clean\(p\.addedByName\)\}">\$\{icoMeS\}\$\{clean\(p\.addedByName\)\}/, '«Creado por»: a badge with the full name');
   assert.match(agent, /`<span class="chip text">\$\{clean\(part\)\}<\/span>`/, '«Otros» text without the other icon');
   assert.match(agent, /n\.createdAt&&'Solicitado: '\+stamp\(n\.createdAt\)/);
   // Tapping a need opens «Actualizar necesidad»: urgency, needs, «Ya no necesita nada» → quitar (DELETED).
@@ -2246,7 +2247,7 @@ test('runners: a run chosen in the list opens on the map with its card (¡Yo lo 
 test('runners: «¡Yo lo llevo!» asks first (point + what to carry); «Cancelar» takes nothing and keeps the map card open', () => {
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
   const take = runner.slice(runner.indexOf('async function takeNeed('), runner.indexOf('function flash('));
-  assert.match(take, /if\(await AppNav\.choose\('¿Llevas esta carrera\?',\{detail,options:\[\['take','✓ Sí, la llevo','ok'\],\['no','Cancelar',''\]\]\}\)!=='take'\)return false\}button\.disabled=true;/, 'confirm before the request');
+  assert.match(take, /if\(await AppNav\.choose\('¿Llevas esta carrera\?',\{detail:off\?[^,]*:detail,options:\[\['take','✓ Sí, la llevo','ok'\],\['no','Cancelar',''\]\]\}\)!=='take'\)return false\}button\.disabled=true;/, 'confirm before the request');
   assert.ok(take.indexOf("AppNav.choose(") < take.indexOf("/take'"), 'nothing is sent before confirming');
   assert.match(runner, /takeNeed\(b\.dataset\.take,b\)\.then\(ok=>\{if\(!ok\)return;/, 'cancel in the map card does not close it');
 });
@@ -2256,7 +2257,8 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
   assert.match(page, /<title>Acopio · Azuero<\/title>/);
-  assert.match(page, /<button type="button" role="tab" data-main="todo"[^>]*><span aria-hidden="true">📦<\/span> ¡A empacar! <b id="cntTodo"><\/b><\/button><button type="button" role="tab" data-main="done"[^>]*><span aria-hidden="true">🚚<\/span> Despachadas <b id="cntDone"><\/b><\/button>/);
+  assert.match(page, /<button type="button" role="tab" data-main="todo"[^>]*><span aria-hidden="true">📦<\/span> ¡A empacar! <b id="cntTodo"><\/b><\/button><button type="button" role="tab" data-main="asks"/, 'no «Despachadas» tab: dispatched runs are in the history');
+  assert.match(page, /if\(mainTab==='hist'\)\{const way=done\(\)\.filter\(match\),list=history\.filter\(match\);feed\.innerHTML=\(way\.length\?`<h3 class="listhead">🚚 Despachadas · en camino<\/h3>\$\{way\.map\(runCard\)\.join\(''\)\}`:''\)/);
   assert.match(page, /<input class="topsearch" id="find" type="search" placeholder="Buscar…" aria-label="Buscar runner, punto o teléfono"/, 'find the runner who just arrived (header search, like other pages)');
   assert.match(page, /<form id="gateForm" novalidate data-signin><h1>Entrar a Supply<\/h1><fieldset class="sg sg-code">/);
   assert.doesNotMatch(page.match(/<form id="gateForm"[^]*?<\/form>/)[0], /sg-new/, 'admin gives the role; no self sign-up here');
@@ -2284,20 +2286,22 @@ test('Supply ↔ Runners: Supply asks for a runner («📣 Pedidos» for runners
   const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
   // Runners: requests are their own tab, not in Runs; accepting is «¡Yo lo llevo!»; «Yo» shows where to pick up.
   assert.match(runner, /requests=\(\)=>available\.filter\(n=>n\.requestedAt&&n\.status==='OPEN'&&matches\(n\)\)/);
-  assert.match(runner, /if\(tab==='req'\)\{const req=requests\(\);feed\.innerHTML=req\.length\?req\.map\(n=>`<article class="card reqcard[^`]*\$\{supplierLine\(n,true\)\}[^`]*data-take=/);
+  assert.match(runner, /if\(tab==='req'\)\{const req=requests\(\);feed\.innerHTML=req\.length\?req\.map\(n=>`<article class="card reqcard[^`]*\$\{offersBox\(n,full\)\}/, 'each offering center with its own «¡Yo lo llevo! · recojo aquí»');
+  assert.match(runner, /data-take="\$\{id\}" data-from="\$\{clean\(o\.supplierId\)\}"/);
+  assert.match(runner, /'\/take'\+\(from\?'\?supplier='\+encodeURIComponent\(from\):''\)/);
   assert.match(runner, /function supplierLine\(n,asking\)\{const x=n\.supplier;[^\n]*\$\{asking\?'Pide':'Recoger en acopio'\}: <b>\$\{clean\(x\.center\|\|'Centro de acopio'\)\}<\/b> · \$\{clean\(x\.name\)\}/);
   assert.match(runner, /\$\{supplierLine\(n,false\)\}\$\{alsoLine\(n\)\}\$\{supplyAskBox\(n\)\}\$\{n\.dispatchedAt\?/, 'pickup line on the «Yo» card');
   const tabNow = new Function('mine', 'mainTab', `return (${runner.match(/const tabNow=([^\n;]*);/)[1]})()`);
   assert.equal(tabNow([], 'req'), 'req');
   // Supply: three tabs, center name, request/cancel, in-person assign with a runner picker.
   assert.match(page, /data-main="req"[^>]*><span aria-hidden="true">🙌<\/span> Por surtir <b id="cntReq"><\/b>/);
-  assert.match(page, /<button type="button" class="cbtn" id="centerBtn" aria-haspopup="listbox"[^>]*><\/button><div class="cpop" id="centerPop" hidden><input id="centerInput"[^>]*role="combobox"[^>]*><div class="clist" id="centerList" role="listbox"><\/div><\/div>/, 'center is a button («📍 Villa Marina ▾»); the typeahead list opens only to change it');
+  assert.match(page, /<button type="button" class="cbtn" id="centerBtn" aria-haspopup="listbox"[^>]*><\/button><div class="cpop" id="centerPop" hidden><input id="centerInput"[^>]*role="combobox"[^>]*><div class="clist" id="centerList" role="listbox"><\/div><button type="button" class="cmanage" id="centerManage">⚙ Administrar centros…<\/button><\/div>/, 'center is a button («📍 Villa Marina ▾»); the typeahead list opens only to change it');
   assert.match(page, /\(q&&!exact\?`<button type="button" role="option" class="cnew" data-center="\$\{clean\(typed\)\}">＋ Usar «\$\{clean\(typed\)\}» \(centro nuevo\)<\/button>`/, 'type a new center');
   assert.match(page, /\$\('#centerList'\)\.onclick=e=>\{const b=e\.target\.closest\('\[data-center\]'\);if\(b\)saveCenter\(b\.dataset\.center\)\};/);
   assert.doesNotMatch(page, /id="heading"|id="sub"/, 'no heading or intro text taking space');
   for (const api of ["/request','POST',{})", "/request','POST',{cancel:true})", "(assignAnother?'/another':'/assign'),'POST',{runnerId:r.id})", "/api/supplier/center','POST'"]) assert.ok(page.includes(api), api);
   assert.match(page, /<dialog id="assignDlg"[^>]*>[^]*?<input class="sfind" id="assignFind"[^>]*>[^]*?<div class="runnerpick" id="assignList"/);
-  assert.match(page, /other\?'':`<div class="reqacts">/, 'a need another Supply asked for: no buttons');
+  assert.match(page, /\$\{mine\?`<button class="btn assign" type="button" data-cancelreq="\$\{id\}">Retirar oferta<\/button>`:`<button class="btn request" type="button" data-request="\$\{id\}">🙋 ¡Yo abastezco!<\/button>`\}<button class="btn assign" type="button" data-assign="\$\{id\}">🏃 Asignar a runner<\/button>/, 'several centers can offer the same need; the runner chooses');
 });
 
 test('runners: the «Completé» confirmation shows the packing list being delivered', () => {
@@ -2371,9 +2375,9 @@ test('several runners on the same need: Supply sends «otro runner» (request or
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
   const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
   for (const [f, html] of [['runner', runner], ['supplier', page]]) assert.match(html, /function alsoLine\(n\)\{const a=n\.also\|\|\[\];if\(!a\.length\)return '';return `<div class="alsoline">👥 También va:/, f);
-  assert.match(runner, /\$\{supplierLine\(n,true\)\}\$\{alsoLine\(n\)\}/, 'also on «Pedidos» cards');
+  assert.match(runner, /reqcard[^`]*\$\{alsoLine\(n\)\}\$\{needDetails\(n,false\)\}\$\{offersBox\(n,full\)\}/, 'also on «Pedidos» cards');
   assert.match(page, /<h3 class="listhead">🚚 Ya en camino · si hace falta, manda otro runner<\/h3>\$\{way\.map\(enrouteCard\)\.join\(''\)\}/);
-  assert.match(page, /data-another="\$\{id\}">📣 Pedir otro runner<\/button><button class="btn assign" type="button" data-anotherassign="\$\{id\}">🏃 Otro en persona<\/button>/);
+  assert.match(page, /data-another="\$\{id\}">🙋 Abastezco otro envío<\/button><button class="btn assign" type="button" data-anotherassign="\$\{id\}">🏃 Asignar otro runner<\/button>/);
   assert.match(page, /\(assignAnother\?'\/another':'\/assign'\),'POST',\{runnerId:r\.id\}\)/);
   assert.match(page, /<label class="tswitch" title="Solo puntos y runners de mi equipo"><input type="checkbox" id="teamOnly"><span class="sw" aria-hidden="true"><\/span><span>Solo mi equipo<\/span><\/label>/, 'a switch on the same line as the center');
   assert.match(page, /const teamOk=n=>!teamOnly\|\|\(mainTab==='req'\?!!n\.camp\.team:!!\(n\.camp\.team\|\|n\.runnerTeam\)\);/, 'my team points (and my team runners on runs)');
@@ -2551,7 +2555,9 @@ test('phone menu button shows the signed-in person\'s initials; Comando always h
   assert.equal(initialsOf(''), '');
   assert.match(nav, /btn\.innerHTML = ini \? `<span class="minit">\$\{esc\(ini\)\}<\/span>` : svg\(/);
   assert.match(nav, /btn\.setAttribute\('aria-label', ini \? `Menú de \$\{name\}` : 'Menú'\);/);
-  assert.match(cmd, /<\/div><a class="add" href="\/#agregar">\+ Agregar punto<\/a><\/div><\/header>/);
+  assert.match(cmd, /<\/div><button type="button" class="add" id="addPointBtn">\+ Agregar punto<\/button><\/div><\/header>/, 'opens the form right in Comando (no trip to the home page)');
+  assert.match(cmd, /const p=await send\('\/api\/agent\/points','POST',data\);/);
+  assert.match(cmd, /PointForm\.render\(\$\('#addFields'\),\{nearby:[^}]*,me:await myMe\(\)\}\)/, 'team agents are the coordinator by default');
   const nav2 = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
   assert.match(nav2, /@media\(max-width:760px\)\{\.top:has\(>\.mbar\) \.topsearch\{display:none!important\}\}/, 'the header search box hides only on phones (🔍 opens it); desktop keeps it');
 });
@@ -2569,10 +2575,10 @@ test('Comando: Buscar in the header (🔍 on phones, like Runners); totals with 
 test('Supply tabs: ¡A empacar!, Despachadas, ¡Abastéceme!, Por surtir (last); 🕓 history next to Lista/Mapa on phones', () => {
   const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
   const order = [...page.match(/<nav class="maintabs" id="mainTabs"[^]*?<\/nav>/)[0].matchAll(/data-main="(\w+)"/g)].map(m => m[1]);
-  assert.deepEqual(order, ['todo', 'done', 'asks', 'req', 'hist']);
+  assert.deepEqual(order, ['todo', 'asks', 'req', 'hist']);
   assert.match(page, /<button type="button" data-view="hist" class="mhist" aria-pressed="false" title="Historial" aria-label="Historial"><svg[^>]*><path d="M3 12a9 9 0 1 0 3-6\.7"\/>/, 'clock turning back');
   assert.match(page, /function mobileView\(view\)\{if\(view==='hist'\)\{mainTab='hist';highlightNeed=null;view='list'\}else if\(view==='list'&&mainTab==='hist'\)mainTab='todo';/);
-  assert.match(page, /if\(mainTab==='hist'\)\{const list=history\.filter\(match\);[^\n]*list\.map\(histCard\)/);
+  assert.match(page, /if\(mainTab==='hist'\)\{const way=done\(\)\.filter\(match\),list=history\.filter\(match\);[^\n]*list\.map\(histCard\)/);
   assert.match(page, /<span class="hdone" title="[^"]*">✓ Entregada \$\{clean\(agoEs\(n\.completedAt\)\)\}<\/span>/);
   assert.match(page, /@media\(max-width:760px\)\{\.maintabs \.histtab\{display:none\}\}/, 'on phones history lives next to Lista/Mapa');
 });
@@ -2604,4 +2610,14 @@ test('Comando: «Agregado por» Todos / Míos / Mi equipo; on phones the other f
   assert.match(cmd, /const active=\[filt\.need,filt\.area,filt\.type,filt\.gps\]\.filter\(Boolean\)\.length;/, 'the badge counts active filters');
   assert.match(cmd, /\.morebox\{display:none;grid-column:1\/-1\}\.filters\.open \.morebox\{display:flex;/);
   assert.match(cmd, /\.morebox \.pills\{flex-wrap:wrap;overflow:visible\}/, 'need chips wrap instead of scrolling off the edge');
+});
+
+test('Supply: «⚙ Administrar centros…» renames or archives (nothing is deleted, can be restored); team switch on the right', () => {
+  const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  assert.match(page, /<dialog id="centersDlg" class="confirmdlg"[^>]*>[^]*?Archivar solo lo quita de la lista: no se borra nada/);
+  assert.match(page, /AppNav\.confirm\(`¿Archivar «\$\{d\.carchive\}»\?`/, 'archive asks first');
+  assert.match(page, /AppNav\.confirm\(`¿Cambiar «\$\{d\.crenameSave\}» por «\$\{to\}»\?`/, 'rename asks first');
+  assert.match(page, /data-crestore="\$\{clean\(c\)\}">↺ Recuperar<\/button>/);
+  assert.match(page, /api\('\/api\/supplier\/centers\/manage','POST',body\)/);
+  assert.match(page, /\.tswitch\{margin-left:auto;/);
 });

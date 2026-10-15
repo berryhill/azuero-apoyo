@@ -146,14 +146,16 @@ func (a *App) agentRoutes(mux *http.ServeMux) {
 	// Para elegir runner o constructor en las necesidades: nombres, roles y equipo, sin actividad. El teléfono va solo
 	// de runners y constructores, para que el centro de comando los llame o les escriba por WhatsApp; nunca el de otros agentes.
 	mux.HandleFunc("GET /api/agent/users", func(w http.ResponseWriter, r *http.Request) {
-		if _, _, ok := a.agentSession(w, r); !ok {
+		me, _, ok := a.agentSession(w, r)
+		if !ok {
 			return
 		}
 		list := []adminUser{}
 		a.db.View(func(tx *bolt.Tx) error {
 			return eachUser(tx, func(u User) error {
 				phone := ""
-				if u.has(roleRunner) || u.has(roleBuilder) {
+				// Teléfonos de runners y constructores (para asignar), y el propio (coordinador al agregar un punto).
+				if u.has(roleRunner) || u.has(roleBuilder) || u.ID == me.ID {
 					phone = u.Telephone
 				}
 				list = append(list, adminUser{ID: u.ID, Name: u.Name, Telephone: phone, Roles: u.Roles, Disabled: u.Disabled, TeamID: u.TeamID})

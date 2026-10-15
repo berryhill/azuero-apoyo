@@ -94,8 +94,10 @@ func TestAgentPanelUsesPointAndNeedEndpointsOnly(t *testing.T) {
 	if !credited {
 		t.Fatalf("point published and credited to the agent: %+v", points)
 	}
-	// Assignment list: names and roles; runner and builder phones so the command center can call them, never other agents'.
-	if body := s.agentCall("GET", "/api/agent/users", "", cookie, "").Body.String(); !strings.Contains(body, "Rui") || !strings.Contains(body, "6999-2222") || strings.Contains(body, "6999-1111") {
+	// Assignment list: names and roles; runner and builder phones so the command center can call them, and the agent's
+	// own phone (coordinator when adding a point); never other agents'.
+	s.expect("POST", "/api/admin/users", `{"name":"Bea Agente","telephone":"6999-3333","roles":["agent"],"accessCode":"BEA123"}`, 201)
+	if body := s.agentCall("GET", "/api/agent/users", "", cookie, "").Body.String(); !strings.Contains(body, "Rui") || !strings.Contains(body, "6999-2222") || !strings.Contains(body, "6999-1111") || strings.Contains(body, "6999-3333") {
 		t.Fatalf("users for assignment: %s", body)
 	}
 	for _, c := range []struct{ method, path, body string }{

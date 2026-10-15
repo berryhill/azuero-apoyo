@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	bolt "go.etcd.io/bbolt"
 	"net/http"
 	"strings"
 	"testing"
@@ -26,14 +27,15 @@ func (s *serviceHarness) supplierLogin(code string) (*http.Cookie, string) {
 }
 
 type supplierView struct {
-	Runs    []supplierRun
-	Open    []supplierRun
-	Runners []supplierRunner
-	Center  string
-	Centers []string
-	Enroute []supplierRun
-	History []supplierRun
-	Live    []runnerOnMap
+	Runs            []supplierRun
+	Open            []supplierRun
+	Runners         []supplierRunner
+	Center          string
+	Centers         []string
+	Enroute         []supplierRun
+	History         []supplierRun
+	Live            []runnerOnMap
+	ArchivedCenters []string
 }
 
 func (s *serviceHarness) supplierView(cookie *http.Cookie) supplierView {
@@ -61,7 +63,7 @@ func findRun(list []supplierRun, id string) *supplierRun {
 // (still IN_PROGRESS for the runner to complete).
 func TestSupplyRequestsRunnersAndDispatchesItsOwnRuns(t *testing.T) {
 	s := newServiceHarness(t)
-	s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)
+	julieID := s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)["id"].(string)
 	s.expect("POST", "/api/admin/users", `{"name":"Otro Acopio","telephone":"6999-1111","roles":["supplier"],"accessCode":"OTRO777"}`, 201)
 	s.expect("POST", "/api/admin/users", `{"name":"Ana Agente","telephone":"6999-3030","roles":["agent"],"accessCode":"ANA777"}`, 201)
 	if w := s.agentCall("POST", "/api/supplier/session", `{"accessCode":"ANA777"}`, nil, ""); w.Code != 403 {
@@ -109,32 +111,36 @@ func TestSupplyRequestsRunnersAndDispatchesItsOwnRuns(t *testing.T) {
 	if w := s.agentCall("POST", "/api/supplier/needs/"+diapers+"/dispatch", `{}`, julie, jcsrf); w.Code != 409 {
 		t.Fatalf("cannot dispatch someone else's run: %d", w.Code)
 	}
-	// Julie asks for a runner: the other Supply can't take over the request; runners see it with Julie and her center.
+	// «¡Yo abastezco!»: Julie and the other center both offer to supply «Agua»; runners see both (who, center, phone)
+	// in «Pedidos» and choose which one to pick up from (the closest).
 	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/request", `{}`, julie, jcsrf); w.Code != 200 {
-		t.Fatalf("request: %d %s", w.Code, w.Body.String())
+		t.Fatalf("offer: %d %s", w.Code, w.Body.String())
 	}
-	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/request", `{}`, other, ocsrf); w.Code != 409 {
-		t.Fatalf("requested elsewhere: %d", w.Code)
+	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/request", `{}`, other, ocsrf); w.Code != 200 {
+		t.Fatalf("several centers can offer the same need: %d %s", w.Code, w.Body.String())
 	}
-	if r := findRun(s.supplierView(other).Open, water); r == nil || r.RequestMine || r.Supplier == nil || r.Supplier.Name != "Julie Acopio" {
-		t.Fatalf("other Supply sees who asked: %+v", r)
+	if r := findRun(s.supplierView(other).Open, water); r == nil || r.MyOffer != "can" || r.OfferedBy != 2 {
+		t.Fatalf("other Supply sees its offer and the count: %+v", r)
 	}
-	if r := findRun(s.supplierView(julie).Open, water); r == nil || !r.RequestMine {
-		t.Fatalf("Julie sees her request: %+v", r)
+	if r := findRun(s.supplierView(julie).Open, water); r == nil || !r.RequestMine || r.OfferedBy != 2 {
+		t.Fatalf("Julie sees her offer: %+v", r)
 	}
 	body := rc.call("GET", "/api/runner/needs", "").Body.String()
-	if !strings.Contains(body, `"requestedAt"`) || !strings.Contains(body, `"center":"Villa Marina"`) || !strings.Contains(body, `"phone":"6999-1010"`) {
-		t.Fatalf("runner sees the request with who/where/phone: %s", body)
+	if !strings.Contains(body, `"requestedAt"`) || !strings.Contains(body, `"openOffers"`) || !strings.Contains(body, `"center":"Villa Marina"`) || !strings.Contains(body, `"phone":"6999-1010"`) || !strings.Contains(body, `"center":"Las Tablas"`) {
+		t.Fatalf("runner sees every offering center with who/where/phone: %s", body)
 	}
-	// The runner accepts: linked to Julie, gone from the request list, in her «Por despachar».
-	if w := rc.call("POST", "/api/runner/needs/"+water+"/take", ``); w.Code != 200 {
-		t.Fatalf("accept: %d", w.Code)
+	if w := rc.call("POST", "/api/runner/needs/"+water+"/take?supplier=nope", ``); w.Code != 409 {
+		t.Fatalf("only a center that offered: %d", w.Code)
+	}
+	// The runner picks Julie: linked to her, gone from the offers, in her «¡A empacar!»; the other center doesn't see it.
+	if w := rc.call("POST", "/api/runner/needs/"+water+"/take?supplier="+julieID, ``); w.Code != 200 {
+		t.Fatalf("accept: %d %s", w.Code, w.Body.String())
 	}
 	v = s.supplierView(julie)
 	if r := findRun(v.Runs, water); r == nil || r.RunnerName != "Rui Corre" || r.DispatchedAt != "" || findRun(v.Open, water) != nil {
-		t.Fatalf("accepted request: runs %+v", v.Runs)
+		t.Fatalf("accepted offer: runs %+v", v.Runs)
 	}
-	if len(s.supplierView(other).Runs) != 0 {
+	if len(s.supplierView(other).Runs) != 0 || findRun(s.supplierView(other).Open, water) != nil {
 		t.Fatalf("the other Supply does not see Julie's run")
 	}
 	// In person: Julie assigns «Carpas» to a runner who is there.
@@ -214,7 +220,7 @@ func TestSupplyRequestsRunnersAndDispatchesItsOwnRuns(t *testing.T) {
 		t.Fatalf("release: %d", w.Code)
 	}
 	if r := findRun(s.supplierView(julie).Open, water); r == nil || !r.RequestMine {
-		t.Fatalf("released request goes back to «Pedir corredor»: %+v", r)
+		t.Fatalf("released run goes back to Julie's offer: %+v", r)
 	}
 	// The in-person run dropped: free again, not Julie's.
 	if w := rc.call("POST", "/api/runner/needs/"+tents+"/release", ``); w.Code != 200 {
@@ -486,7 +492,7 @@ func TestAnotherRunnerToTheSameNeed(t *testing.T) {
 // this center's history (with runner and delivery time); other centers don't see it.
 func TestSupplyHistoryShowsItsCompletedRuns(t *testing.T) {
 	s := newServiceHarness(t)
-	s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)
+	julieID := s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)["id"].(string)
 	s.expect("POST", "/api/admin/users", `{"name":"Otro Acopio","telephone":"6999-1111","roles":["supplier"],"accessCode":"OTRO777"}`, 201)
 	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua (Para beber)","status":"OPEN"}`, 201)
 	var water string
@@ -501,7 +507,7 @@ func TestSupplyHistoryShowsItsCompletedRuns(t *testing.T) {
 	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/request", `{}`, julie, jcsrf); w.Code != 200 {
 		t.Fatalf("request: %d %s", w.Code, w.Body.String())
 	}
-	if w := rc.call("POST", "/api/runner/needs/"+water+"/take", ``); w.Code != 200 {
+	if w := rc.call("POST", "/api/runner/needs/"+water+"/take?supplier="+julieID, ``); w.Code != 200 {
 		t.Fatalf("take: %d %s", w.Code, w.Body.String())
 	}
 	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/dispatch", `{}`, julie, jcsrf); w.Code != 200 {
@@ -559,5 +565,61 @@ func TestSupplyLiveLocationOnlyForTeamMates(t *testing.T) {
 	}
 	if len(v.Live) != 1 || v.Live[0].Name != "Lia Mate" {
 		t.Fatalf("Supply map: only team mates: %+v", v.Live)
+	}
+}
+
+// Centers can be renamed (everywhere, including people on that center) or archived: hidden from the picker but nothing
+// is lost (people keep it, runs and history unchanged) and it can be restored. Old single requests become an offer.
+func TestSupplyCentersRenameArchiveAndOldRequests(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)
+	s.expect("POST", "/api/admin/users", `{"name":"Otro Acopio","telephone":"6999-1111","roles":["supplier"],"accessCode":"OTRO777"}`, 201)
+	jc, jt := s.supplierLogin("JULIE77")
+	oc, ot := s.supplierLogin("OTRO777")
+	s.agentCall("POST", "/api/supplier/center", `{"center":"Villa Marina"}`, jc, jt)
+	s.agentCall("POST", "/api/supplier/center", `{"center":"Las Tablas"}`, oc, ot)
+	manage := func(body string) (int, string) {
+		w := s.agentCall("POST", "/api/supplier/centers/manage", body, jc, jt)
+		return w.Code, w.Body.String()
+	}
+	if code, _ := manage(`{"center":"Villa Marina","rename":"las tablas"}`); code != 409 {
+		t.Fatalf("rename onto an existing name: %d", code)
+	}
+	if code, body := manage(`{"center":"villa marina","rename":"Villa Marina Norte"}`); code != 200 || !strings.Contains(body, "Villa Marina Norte") {
+		t.Fatalf("rename: %d %s", code, body)
+	}
+	if v := s.supplierView(jc); v.Center != "Villa Marina Norte" || strings.Join(v.Centers, "|") != "Las Tablas|Villa Marina Norte" {
+		t.Fatalf("people on the center follow the new name: %q %q", v.Center, v.Centers)
+	}
+	if code, body := manage(`{"center":"Las Tablas","archive":true}`); code != 200 || !strings.Contains(body, `"archived":["Las Tablas"]`) {
+		t.Fatalf("archive: %d %s", code, body)
+	}
+	v := s.supplierView(oc)
+	if strings.Join(v.Centers, "|") != "Villa Marina Norte" || v.Center != "Las Tablas" || strings.Join(v.ArchivedCenters, "|") != "Las Tablas" {
+		t.Fatalf("archived: out of the picker, kept by its people: %+v", v)
+	}
+	if code, _ := manage(`{"center":"Las Tablas","archive":false}`); code != 200 || !strings.Contains(strings.Join(s.supplierView(jc).Centers, "|"), "Las Tablas") {
+		t.Fatalf("restore: %d", code)
+	}
+	// An old single request (one center per open need) becomes that center's offer.
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","status":"OPEN"}`, 201)
+	n := s.needsOf(s.camp)[0]
+	var julie User
+	s.app.db.View(func(tx *bolt.Tx) error {
+		eachUser(tx, func(u User) error {
+			if u.Name == "Julie Acopio" {
+				julie = u
+			}
+			return nil
+		})
+		return nil
+	})
+	n.SupplierID, n.SupplierRequestedAt = julie.ID, nowStamp()
+	s.app.db.Update(func(tx *bolt.Tx) error { return putJSON(tx.Bucket(needsBucket), n.ID, n) })
+	if e := s.app.db.Update(migrateOpenRequests); e != nil {
+		t.Fatal(e)
+	}
+	if r := findRun(s.supplierView(jc).Open, n.ID); r == nil || r.MyOffer != "can" || r.OfferedBy != 1 {
+		t.Fatalf("old request is now Julie's offer: %+v", r)
 	}
 }
