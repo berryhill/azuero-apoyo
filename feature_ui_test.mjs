@@ -2197,3 +2197,14 @@ test('sign-in everywhere: «Ya tengo código» and «Crear cuenta nueva» side b
   for (const v of ['Juan Pérez', 'María', '6000-0000', '!']) assert.equal(isCode(v), false, v);
   assert.equal(codeOf(' !jadersurf3 '), 'jadersurf3', 'existing codes with «!» reach the server exactly as before');
 });
+
+test('runners map: choosing a run keeps the map on it even with live GPS; «🎯 Ir a mi ubicación» follows again; weak signal does not turn live off', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  assert.match(runner, /function applyFocus\(\)\{const pin=pinsByCamp\.get\(focusCamp\);if\(!map\|\|!pin\|\|!pendingFocus\)return;pendingFocus=false;setFollow\(false\);/, 'choosing a run stops following the person');
+  assert.match(runner, /syncFollowBtn\(\);if\(!follow\)\{first=false;return\}/, 'GPS updates never pull the map away from the chosen run (not even the first fix)');
+  assert.match(runner, /map\.on\('dragstart',\(\)=>\{lastPan=Date\.now\(\);setFollow\(false\)\}\)/, 'moving the map by hand also stops following');
+  assert.match(runner, /<button type="button" class="followbtn" id="followMe" hidden>🎯 Ir a mi ubicación<\/button>/);
+  assert.match(runner, /\$\('#followMe'\)\.onclick=\(\)=>\{setFollow\(true\);if\(map&&me\)map\.setView\(me,Math\.max\(map\.getZoom\(\),15\)\)\};/);
+  assert.match(runner, /let first=true;setFollow\(true\);watchId=navigator\.geolocation\.watchPosition\(/, 'turning live on follows the person');
+  assert.match(runner, /if\(err\.code!==1\)return;stopLive\(\);flash\('Permite el acceso a tu ubicación para verla en el mapa\.'\)/, 'only a denied permission turns live location off');
+});
