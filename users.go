@@ -30,7 +30,7 @@ const (
 	roleDonations = "donations"
 )
 
-var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations}
+var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier}
 
 type User struct {
 	ID        string `json:"id"`
@@ -169,7 +169,7 @@ type legacyUser struct {
 
 func (l legacyUser) linkKey() string { return l.role + ":" + l.ID }
 
-var roleLabels = map[string]string{roleRunner: "Corredor", roleBuilder: "Constructor", roleAgent: "Agente", roleDonations: "Donaciones"}
+var roleLabels = map[string]string{roleRunner: "Corredor", roleBuilder: "Constructor", roleAgent: "Agente", roleDonations: "Donaciones", roleSupplier: "Acopio"}
 
 // orderRoles deja los roles sin repetir y en el orden fijo de userRoles.
 func orderRoles(roles []string) []string {
@@ -568,7 +568,7 @@ func secureCookie(r *http.Request) bool {
 // dropCrewSessions cierra las sesiones de un usuario (al desactivarlo o quitarle roles) y quita su ubicación en vivo.
 func (a *App) dropCrewSessions(id string) {
 	a.mu.Lock()
-	for _, sessions := range []map[string]runnerSession{a.runnerSessions, a.builderSessions, a.viewerSessions, a.agentSessions, a.deskSessions} {
+	for _, sessions := range []map[string]runnerSession{a.runnerSessions, a.builderSessions, a.viewerSessions, a.agentSessions, a.deskSessions, a.supplierSessions} {
 		for token, s := range sessions {
 			if s.runnerID == id {
 				delete(sessions, token)

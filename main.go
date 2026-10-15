@@ -239,6 +239,11 @@ type CampNeed struct {
 	RepeatDays int      `json:"repeatDays,omitempty"`
 	NextDueAt  string   `json:"nextDueAt,omitempty"`
 	DoneLog    []string `json:"doneLog,omitempty"`
+	// Despachada: acopio la marcó como salida con su carga (supplier.go). Es un paso dentro de En camino; se borra si
+	// la carrera vuelve a Abierta. Quién la despachó no sale en público.
+	DispatchedAt     string `json:"dispatchedAt,omitempty"`
+	DispatchedBy     string `json:"dispatchedBy,omitempty"`
+	DispatchedByName string `json:"dispatchedByName,omitempty"`
 	// Solo en la respuesta de la ficha para quien entró con código (nombre del conductor asignado, sin su ID); nunca se guarda.
 	RunnerName string `json:"runnerName,omitempty"`
 }
@@ -269,9 +274,10 @@ type App struct {
 	// Vista completa de la página pública para quien entró con código («!código»); cookie en /api/full.
 	viewerSessions map[string]runnerSession
 	// Centro de comando de agentes (agent.go, command.html): sesión con código, cookie en /api/agent.
-	agentSessions map[string]runnerSession
-	deskSessions  map[string]runnerSession
-	attempts      map[string]attempt
+	agentSessions    map[string]runnerSession
+	deskSessions     map[string]runnerSession
+	supplierSessions map[string]runnerSession
+	attempts         map[string]attempt
 	// Códigos de acceso incorrectos por IP de quien visita (ver signInWithCode).
 	codeAttempts map[string]attempt
 	// Última vez que cada usuario hizo algo con su sesión (en memoria; se guarda en el usuario cada 2 minutos).
@@ -397,7 +403,7 @@ func openApp(path, static string) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{db: db, static: static, sessions: map[string]session{}, runnerSessions: map[string]runnerSession{}, builderSessions: map[string]runnerSession{}, viewerSessions: map[string]runnerSession{}, agentSessions: map[string]runnerSession{}, deskSessions: map[string]runnerSession{}, attempts: map[string]attempt{}, codeAttempts: map[string]attempt{}, lastSeen: map[string]time.Time{}, locations: map[string]liveLocation{}, router: newRouter(), media: newMediaStore(path)}
+	a := &App{db: db, static: static, sessions: map[string]session{}, runnerSessions: map[string]runnerSession{}, builderSessions: map[string]runnerSession{}, viewerSessions: map[string]runnerSession{}, agentSessions: map[string]runnerSession{}, deskSessions: map[string]runnerSession{}, supplierSessions: map[string]runnerSession{}, attempts: map[string]attempt{}, codeAttempts: map[string]attempt{}, lastSeen: map[string]time.Time{}, locations: map[string]liveLocation{}, router: newRouter(), media: newMediaStore(path)}
 	err = db.Update(func(tx *bolt.Tx) error {
 		if _, e := tx.CreateBucketIfNotExists(submissions); e != nil {
 			return e
@@ -631,6 +637,9 @@ func migrateNeedUrgency(tx *bolt.Tx) error {
 }
 func putNeed(b *bolt.Bucket, n *CampNeed) error {
 	n.UpdatedAt, n.RunnerName = nowStamp(), ""
+	if n.Status != "IN_PROGRESS" && n.Status != "COMPLETED" {
+		n.DispatchedAt, n.DispatchedBy, n.DispatchedByName = "", "", ""
+	}
 	rescheduleService(n)
 	return putJSON(b, n.ID, n)
 }
@@ -1390,12 +1399,13 @@ func (a *App) routes() http.Handler {
 	a.signupRoutes(mux)
 	a.statsRoutes(mux)
 	a.donationRoutes(mux)
+	a.supplierRoutes(mux)
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		name := ""
 		switch r.URL.Path {
 		case "/", "/index.html":
 			name = "index.html"
-		case "/admin.html", "/donations.html", "/camp.html", "/runner.html", "/builder.html", "/command.html", "/pointform.js", "/nav.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
+		case "/admin.html", "/donations.html", "/supplier.html", "/camp.html", "/runner.html", "/builder.html", "/command.html", "/pointform.js", "/nav.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
 			name = strings.TrimPrefix(r.URL.Path, "/")
 		default:
 			http.NotFound(w, r)
@@ -2033,23 +2043,25 @@ func campContacts(p Point) []runnerContact {
 }
 
 type runnerNeed struct {
-	ID             string        `json:"id"`
-	Need           string        `json:"need"`
-	Status         string        `json:"status"`
-	Urgency        string        `json:"urgency"`
-	RequesterName  string        `json:"requesterName,omitempty"`
-	RequesterPhone string        `json:"requesterPhone,omitempty"`
-	CreatedAt      string        `json:"createdAt,omitempty"`
-	RevisedAt      string        `json:"revisedAt,omitempty"`
-	EnRouteAt      string        `json:"enRouteAt,omitempty"`
-	Packing        []PackingLine `json:"packing,omitempty"`
-	Media          []MediaItem   `json:"media,omitempty"`
-	Scope          string        `json:"scope,omitempty"`
-	Materials      []PackingLine `json:"materials,omitempty"`
-	Progress       int           `json:"progress,omitempty"`
-	Kind           string        `json:"kind,omitempty"`
-	RepeatDays     int           `json:"repeatDays,omitempty"`
-	Assessments    []Assessment  `json:"assessments,omitempty"`
+	ID             string `json:"id"`
+	Need           string `json:"need"`
+	Status         string `json:"status"`
+	Urgency        string `json:"urgency"`
+	RequesterName  string `json:"requesterName,omitempty"`
+	RequesterPhone string `json:"requesterPhone,omitempty"`
+	CreatedAt      string `json:"createdAt,omitempty"`
+	RevisedAt      string `json:"revisedAt,omitempty"`
+	EnRouteAt      string `json:"enRouteAt,omitempty"`
+	// Despachada desde acopio (sigue en camino).
+	DispatchedAt string        `json:"dispatchedAt,omitempty"`
+	Packing      []PackingLine `json:"packing,omitempty"`
+	Media        []MediaItem   `json:"media,omitempty"`
+	Scope        string        `json:"scope,omitempty"`
+	Materials    []PackingLine `json:"materials,omitempty"`
+	Progress     int           `json:"progress,omitempty"`
+	Kind         string        `json:"kind,omitempty"`
+	RepeatDays   int           `json:"repeatDays,omitempty"`
+	Assessments  []Assessment  `json:"assessments,omitempty"`
 	// assigned: la necesidad está asignada a quien consulta (puede armar su lista de empaque).
 	Assigned bool       `json:"assigned,omitempty"`
 	Camp     runnerCamp `json:"camp"`
@@ -2162,6 +2174,10 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 		if item.has(roleAgent) {
 			a.startAgentSession(w, r, item.ID)
 			panels = append(panels, map[string]string{"label": "Comando", "url": "/command.html"})
+		}
+		if item.has(roleSupplier) {
+			a.startSupplierSession(w, r, item.ID)
+			panels = append(panels, map[string]string{"label": "Supply", "url": "/supplier.html"})
 		}
 		if item.has(roleDonations) {
 			a.startDeskSession(w, r, item.ID)
@@ -2420,7 +2436,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					}
 				}
 				who := *c.assignee(&n)
-				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
+				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
 				if item.Assigned {
 					item.Media = n.Media
 				} else if c.repair {
@@ -2818,7 +2834,7 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 							n.RunnerName = u.Name
 						}
 					}
-					n.RunnerID, n.ReleasedBy = "", ""
+					n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName = "", "", "", ""
 					if !reveal {
 						n.Packing, n.Media = nil, nil
 					} else {

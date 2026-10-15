@@ -796,7 +796,7 @@ test('public pages show priority only as an Urgente badge, never Normal, and not
     assert.equal(badge(''), '');
     assert.equal(badge('urgente'), '<span class="badge urgent">Urgente</span>');
   }
-  assert.match(template, /<b>\$\{clean\(needStatusEs\[n\.status\]\|\|n\.status\)\} \$\{urgentBadge\(n\.urgency\)\}<\/b>/);
+  assert.match(template, /<b>\$\{clean\(n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada':needStatusEs\[n\.status\]\|\|n\.status\)\} \$\{urgentBadge\(n\.urgency\)\}<\/b>/);
   assert.match(camp, /\$\{urgentBadge\(p\.highestUrgency\)\}/);
   // A need without text (reserved for an access-code runner) shows only its status: no empty text or time line.
   assert.match(template, /\$\{n\.need\?needChips\(n\.need\):''\}/);
@@ -1634,7 +1634,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.doesNotMatch(agent, /\$\('#needDialog'\)\.close\(\)/, 'every close goes through closeNeedDlg');
   assert.doesNotMatch(agent, /if\(e\.target===d\)\{d\.close\(\)/, 'tapping the backdrop does not close it');
   assert.doesNotMatch(agent.match(/function openSupplyStep[^\n]*/)[0], /\.focus\(\)/, 'no auto-focus (no surprise keyboard)');
-  assert.match(agent, /<span class="state">\$\{n\.status==='OPEN'\?'Necesita':needLook\[n\.status\]\[1\]\}<\/span>[^`]*?\$\{needChips\(n\.need\)\}\$\{runnerBlock\(n,actions===true\)\}/, 'open needs read «Necesita» right before the chips');
+  assert.match(agent, /<span class="state">\$\{n\.status==='OPEN'\?'Necesita':n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada':needLook\[n\.status\]\[1\]\}<\/span>[^`]*?\$\{needChips\(n\.need\)\}\$\{runnerBlock\(n,actions===true\)\}/, 'open needs read «Necesita» right before the chips');
   assert.match(agent, /\.needlist \.open \.state\{background:#173c46;color:#fff\}/, 'not red: red is for Urgente');
   assert.doesNotMatch(agent, /Corredor/);
   assert.match(agent, /const needOrder=\(a,b\)=>Object\.keys\(needLook\)\.indexOf\(a\.status\)-Object\.keys\(needLook\)\.indexOf\(b\.status\)\|\|/, 'abiertas first, then en camino, then completed');
@@ -2237,4 +2237,26 @@ test('runners: «¡Yo lo llevo!» asks first (point + what to carry); «Cancelar
   assert.match(take, /if\(await AppNav\.choose\('¿Llevas esta carrera\?',\{detail,options:\[\['take','✓ Sí, la llevo','ok'\],\['no','Cancelar',''\]\]\}\)!=='take'\)return false\}button\.disabled=true;/, 'confirm before the request');
   assert.ok(take.indexOf("AppNav.choose(") < take.indexOf("/take'"), 'nothing is sent before confirming');
   assert.match(runner, /takeNeed\(b\.dataset\.take,b\)\.then\(ok=>\{if\(!ok\)return;/, 'cancel in the map card does not close it');
+});
+
+test('Acopio (supplier.html): runs in progress with the runner, packing, departure photos and «Despachada» (a step inside «En camino»)', () => {
+  const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  assert.match(page, /<title>Acopio · Azuero<\/title>/);
+  assert.match(page, /<button type="button" role="tab" data-main="todo"[^>]*><span aria-hidden="true">📦<\/span> Por despachar <b id="cntTodo"><\/b><\/button><button type="button" role="tab" data-main="done"[^>]*><span aria-hidden="true">🚚<\/span> Despachadas <b id="cntDone"><\/b><\/button>/);
+  assert.match(page, /placeholder="Buscar corredor, punto o teléfono…"/, 'find the runner who just arrived');
+  assert.match(page, /<form id="gateForm" novalidate data-signin><h1>Entrar a Supply<\/h1><fieldset class="sg sg-code">/);
+  assert.doesNotMatch(page.match(/<form id="gateForm"[^]*?<\/form>/)[0], /sg-new/, 'admin gives the role; no self sign-up here');
+  for (const api of ['/api/supplier/runs', '/api/supplier/packing-items', "/api/supplier/needs/'+encodeURIComponent(n.id)+'/packing", "/api/supplier/needs/'+encodeURIComponent(id)+'/media?stage=pickup", "/dispatch','POST',{undo:true}"]) assert.ok(page.includes(api), api);
+  assert.doesNotMatch(page, /data-complete|data-take|data-release|\/api\/runner\//, 'no Completé, no taking or leaving runs, no runner endpoints');
+  assert.match(page, /AppNav\.choose\('¿Sale del acopio esta carrera\?'/, 'confirm before dispatching');
+  assert.match(page, /<button class="btn dispatch" type="button" data-dispatch="\$\{id\}">🚚 Despachada<\/button>/);
+  assert.match(page, /<div class="runnerline">🏃 <span class="rn">\$\{clean\(n\.runnerName\|\|'Corredor'\)\}<\/span>/, 'who carries it');
+  assert.match(page, /\$\{needDetails\(n,true,true\)\}/, 'same card as Runners');
+  assert.match(admin, /<input type="checkbox" name="roles" value="supplier"> Acopio<\/label>/);
+  assert.match(admin, /n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada · en camino'/);
+  assert.match(nav, /\['\/supplier\.html', '📦', \(\) => 'Supply', u => has\(u, 'supplier'\)\]/);
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  assert.match(runner, /🚚 Despachada desde acopio/, 'the runner sees it on the card');
 });

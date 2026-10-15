@@ -35,7 +35,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   const style = document.createElement('style');
   style.textContent = css;
   document.head.appendChild(style);
-  const panelUrl = {runner: '/runner.html', builder: '/builder.html', agent: '/command.html', donations: '/donations.html'};
+  const panelUrl = {runner: '/runner.html', builder: '/builder.html', agent: '/command.html', donations: '/donations.html', supplier: '/supplier.html'};
   const has = (u, role) => (u.roles || []).includes(role) || (u.panels || []).some(p => p.url === panelUrl[role]);
   // Agentes sin rol de runner entran al panel de runners solo para las listas de empaque.
   const pages = [
@@ -43,6 +43,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     ['/runner.html', '<svg class="walkico" style="color:#5b9be6" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="4" r="2"/><path d="M12.5 7.5 10 13"/><path d="m12 8 4 2.5 3-1"/><path d="m12 8-4 1.5-2 2.5"/><path d="m10 13 3.5 3-1 5"/><path d="m10 13-2.5 4H4"/></svg>', u => !u.roles || u.roles.includes('runner') ? 'Runners' : 'Empaque', u => has(u, 'runner') || has(u, 'agent')],
     ['/builder.html', '🔨', () => 'Constructores', u => has(u, 'builder')],
     ['/command.html', '🎧', () => 'Comando', u => has(u, 'agent')],
+    ['/supplier.html', '📦', () => 'Supply', u => has(u, 'supplier')],
     ['/donations.html', '🎁', () => 'Donaciones', u => has(u, 'donations')],
   ];
   function user() {
