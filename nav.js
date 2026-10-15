@@ -30,7 +30,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 .msuser{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid #ffffff1f;color:#fff}.msuser b{flex:1;min-width:0;font-size:15px;overflow-wrap:anywhere}.msuser button{border:1px solid #ffffff40;background:none;color:#ffd0c2;border-radius:9px;padding:8px 12px;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}
 .mpages{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid #ffffff1f}.mpages a{display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:10px;color:#e3ecef;text-decoration:none;font-size:15px;font-weight:750}.mpages a[aria-current="page"]{background:#fff;color:#10263a}.mpages a:active{background:#ffffff26}
 .msize{display:flex;align-items:center;gap:8px;padding:12px 4px 2px;color:#c8d6db;font-size:14px;font-weight:700}.msize .lbl{flex:1}.msize button{width:44px;height:38px;border:1px solid #47657a;border-radius:9px;background:none;color:#fff;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.msize button:disabled{opacity:.4}.msize output{min-width:46px;text-align:center;color:#fff}}
-.remember{display:flex!important;align-items:center;gap:8px;margin:10px 0 2px;font-size:13px;font-weight:650;color:#36505a;cursor:pointer}.remember[hidden]{display:none!important}.remember input{width:20px;height:20px;margin:0;accent-color:#19745f;flex:none}
+.gate:has(form[data-signin]){overflow-y:auto;place-items:start center}.gate form[data-signin]{margin:auto 0}.sg{border:1px solid #dbe5e5;border-radius:12px;margin:12px 0 0;padding:4px 14px 14px;min-width:0}.sg legend{padding:0 6px;font:800 14px Inter,system-ui,sans-serif;color:#173c46}.sg label{display:block}.sg .sgbtn{display:block;width:100%;margin-top:12px;border:0;border-radius:10px;padding:12px 16px;font:800 15px Inter,system-ui,sans-serif;cursor:pointer;color:#fff;background:#19745f}.sg-new .sgbtn{background:#ed7654}.sg small{font-weight:600;color:#7a8d94}.sgor{margin:10px 0 0;text-align:center;font-size:12px;font-weight:700;color:#8a9aa0}.remember{display:flex!important;align-items:center;gap:8px;margin:10px 0 2px;font-size:13px;font-weight:650;color:#36505a;cursor:pointer}.remember[hidden]{display:none!important}.remember input{width:20px;height:20px;margin:0;accent-color:#19745f;flex:none}
 .appconfirm .acts{display:flex;gap:10px;margin-top:18px}.appconfirm button{flex:1;border:0;border-radius:10px;padding:13px 16px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}.appconfirm .no{background:#eef3f3;color:#173c46}.appconfirm .yes{background:#9a4536;color:#fff}.appchoose .acts{flex-direction:column}.appconfirm .yes.ok{background:#19745f}.appconfirm .yes.go{background:#1f63c6}`;
   const style = document.createElement('style');
   style.textContent = css;
@@ -269,43 +269,49 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') showSheet(false); });
 
-  // Entrada común (Runners, Constructores, Comando; la página pública usa lo mismo en su «Login»): «Nombre y apellido» + «Teléfono».
-  // Si lo escrito en el nombre empieza con «!» y un carácter más, es un código de acceso: se oculta el teléfono y el campo
-  // pasa a «Código de acceso». Los formularios lo piden con data-codelogin.
+  // Entradas (Login del mapa, Runners, Constructores, Comando): dos grupos siempre a la vista, sin ocultar campos.
+  // «Ya tengo código» (accessCode + Recordar + Entrar) y «Crear cuenta nueva» (nombre, teléfono, correo). Los formularios
+  // llevan data-signin; cada página hace el envío y pregunta a signinMode qué grupo se envió.
   const codeIntro = 'Escribe tu código de acceso para retomar tus últimas carreras.';
   // ¿Es un código de acceso? Empieza con «!», o es una sola palabra con letras y números (como los que se generan al
-  // registrarse, p. ej. loro47juan3): así un código pegado sin el «!» también entra. Los nombres no llevan números.
+  // registrarse, p. ej. loro47juan3). Los nombres no llevan números.
   const isCode = v => { v = String(v || '').trim(); return /^!\S/.test(v) || /^(?=.*\d)(?=.*[a-zñ])[a-z0-9ñ]{6,24}$/i.test(v); };
   const codeOf = v => String(v || '').trim().replace(/^!/, '').replace(/\s+/g, '');
-  function syncCodeLogin(form) {
-    const name = form.elements.name, phone = form.elements.telephone?.closest('label'), label = form.querySelector('.lbl'), intro = form.querySelector('[data-intro]');
-    if (!name) return;
-    const code = isCode(name.value);
-    if (label) { label.dataset.normal ??= label.textContent; label.textContent = code ? 'Código de acceso' : label.dataset.normal; }
-    if (intro) { intro.dataset.normal ??= intro.textContent; intro.textContent = code ? codeIntro : intro.dataset.normal; }
-    if (phone) phone.style.display = code ? 'none' : '';
-    name.autocomplete = code ? 'off' : 'name';
-    name.autocapitalize = code ? 'characters' : 'words';
-    name.spellcheck = false;
+  const signinForms = 'form[data-signin]';
+  // Qué grupo se envió: el botón tocado o, con Enter, el grupo donde está el cursor (con Enter el navegador reporta el
+  // primer botón del formulario y le hace un clic sin puntero (detail 0) con el cursor en otro campo: ese no cuenta).
+  document.addEventListener('click', e => { const b = e.target.closest?.('form[data-signin] .sgbtn'); if (b?.form && (e.detail > 0 || document.activeElement === b)) { b.form.dataset.clicked = b.value; setTimeout(() => delete b.form.dataset.clicked); } }, true);
+  function signinMode(e) {
+    const clicked = e.target?.dataset?.clicked;
+    if (clicked) return clicked === 'new' ? 'new' : 'code';
+    return document.activeElement?.closest?.('.sg-new') ? 'new' : 'code';
   }
-
-  // «Recordar mi código de acceso»: aparece en cuanto lo escrito empieza con «!». Marcado, el código queda guardado en este
-  // teléfono (rememberedCode, que «Salir» no borra) y cada página entra sola; al volver a escribir «!» se completa con él.
-  // Sin marcar, se olvida.
   const codeKeys = ['runnerCode', 'builderCode', 'agentCode'];
-  function rememberBox(form) {
-    if (form.querySelector('.remember')) return;
-    const btn = form.querySelector('[type=submit]');
-    if (!btn) return;
-    let on = true; try { on = localStorage.getItem('rememberCode') !== '0'; } catch {}
-    btn.insertAdjacentHTML('beforebegin', `<label class="remember" hidden><input type="checkbox" name="remember"${on ? ' checked' : ''}> Recordar mi código de acceso</label>`);
+  const rememberedCode = () => { try { return localStorage.getItem('rememberCode') !== '0' && localStorage.getItem('rememberedCode') || ''; } catch { return ''; } };
+  // El código recordado ya escrito (al abrir la página, al abrir «Login» y después de «Salir»): solo falta «Entrar».
+  function prefillCode(form) {
+    const box = form?.elements?.accessCode, saved = rememberedCode();
+    if (!box || !saved || box.value.trim()) return;
+    box.value = saved;
+    form.dataset.filled = '1';
   }
-  function showRemember(form, code) { const box = form.querySelector('.remember'); if (box) box.hidden = !code; }
-  // Al enviar se anota solo la preferencia; el código se guarda cuando la página confirma que entró (codeSignedIn), para no
-  // recordar un código mal escrito.
+  const prefillAll = () => document.querySelectorAll(signinForms).forEach(f => { prefillCode(f); const r = f.querySelector('.remember input'); if (r) { try { r.checked = localStorage.getItem('rememberCode') !== '0'; } catch {} } });
+  document.addEventListener('reset', e => { if (e.target.matches?.(signinForms)) setTimeout(() => prefillAll()); });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', prefillAll); else setTimeout(prefillAll);
+  document.addEventListener('input', e => {
+    const f = e.target.closest?.(signinForms);
+    if (!f) return;
+    // Un código pegado en «Nombre completo» pasa a su campo.
+    if (e.target.name === 'name' && f.elements.accessCode && isCode(e.target.value)) { f.elements.accessCode.value = codeOf(e.target.value); e.target.value = ''; f.elements.accessCode.focus(); return; }
+    // Escribir solo «!» en el código completa el recordado (una vez por intento).
+    const saved = rememberedCode();
+    if (e.target.name === 'accessCode' && e.target.value.trim() === '!' && saved && !f.dataset.filled && e.inputType !== 'deleteContentBackward') { f.dataset.filled = '1'; e.target.value = saved; }
+    if (e.target.name === 'accessCode' && !e.target.value.trim()) delete f.dataset.filled;
+  });
+  // Al enviar el código se anota la preferencia «Recordar»; el código se guarda solo cuando la página confirma que entró.
   document.addEventListener('submit', e => {
-    const form = e.target, name = form.elements?.name, box = form.querySelector?.('.remember input');
-    if (!name || !box || !isCode(name.value)) return;
+    const box = e.target.querySelector?.('.remember input');
+    if (!e.target.matches?.(signinForms) || !box || signinMode(e) !== 'code') return;
     try { localStorage.setItem('rememberCode', box.checked ? '1' : '0'); } catch {}
   }, true);
   // Entró con este código: se recuerda en el teléfono (por defecto) para todas las páginas; si desmarcó «Recordar», se olvida.
@@ -317,36 +323,27 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       else { localStorage.removeItem('rememberedCode'); setTimeout(() => codeKeys.forEach(k => localStorage.removeItem(k)), 4000); }
     } catch {}
   }
-  // Con el código recordado, cada página lo encuentra con su propio nombre para entrar sola.
-  try { const saved = codeKeys.map(k => localStorage.getItem(k)).find(Boolean); if (saved && localStorage.getItem('rememberCode') === '1') codeKeys.forEach(k => { if (!localStorage.getItem(k)) localStorage.setItem(k, saved); }); } catch {}
-  // El código recordado ya escrito en las entradas (al abrir la página, al abrir «Login» y después de «Salir»): solo falta «Entrar».
-  function prefillCode(form) {
-    const name = form?.elements?.name, saved = rememberedCode();
-    if (!name || !saved || name.value.trim()) return;
-    name.value = isCode(saved) ? saved : '!' + saved;
-    form.dataset.filled = '1';
-    name.dispatchEvent(new Event('input', {bubbles: true}));
+  // Cuenta nueva desde una entrada: crea el usuario (aprobado al instante) y devuelve su código; muestra el código para copiarlo.
+  async function createAccount({name, telephone, email, panel}) {
+    name = String(name || '').trim().replace(/\s+/g, ' ');
+    if (name.split(' ').length < 2) throw Object.assign(Error('Escribe tu nombre y apellido.'), {field: 'name'});
+    if (String(telephone || '').replace(/\D/g, '').length < 7) throw Object.assign(Error('Escribe un teléfono válido (por ejemplo 6000-0000).'), {field: 'telephone'});
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw Object.assign(Error('Revisa el correo (por ejemplo nombre@gmail.com) o déjalo vacío.'), {field: 'email'});
+    const r = await fetch('/api/session/signup', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, telephone, email, ...(panel ? {panel} : {})})});
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(Error(body.error || 'No se pudo crear la cuenta.'), {field: body.field});
+    try { localStorage.setItem('rememberCode', '1'); } catch {}
+    // Si otra persona ya tenía ese nombre, el servidor le agrega un número («Juan Pérez 2»).
+    return {code: String(body.accessCode).toLowerCase(), name: body.name};
   }
-  const prefillAll = () => document.querySelectorAll('form[data-codelogin],form#loginForm').forEach(prefillCode);
-  document.addEventListener('reset', e => { if (e.target.matches?.('form[data-codelogin],form#loginForm')) setTimeout(() => prefillCode(e.target)); });
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', prefillAll); else setTimeout(prefillAll);
-  const rememberedCode = () => { try { return localStorage.getItem('rememberCode') === '1' && localStorage.getItem('rememberedCode') || ''; } catch { return ''; } };
-  document.addEventListener('input', e => {
-    const f = e.target.closest?.('form[data-codelogin],form#loginForm');
-    if (!f || e.target.name !== 'name') return;
-    // Escribir solo «!» completa el código recordado (una vez por intento: si lo borran, pueden escribir otro). Se vuelve a
-    // avisar del cambio para que cada página (también el «Login» del mapa) pase a modo código: oculta el teléfono y cambia los textos.
-    const saved = rememberedCode();
-    if (e.target.value.trim() === '!' && saved && !f.dataset.filled && e.inputType !== 'deleteContentBackward') { f.dataset.filled = '1'; e.target.value = '!' + saved; e.target.setSelectionRange?.(e.target.value.length, e.target.value.length); e.target.dispatchEvent(new Event('input', {bubbles: true})); return; }
-    if (!e.target.value.trim()) delete f.dataset.filled;
-    if (f.matches('[data-codelogin]')) syncCodeLogin(f);
-    rememberBox(f);
-    showRemember(f, /^!/.test(e.target.value.trimStart()) || isCode(e.target.value));
-  });
+  async function showNewCode(code, name = '') {
+    const choice = await choose('Tu código de acceso: ' + code, {detail: (name ? `Tu cuenta: ${name}. ` : '') + 'Ya quedó guardado en este teléfono: la próxima vez aparece escrito y solo tocas «Entrar». Cópialo para entrar en otro teléfono.', options: [['ok', 'Listo', 'go'], ['copy', 'Copiar código', 'ok']]});
+    if (choice === 'copy') { try { await navigator.clipboard.writeText(code); } catch {} }
+  }
   // Nombre corto para encabezados: nombre + primeras letras del apellido («Arianne Ori…»).
   const shortName = n => { const w = String(n || '').trim().split(/\s+/).filter(Boolean); return w.length < 2 ? w.join('') : w[0] + ' ' + (w[1].length > 3 ? w[1].slice(0, 3) + '…' : w[1]); };
   const drawAll = () => { draw(); drawMobileBar(); };
-  window.AppNav = {draw: drawAll, confirm, choose, phone, shortName, syncCodeLogin, codeIntro, isCode, codeOf, codeSignedIn, prefillCode};
+  window.AppNav = {draw: drawAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); }); else { draw(); mountTextSize(); mountMobileBar(); }
   // Entrar o salir en otra pestaña actualiza esta.
   addEventListener('storage', e => { if (e.key === 'codeUser' || e.key === null) draw(); if (e.key === 'textZoom' || e.key === null) { zoom = sizes.includes(savedSize()) ? savedSize() : 1; applySize(); } });

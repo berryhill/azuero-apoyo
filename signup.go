@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math/big"
 	"net/http"
 	"strings"
@@ -59,7 +60,7 @@ func signupCode(name string) string {
 
 var errSignupPhoneTaken = userFieldError{"telephone", "Ya hay una cuenta con ese teléfono. Entra con tu código; si lo perdiste, pídelo a administración."}
 
-const signupNote = "Se registró desde la página pública: entró como corredor sin aprobación manual. Cambia su acceso o desactívalo si hace falta."
+const signupNote = "Se registró solo (página pública o entrada de un panel), sin aprobación manual. Cambia su acceso o desactívalo si hace falta."
 
 func (a *App) signupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/session/signup", func(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +77,7 @@ func (a *App) signupRoutes(mux *http.ServeMux) {
 			return
 		}
 		a.mu.Unlock()
-		f, ok := decodeFields(w, r, map[string]int{"name": 120, "telephone": 40, "email": 160})
+		f, ok := decodeFields(w, r, map[string]int{"name": 120, "telephone": 40, "email": 160, "panel": 16})
 		if !ok {
 			return
 		}
@@ -96,18 +97,35 @@ func (a *App) signupRoutes(mux *http.ServeMux) {
 			failField(w, 400, "email", "Correo inválido (por ejemplo nombre@gmail.com).")
 			return
 		}
-		u := User{ID: randomToken(), Name: name, Telephone: phone, Email: email, Roles: []string{roleRunner}, CreatedAt: nowStamp(), Note: signupNote}
+		// Desde la entrada de Constructores queda como constructor; desde cualquier otra, como corredor.
+		role := roleRunner
+		if fieldText(f, "panel") == "builder" {
+			role = roleBuilder
+		}
+		u := User{ID: randomToken(), Name: name, Telephone: phone, Email: email, Roles: []string{role}, CreatedAt: nowStamp(), Note: signupNote}
 		u.UpdatedAt = u.CreatedAt
 		var code string
 		err := a.db.Update(func(tx *bolt.Tx) error {
 			digits := phoneDigits(phone)
+			names := map[string]bool{}
 			if e := eachUser(tx, func(other User) error {
 				if phoneDigits(other.Telephone) == digits {
 					return errSignupPhoneTaken
 				}
+				names[foldText(other.Name)] = true
 				return nil
 			}); e != nil {
 				return e
+			}
+			// Mismo nombre completo que otra persona: es otra cuenta; se le agrega un número para distinguirlas
+			// («Juan Pérez», «Juan Pérez 2», «Juan Pérez 3»…).
+			if names[foldText(u.Name)] {
+				for n := 2; ; n++ {
+					if try := fmt.Sprintf("%s %d", name, n); !names[foldText(try)] {
+						u.Name = try
+						break
+					}
+				}
 			}
 			for tries := 0; ; tries++ {
 				code = signupCode(name)

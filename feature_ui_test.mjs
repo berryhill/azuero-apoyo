@@ -109,24 +109,6 @@ test('public cards: area then people count on top; no generated ID or «Sin nomb
   assert.doesNotMatch(template, /Sin nombre/);
   assert.match(template, /\$\{r\.coordinator\?`<div class="meta">\$\{clean\(r\.coordinator\)\} sabe más<\/div>`:''\}/);
 });
-test('public «Login»: full name + phone creates an active account and signs in; a code (with or without «!») signs in', () => {
-  assert.match(template, /<button type="button" class="navbtn loginbtn" id="loginBtn">Login<\/button><button class="add" id="addBtn">/);
-  assert.match(template, /\$\('#loginBtn'\)\.hidden=\$\('#loginBtnBar'\)\.hidden=!!u;/, 'gone while signed in');
-  assert.match(template, /\.loginbtn\[hidden\],\.addbar \.loginbtn\[hidden\]\{display:none!important\}/, 'hidden wins over the phone row layout');
-  assert.match(template, /<form id="loginForm" novalidate><label><span id="loginNameLabel">Código de acceso o nombre completo<\/span><input name="name"[^>]*placeholder="Tu código, o Nombre Apellido"><\/label><label id="loginPhoneRow">Teléfono<input name="telephone"[^>]*><\/label><label id="loginEmailRow">Correo <small>\(opcional, para recuperar tu código\)<\/small><input name="email" type="email"/, 'asks for the code, or full name + phone (+ optional email)');
-  assert.match(template, /<summary>¿Olvidaste tu código\?<\/summary>/);
-  assert.match(template, /body:JSON\.stringify\(\{name,telephone,email\}\)/);
-  assert.doesNotMatch(template, /id="signupForm"|id="toSignup"/, 'one form, no separate code step');
-  assert.match(template, /const codeMode=\(\)=>\{const v=\$\('#loginForm'\)\.elements\.name\.value;return window\.AppNav\?AppNav\.isCode\(v\):/);
-  assert.match(template, /\$\('#loginPhoneRow'\)\.hidden=\$\('#loginEmailRow'\)\.hidden=code;\$\('#loginNameLabel'\)\.textContent=code\?'Código de acceso':'Código de acceso o nombre completo';/);
-  assert.match(template, /if\(codeMode\(\)\|\|raw&&!\/\\s\/\.test\(raw\)&&!f\.elements\.telephone\.value\.trim\(\)\)\{const code=window\.AppNav\?AppNav\.codeOf\(raw\):raw\.slice\(1\)\.trim\(\);[^\n]*await signInCode\(code\);closeLogin\(\)/, 'one word with no phone is tried as a code too');
-  assert.match(template, /if\(!r\.ok\)throw Error\(body\.error\|\|'No se pudo entrar\.'\);window\.AppNav\?\.codeSignedIn\(code\);/, 'remembered once the sign-in works');
-  assert.match(template, /fetch\('\/api\/session\/signup',\{method:'POST'/);
-  assert.match(template, /const code=String\(body\.accessCode\)\.toLowerCase\(\);\$\('#newCode'\)\.textContent=code;try\{localStorage\.setItem\('rememberCode','1'\)\}catch\{\}try\{await signInCode\(code\)\}catch\{\}loginStep\('done'\)/, 'no manual approval: signed in right away with the new code, which is remembered on this phone');
-  assert.match(template, /<div id="loginDone" hidden><h2>¡Listo, ya entraste!<\/h2>/);
-  assert.match(template, /la próxima vez en «Login» aparece escrito y solo tocas «Entrar»/);
-  assert.match(template, /function openLogin\(\)\{\$\('#loginForm'\)\.reset\(\);syncLoginMode\(\);window\.AppNav\?\.prefillCode\(\$\('#loginForm'\)\);/, 'Login opens with the remembered code already written');
-});
 test('public point card on the map sits above the map controls and can be dragged by its top bar', () => {
   assert.doesNotMatch(template.match(/function renderMarkers[^\n]*|const m=L\.circleMarker[^\n]*/)[0], /bindPopup/, 'no small pop-up on the pin: the card is the detail');
   assert.match(template, /markers\.forEach\(\(m,code\)=>\{m\.setRadius\(code===r\.code\?13:9\)/, 'the chosen pin grows instead');
@@ -474,7 +456,7 @@ test('admin camp list: needs sort by latest activity first', () => {
 test('builder page: own login with full name, repairs API only, several jobs at once and no public add link', () => {
   const builder = readFileSync(new URL('./builder.html', import.meta.url), 'utf8');
   assert.match(builder, /<title>Constructores · Azuero<\/title>/);
-  assert.match(builder, /<label><span class="lbl">Código de acceso o nombre y apellido<\/span><input name="name" maxlength="120"/);
+  assert.match(builder, /<form id="gateForm" novalidate data-signin><h1>Entrar a Constructores<\/h1>/);
   assert.match(builder, /fetch\('\/api\/builder\/session'/);
   assert.match(builder, /api\('\/api\/builder\/needs'\);mine=data\.mine\|\|\[\];available=data\.available\|\|\[\];max=data\.max/);
   assert.doesNotMatch(builder, /\/api\/runner\//);
@@ -802,21 +784,6 @@ test('Usuarios is its own admin page opened from the header and deep-linkable', 
   // Need cards resolve assignees from every user, so migrated or placeholder users still show a name.
   assert.match(admin, /const r=userById\(assigneeOf\(n\)\);/);
   assert.match(admin, /userById\(n\.releasedBy\)\?\.name/);
-});
-test('runner and builder sign-in show only name and phone; «!código» in Nombre signs in with a code, no phone', () => {
-  for (const [page, who] of [[runner, 'runner'], [readFileSync(new URL('./builder.html', import.meta.url), 'utf8'), 'builder']]) {
-    const gate = page.match(/<form id="gateForm"[^]*?<\/form>/)[0];
-    assert.match(gate, /<h1>¿Cómo te llamas\?<\/h1>/);
-    assert.match(gate, /<span class="lbl">Código de acceso o nombre y apellido<\/span>/, 'asks for the code or the name');
-    assert.doesNotMatch(gate, /name="accessCode"|gate-or/i, 'one field, no separate code box');
-    assert.match(gate, /<input name="name" maxlength="120"/);
-    assert.match(page, /accessCode=window\.AppNav&&\(AppNav\.isCode\(raw\)\|\|raw&&!\/\\s\/\.test\(raw\)&&!f\.telephone\.value\.trim\(\)\)\?AppNav\.codeOf\(raw\):'',name=accessCode\?'':raw/, 'a code, or one word with no phone (older letters-only codes)');
-    assert.match(page, /if\(creds\.accessCode\)\{window\.AppNav\?\.codeSignedIn\(creds\.accessCode\);/, 'remembered once the sign-in works');
-    assert.match(page, /if\(accessCode\)f\.name\.value='';/, 'the code is cleared from the box');
-    assert.match(page, /if\(!accessCode&&!\(name&&telephone\)\)\{\$\('#gateMessage'\)\.textContent='Escribe tu nombre y teléfono\.'/);
-    assert.match(page, /await startSession\(accessCode\?\{accessCode\}:\{name,telephone\}\)/);
-    assert.match(page, new RegExp(`localStorage\\.removeItem\\('${who}Code'\\)`), 'logout forgets the saved code');
-  }
 });
 test('public pages show priority only as an Urgente badge, never Normal, and nothing about reserved needs', () => {
   const camp = readFileSync(new URL('./camp.html', import.meta.url), 'utf8');
@@ -1207,7 +1174,7 @@ test('runner page asks the runner to turn on live location after signing in («A
   assert.match(fn, /\)\)\{if\(watchId===null\)startLive\(\)\}else sessionStorage\.setItem\('runnerLiveAsked','1'\)\}$/);
   assert.match(fn, /p\.state==='denied'/, 'explains a browser block');
   assert.match(runner, /syncPublicNav\(\);await refresh\(\);loadTeam\(\);return offerLive\(\)\}if\(await relogin\(\)\)\{await refresh\(\);loadTeam\(\);return offerLive\(\)\}showGate\(\)/, 'on page load with a session');
-  assert.match(runner, /await startSession\(accessCode\?\{accessCode\}:\{name,telephone\}\);await refresh\(\);loadTeam\(\);offerLive\(\)\}/, 'after signing in at the gate');
+  assert.match(runner, /await startSession\(\{accessCode\}\);await refresh\(\);loadTeam\(\);offerLive\(\);\}/, 'after signing in at the gate');
   assert.match(runner, /sessionStorage\.removeItem\('runnerLiveAsked'\);liveOffered=false;/, 'the next person on the device is asked too');
 });
 test('runner page: code users see the other live runners as orange trucks, like the public map', () => {
@@ -1624,7 +1591,8 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /@media\(max-width:760px\)\{\.top\{position:static\}/, 'phone: the header scrolls with the page');
   assert.doesNotMatch(agent, /hdr-hidden/);
   assert.doesNotMatch(agent, /class="mobile-nav"/, 'no list/map toggle: the map sits above the rows on phones');
-  assert.match(agent, /<form id="gateForm" novalidate data-codelogin>/);
+  assert.match(agent, /<form id="gateForm" novalidate data-signin><h1>Centro de comando<\/h1><fieldset class="sg sg-code">/);
+  assert.doesNotMatch(agent.match(/<form id="gateForm"[^]*?<\/form>/)[0], /sg-new/, 'agents are created by admin: code only');
   assert.match(agent, /fetch\('\/api\/session\/code',\{method:'POST'[^\n]*?body:JSON\.stringify\(\{accessCode\}\)[^\n]*?if\(!\(body\.roles\|\|\[\]\)\.includes\('agent'\)\)throw Error\('Tu código no tiene acceso al Centro de comando\.'\)/, 'one code login opens every panel of the user');
   assert.match(agent, /localStorage\.getItem\('agentCode'\)\|\|localStorage\.getItem\('runnerCode'\)\|\|localStorage\.getItem\('builderCode'\)/, 're-entry with a code saved by any page');
   // Header: shared nav, name copies the user ID with a tooltip, no ID footer.
@@ -1966,29 +1934,6 @@ test('public page on a phone, signed out: ¡Ayuda! first, then Login, then ☰; 
   assert.match(nav, /if \(e\.target\.closest\('#mLogin'\)\) \{ showSheet\(false\); document\.getElementById\('loginBtn'\)\?\.click\(\); return; \}/);
 });
 
-test('sign-in prompt is the same on Runners, Constructores and Comando; «!» + a character switches to the access code', () => {
-  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
-  const gate = '<form id="gateForm" novalidate data-codelogin><h1>¿Cómo te llamas?</h1><p data-intro>';
-  for (const page of ['runner.html', 'builder.html', 'command.html']) assert.ok(readFileSync(new URL('./' + page, import.meta.url), 'utf8').includes(gate), page);
-  assert.match(nav, /const code = isCode\(name\.value\);/);
-  const helpers = nav.match(/const isCode = [^\n]*/)[0] + '\n' + nav.match(/const codeOf = [^\n]*/)[0];
-  const {isCode, codeOf} = new Function(helpers + ';return {isCode, codeOf}')();
-  assert.equal(isCode('!'), false, '«!» alone does not switch yet');
-  for (const v of ['!loro47juan3', 'loro47juan3', 'FOCA78NUEVA3', ' !abc ']) assert.equal(isCode(v), true, v);
-  for (const v of ['Juan Pérez', 'María', '6000-0000', 'ab1', 'José 2']) assert.equal(isCode(v), false, v);
-  assert.equal(codeOf(' !loro47 juan3 '), 'loro47juan3', 'pasted with or without «!», spaces removed');
-  assert.equal(isCode('!jadersurf3'), true);
-  assert.equal(codeOf('!jadersurf3'), 'jadersurf3', 'existing codes typed with «!» reach the server exactly as before');
-  assert.equal(isCode('!PRUEBACORRE'), true, 'letters-only codes with «!»');
-  assert.match(nav, /label\.textContent = code \? 'Código de acceso' : label\.dataset\.normal;/);
-  assert.match(nav, /if \(phone\) phone\.style\.display = code \? 'none' : '';/, 'phone hidden for a code');
-  assert.match(nav, /const codeIntro = 'Escribe tu código de acceso para retomar tus últimas carreras\.';/);
-  const index = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
-  assert.match(index, /\$\('#loginIntro'\)\.textContent=code\?'Escribe tu código de acceso para retomar tus últimas carreras\.':/, 'the public Login says the same');
-  const command = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
-  assert.match(command, /if\(!code\)\{\$\('#gateMessage'\)\.textContent='El centro de comando necesita tu código de acceso\.';return\}/, 'command center still needs a code');
-});
-
 test('header color system: orange only for help/add, teal confirms sign-in, ghost buttons for secondary header controls', () => {
   const index = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
   assert.match(index, /\.navbtn\{background:none;color:#fff;[^}]*border:1px solid #ffffff55;/, 'Login is a ghost button, not the browser grey');
@@ -2117,17 +2062,6 @@ test('recurring camp services: admin section with countdown, done/edit/remove; s
   assert.match(admin, /await adminRequest\('\/api\/admin\/needs\/'\+encodeURIComponent\(id\),'PATCH',\{status:'COMPLETED'\}\);/, '«✓ Hecho» completes it; the server schedules the next one');
 });
 
-test('«Recordar mi código» on every sign-in (code mode): checked keeps it for all pages; unchecked does not keep it', () => {
-  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
-  assert.match(nav, /<label class="remember" hidden><input type="checkbox" name="remember"\$\{on \? ' checked' : ''\}> Recordar mi código de acceso<\/label>/);
-  assert.match(nav, /showRemember\(f, \/\^!\/\.test\(e\.target\.value\.trimStart\(\)\) \|\| isCode\(e\.target\.value\)\)/, 'shows as soon as the field starts with «!» or holds a pasted code');
-  assert.match(nav, /if \(localStorage\.getItem\('rememberCode'\) !== '0'\) \{ localStorage\.setItem\('rememberCode', '1'\); localStorage\.setItem\('rememberedCode', code\);/, 'remembered by default, after a successful sign-in only');
-  assert.match(nav, /localStorage\.setItem\('rememberedCode', code\); codeKeys\.forEach\(k => localStorage\.setItem\(k, code\)\); \}/, 'one code for every page, plus a copy that «Salir» does not clear');
-  assert.match(nav, /if \(e\.target\.value\.trim\(\) === '!' && saved && !f\.dataset\.filled && e\.inputType !== 'deleteContentBackward'\) \{ f\.dataset\.filled = '1'; e\.target\.value = '!' \+ saved;[^\n]*e\.target\.dispatchEvent\(new Event\('input', \{bubbles: true\}\)\); return; \}/, 'typing «!» fills the remembered code and re-announces it, so every page switches to code mode');
-  assert.match(nav, /else \{ localStorage\.removeItem\('rememberedCode'\); setTimeout\(\(\) => codeKeys\.forEach\(k => localStorage\.removeItem\(k\)\), 4000\); \}/, 'unchecked forgets it');
-  assert.match(nav, /form\[data-codelogin\],form#loginForm/, 'the public Login too');
-});
-
 
 
 test('builders: «Evaluar» a job before (or without) taking it — work checkboxes + custom, materials, days, people, notes, photos', () => {
@@ -2221,10 +2155,45 @@ test('admin Usuarios: email (for code recovery) can be edited and searched', () 
   assert.match(admin, /fold\(u\.name\+' '\+u\.telephone\+' '\+\(u\.email\|\|''\)\+' '\+u\.id\)/, 'find a person by email to give them a new code');
 });
 
-test('remembered code is already written in every sign-in (on load, when Login opens, after «Salir»): just tap «Entrar»', () => {
+
+test('sign-in everywhere: «Ya tengo código» and «Crear cuenta nueva» side by side, nothing hidden; code remembered and prefilled', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
-  assert.match(nav, /function prefillCode\(form\) \{/);
-  assert.match(nav, /if \(!name \|\| !saved \|\| name\.value\.trim\(\)\) return;/, 'never overwrites what someone typed');
-  assert.match(nav, /document\.addEventListener\('reset', e => \{ if \(e\.target\.matches\?\.\('form\[data-codelogin\],form#loginForm'\)\) setTimeout\(\(\) => prefillCode\(e\.target\)\); \}\);/, 'after «Salir» the page resets the form; the code comes back');
-  assert.match(nav, /name\.dispatchEvent\(new Event\('input', \{bubbles: true\}\)\);/, 'switches the form to code mode');
+  const pages = {index: template, runner: readFileSync(new URL('./runner.html', import.meta.url), 'utf8'), builder: readFileSync(new URL('./builder.html', import.meta.url), 'utf8'), command: readFileSync(new URL('./command.html', import.meta.url), 'utf8')};
+  const codeGroup = /<fieldset class="sg sg-code"><legend>Ya tengo código<\/legend><label>Código de acceso<input name="accessCode"[^>]*><\/label><label class="remember"><input type="checkbox" name="remember" checked> Recordar mi código de acceso<\/label><button[^>]*value="code"[^>]*>Entrar<\/button>/;
+  const newGroup = /<fieldset class="sg sg-new"><legend>Crear cuenta nueva<\/legend><label>Nombre completo<input name="name"[^>]*><\/label><label>Teléfono<input name="telephone"[^>]*><\/label><label>Correo <small>\(opcional, para recuperar tu código\)<\/small><input name="email" type="email"[^>]*><\/label><button[^>]*value="new">Crear mi código<\/button><\/fieldset>/;
+  for (const [k, page] of Object.entries(pages)) {
+    const form = page.match(/<form id="(loginForm|gateForm)" novalidate data-signin>[^]*?<\/form>/)[0];
+    assert.match(form, codeGroup, k);
+    if (k !== 'command') assert.match(form, newGroup, k);
+    assert.doesNotMatch(form, / hidden[ >]/, k + ': no hidden fields');
+  }
+  for (const page of [template, pages.runner, pages.builder]) assert.doesNotMatch(page, /loginPhoneRow|loginEmailRow|syncCodeLogin|syncLoginMode|phone\.style\.display/, 'nothing toggles fields any more');
+  assert.doesNotMatch(nav, /phone\.style\.display|syncCodeLogin/);
+  // Which group was sent: the button, or with Enter the group holding the cursor.
+  assert.match(nav, /function signinMode\(e\) \{\n    const clicked = e\.target\?\.dataset\?\.clicked;\n    if \(clicked\) return clicked === 'new' \? 'new' : 'code';\n    return document\.activeElement\?\.closest\?\.\('\.sg-new'\) \? 'new' : 'code';/, 'Enter in «Crear cuenta nueva» creates the account, not the code sign-in');
+  assert.match(nav, /if \(b\?\.form && \(e\.detail > 0 \|\| document\.activeElement === b\)\)/, 'the browser click that Enter fires on the first button does not count');
+  assert.match(template, /mode=window\.AppNav\?AppNav\.signinMode\(e\):/);
+  for (const k of ['runner', 'builder']) assert.match(pages[k], /const f=e\.target\.elements,mode=AppNav\.signinMode\(e\)/, k);
+  // New account: approved at once, signs in with the new code; Runners/Constructores pass their panel.
+  assert.match(nav, /fetch\('\/api\/session\/signup', \{method: 'POST'[^\n]*body: JSON\.stringify\(\{name, telephone, email, \.\.\.\(panel \? \{panel\} : \{\}\)\}\)/);
+  assert.match(pages.runner, /made=await AppNav\.createAccount\(\{name,telephone,email:f\.email\.value\.trim\(\),panel:'runner'\}\);code=made\.code/);
+  assert.match(pages.builder, /made=await AppNav\.createAccount\(\{name,telephone,email:f\.email\.value\.trim\(\),panel:'builder'\}\);code=made\.code/);
+  assert.match(pages.runner, /if\(err\.field!=='telephone'\)throw err;await startSession\(\{name,telephone\}\)/, 'people registered before codes still get in with name and phone');
+  assert.match(template, /const \{code,name\}=await AppNav\.createAccount\(\{name:f\.elements\.name\.value,telephone:f\.elements\.telephone\.value,email:f\.elements\.email\.value\.trim\(\)\}\);\$\('#newCode'\)\.textContent=code;\$\('#newName'\)\.textContent=name;try\{await signInCode\(code\)\}catch\{\}loginStep\('done'\)/);
+  assert.match(template, /<div id="loginDone" hidden><h2>¡Listo, ya entraste!<\/h2><p>Tu cuenta: <b id="newName"><\/b><\/p>/, 'shows the saved name (with a number if someone had the same name)');
+  // Remembered after a successful sign-in, prefilled next time (Login, gates, after «Salir»).
+  assert.match(template, /if\(!r\.ok\)throw Error\(body\.error\|\|'No se pudo entrar\.'\);window\.AppNav\?\.codeSignedIn\(code\);/);
+  assert.match(nav, /if \(localStorage\.getItem\('rememberCode'\) !== '0'\) \{ localStorage\.setItem\('rememberCode', '1'\); localStorage\.setItem\('rememberedCode', code\);/);
+  assert.match(nav, /else \{ localStorage\.removeItem\('rememberedCode'\); setTimeout\(\(\) => codeKeys\.forEach\(k => localStorage\.removeItem\(k\)\), 4000\); \}/, 'unchecked forgets it');
+  assert.match(nav, /function prefillCode\(form\) \{\n    const box = form\?\.elements\?\.accessCode, saved = rememberedCode\(\);\n    if \(!box \|\| !saved \|\| box\.value\.trim\(\)\) return;/, 'never overwrites what someone typed');
+  assert.match(template, /function openLogin\(\)\{\$\('#loginForm'\)\.reset\(\);window\.AppNav\?\.prefillCode\(\$\('#loginForm'\)\);/);
+  for (const k of ['runner', 'builder', 'command']) assert.match(pages[k], /window\.AppNav\?\.prefillCode\(/, k);
+  assert.match(nav, /document\.addEventListener\('reset', e => \{ if \(e\.target\.matches\?\.\(signinForms\)\) setTimeout\(\(\) => prefillAll\(\)\); \}\);/, 'after «Salir» the code comes back');
+  // A code pasted into «Nombre completo» moves to its own field.
+  assert.match(nav, /if \(e\.target\.name === 'name' && f\.elements\.accessCode && isCode\(e\.target\.value\)\) \{ f\.elements\.accessCode\.value = codeOf\(e\.target\.value\);/);
+  const helpers = nav.match(/const isCode = [^\n]*/)[0] + '\n' + nav.match(/const codeOf = [^\n]*/)[0];
+  const {isCode, codeOf} = new Function(helpers + ';return {isCode, codeOf}')();
+  for (const v of ['!loro47juan3', 'loro47juan3', '!jadersurf3', '!PRUEBACORRE']) assert.equal(isCode(v), true, v);
+  for (const v of ['Juan Pérez', 'María', '6000-0000', '!']) assert.equal(isCode(v), false, v);
+  assert.equal(codeOf(' !jadersurf3 '), 'jadersurf3', 'existing codes with «!» reach the server exactly as before');
 });

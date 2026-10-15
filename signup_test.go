@@ -103,3 +103,42 @@ func TestExistingAccessCodesStillSignIn(t *testing.T) {
 		}
 	}
 }
+
+// From the Constructores sign-in, a new account is a builder.
+func TestSignupFromBuilderPanelIsBuilder(t *testing.T) {
+	s := newServiceHarness(t)
+	w := s.call("POST", "/api/session/signup", `{"name":"Beto Obra","telephone":"6999-5555","panel":"builder"}`, false)
+	if w.Code != 201 || !strings.Contains(w.Body.String(), `"roles":["builder"]`) {
+		t.Fatalf("builder signup: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.call("POST", "/api/session/signup", `{"name":"Ana Corre","telephone":"6999-6666","panel":"admin"}`, false); w.Code != 201 || !strings.Contains(w.Body.String(), `"roles":["runner"]`) {
+		t.Fatalf("anything else is a runner: %d %s", w.Code, w.Body.String())
+	}
+}
+
+// Same full name as someone else (any case or accents): a separate account, told apart by a number.
+func TestSignupSameNameGetsANumber(t *testing.T) {
+	s := newServiceHarness(t)
+	names := []string{}
+	for i, body := range []string{
+		`{"name":"Juan Pérez","telephone":"6100-0001"}`,
+		`{"name":"juan  perez","telephone":"6100-0002"}`,
+		`{"name":"Juan Pérez","telephone":"6100-0003"}`,
+	} {
+		w := s.call("POST", "/api/session/signup", body, false)
+		if w.Code != 201 {
+			t.Fatalf("%d: %d %s", i, w.Code, w.Body.String())
+		}
+		var got map[string]any
+		json.Unmarshal(w.Body.Bytes(), &got)
+		names = append(names, got["name"].(string))
+	}
+	if names[0] != "Juan Pérez" || names[1] != "juan perez 2" || names[2] != "Juan Pérez 3" {
+		t.Fatalf("names: %q", names)
+	}
+	var users []map[string]any
+	json.Unmarshal(s.call("GET", "/api/admin/users", "", true).Body.Bytes(), &users)
+	if len(users) != 3 {
+		t.Fatalf("three separate users: %d", len(users))
+	}
+}
