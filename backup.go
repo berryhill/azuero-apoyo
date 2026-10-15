@@ -132,6 +132,8 @@ func (a *App) restore(body io.Reader) (map[string]int, error) {
 	clear(a.runnerSessions)
 	clear(a.builderSessions)
 	clear(a.viewerSessions)
+	clear(a.agentSessions)
+	clear(a.deskSessions)
 	clear(a.lastSeen)
 	clear(a.locations)
 	a.mu.Unlock()

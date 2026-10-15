@@ -25,9 +25,11 @@ const (
 	roleRunner  = "runner"
 	roleBuilder = "builder"
 	roleAgent   = "agent"
+	// Donaciones: lleva las boletas de donación (donations.html); no ve puntos privados ni carreras.
+	roleDonations = "donations"
 )
 
-var userRoles = []string{roleRunner, roleBuilder, roleAgent}
+var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations}
 
 type User struct {
 	ID        string   `json:"id"`
@@ -50,6 +52,9 @@ type User struct {
 	LastActiveAt string `json:"lastActiveAt,omitempty"`
 	// Equipo (ver teams.go); solo para usuarios con código de acceso.
 	TeamID string `json:"teamId,omitempty"`
+	// Aceptó el aviso de ubicación en vivo (cuándo y qué versión del texto); sin él no se guarda su ubicación (location.go).
+	LocationConsentAt      string `json:"locationConsentAt,omitempty"`
+	LocationConsentVersion string `json:"locationConsentVersion,omitempty"`
 }
 
 // adminUser es lo que ve el panel: sin el hash del código.
@@ -66,10 +71,12 @@ type adminUser struct {
 	LastActiveAt  string   `json:"lastActiveAt,omitempty"`
 	Online        bool     `json:"online"`
 	TeamID        string   `json:"teamId,omitempty"`
+	// Cuándo aceptó el aviso de ubicación vigente; vacío si no lo ha aceptado (o aceptó uno anterior).
+	LocationConsentAt string `json:"locationConsentAt,omitempty"`
 }
 
 func (u User) admin() adminUser {
-	return adminUser{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Roles: u.Roles, Disabled: u.Disabled, HasAccessCode: u.CodeHash != "", CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, Note: u.Note, LastActiveAt: u.LastActiveAt, TeamID: u.TeamID}
+	return adminUser{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Roles: u.Roles, Disabled: u.Disabled, HasAccessCode: u.CodeHash != "", CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, Note: u.Note, LastActiveAt: u.LastActiveAt, TeamID: u.TeamID, LocationConsentAt: u.locationConsent()}
 }
 
 // En línea: usó su sesión en los últimos 5 minutos (el panel de corredor consulta cada 30 s mientras está abierto).
@@ -158,7 +165,7 @@ type legacyUser struct {
 
 func (l legacyUser) linkKey() string { return l.role + ":" + l.ID }
 
-var roleLabels = map[string]string{roleRunner: "Corredor", roleBuilder: "Constructor", roleAgent: "Agente"}
+var roleLabels = map[string]string{roleRunner: "Corredor", roleBuilder: "Constructor", roleAgent: "Agente", roleDonations: "Donaciones"}
 
 // orderRoles deja los roles sin repetir y en el orden fijo de userRoles.
 func orderRoles(roles []string) []string {
@@ -557,7 +564,7 @@ func secureCookie(r *http.Request) bool {
 // dropCrewSessions cierra las sesiones de un usuario (al desactivarlo o quitarle roles) y quita su ubicación en vivo.
 func (a *App) dropCrewSessions(id string) {
 	a.mu.Lock()
-	for _, sessions := range []map[string]runnerSession{a.runnerSessions, a.builderSessions, a.viewerSessions} {
+	for _, sessions := range []map[string]runnerSession{a.runnerSessions, a.builderSessions, a.viewerSessions, a.agentSessions, a.deskSessions} {
 		for token, s := range sessions {
 			if s.runnerID == id {
 				delete(sessions, token)

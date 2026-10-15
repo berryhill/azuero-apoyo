@@ -33,6 +33,10 @@ import (
 const (
 	stagePickup   = "pickup"
 	stageDelivery = "delivery"
+	stageBefore   = "before"
+	stageProgress = "progress"
+	stageAfter    = "after"
+	stageInspect  = "inspect"
 	mediaPerNeed  = 60
 )
 
@@ -46,6 +50,8 @@ type MediaItem struct {
 	AddedBy     string `json:"addedBy,omitempty"`
 	AddedByName string `json:"addedByName,omitempty"`
 	AddedAt     string `json:"addedAt,omitempty"`
+	// Ref: a qué evaluación de obra pertenece la foto (etapa «inspect»).
+	Ref string `json:"ref,omitempty"`
 }
 
 // Tipos aceptados: fotos y videos comunes de teléfonos. SVG queda fuera porque puede llevar código.
@@ -268,7 +274,10 @@ func (s *s3Store) Serve(w http.ResponseWriter, r *http.Request, key, _ string) {
 
 var errMediaFull = userFieldError{"media", "Esta carrera ya tiene el máximo de fotos y videos."}
 
-func validStage(s string) bool { return s == stagePickup || s == stageDelivery }
+// Corredores: partida y entrega. Reparaciones (constructores): antes, avance y final.
+func validStage(s string) bool {
+	return s == stagePickup || s == stageDelivery || s == stageBefore || s == stageProgress || s == stageAfter || s == stageInspect
+}
 
 const errMediaOff = "Fotos y videos no disponibles por ahora."
 
@@ -323,6 +332,9 @@ func (a *App) receiveMedia(w http.ResponseWriter, r *http.Request, byID, byName 
 		name = name[:120]
 	}
 	item := MediaItem{ID: randomToken()[:24], Stage: stage, Type: ctype, Size: r.ContentLength, Name: name, AddedBy: byID, AddedByName: byName, AddedAt: nowStamp()}
+	if ref := r.URL.Query().Get("ref"); ref != "" && len(ref) <= 40 {
+		item.Ref = ref
+	}
 	item.StoredKey = "needs/" + needID + "/" + item.ID + "." + ext
 	if err := a.media.Put(r.Context(), item.StoredKey, ctype, r.ContentLength, http.MaxBytesReader(w, r.Body, r.ContentLength)); err != nil {
 		log.Printf("media upload failed: %v", err)
@@ -443,7 +455,8 @@ func (a *App) mediaRoutes(mux *http.ServeMux, runners *crew) {
 		if !a.admin(w, r) || !sameOrigin(w, r) {
 			return
 		}
-		a.receiveMedia(w, r, "admin", "Administración", anyNeed)
+		byID, byName := actor(r)
+		a.receiveMedia(w, r, byID, byName, anyNeed)
 	})
 	mux.HandleFunc("PATCH /api/admin/needs/{id}/media/{media}", func(w http.ResponseWriter, r *http.Request) {
 		if !a.adminWrite(w, r) {

@@ -59,7 +59,7 @@ func TestCodeUserAssignsRunnerAndPacksFromPublicDetail(t *testing.T) {
 	}
 	w := call("POST", "/api/full/needs/"+need+"/runner", `{"runnerId":"`+ana+`"}`, viewer)
 	if w.Code != 200 || !strings.Contains(w.Body.String(), `"status":"IN_PROGRESS"`) || !strings.Contains(w.Body.String(), `"runnerName":"Ana"`) {
-		t.Fatalf("assign puts it en ruta: %d %s", w.Code, w.Body.String())
+		t.Fatalf("assign puts it en camino: %d %s", w.Code, w.Body.String())
 	}
 	if w := call("POST", "/api/full/needs/"+need+"/runner", `{"runnerId":"`+fufo+`"}`, viewer); w.Code != 200 || !strings.Contains(w.Body.String(), `"runnerName":"Fufo"`) {
 		t.Fatalf("change runner: %d %s", w.Code, w.Body.String())

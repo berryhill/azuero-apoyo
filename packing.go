@@ -115,7 +115,7 @@ func addPacking(tx *bolt.Tx, n *CampNeed, lines []packingInput, byID, byName str
 	return putNeed(tx.Bucket(needsBucket), n)
 }
 
-var errPackingClosed = errors.New("Esta necesidad ya no está abierta ni en ruta; no se le puede agregar a la lista de empaque.")
+var errPackingClosed = errors.New("Esta necesidad ya no está abierta ni en camino; no se le puede agregar a la lista de empaque.")
 
 func (a *App) packingRoutes(mux *http.ServeMux, runners *crew) {
 	mux.HandleFunc("GET /api/runner/packing-items", func(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +222,8 @@ func (a *App) packingRoutes(mux *http.ServeMux, runners *crew) {
 			if isRepair(n) || n.Status == "DELETED" {
 				return errMissing
 			}
-			return addPacking(tx, &n, lines, "admin", "Administración")
+			byID, byName := actor(r)
+			return addPacking(tx, &n, lines, byID, byName)
 		})
 		if serviceError(w, err) {
 			return

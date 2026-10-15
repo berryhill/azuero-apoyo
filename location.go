@@ -11,8 +11,9 @@ import (
 
 // Ubicación en vivo: cuando un corredor activa «Mi ubicación en vivo» en su panel, o alguien con código toca
 // «Compartir mi ubicación» en el mapa público, el teléfono envía su posición y quienes entraron con código la ven en
-// ambos mapas. Solo se guarda la última posición de cada usuario, en la base (bucket live_locations) con copia en
+// ambos mapas. La última posición de cada usuario se guarda en la base (bucket live_locations) con copia en
 // memoria para las consultas; así sobrevive a un reinicio o despliegue. Deja de mostrarse 2 minutos después de la última.
+// Aparte, cada posición se agrega a su recorrido GPS (track.go), que solo ve administración.
 const locationTTL = 2 * time.Minute
 
 var locationsBucket = []byte("live_locations")
@@ -51,6 +52,16 @@ func (a *App) locationRoutes(mux *http.ServeMux, runners *crew) {
 	mux.HandleFunc("POST /api/full/location", func(w http.ResponseWriter, r *http.Request) {
 		if u, ok := a.viewer(w, r); ok {
 			a.saveLocation(w, r, u.ID)
+		}
+	})
+	mux.HandleFunc("POST /api/full/location/consent", func(w http.ResponseWriter, r *http.Request) {
+		if u, ok := a.viewer(w, r); ok && sameOrigin(w, r) {
+			a.acceptLocationNotice(w, r, u.ID)
+		}
+	})
+	mux.HandleFunc("POST /api/runner/location/consent", func(w http.ResponseWriter, r *http.Request) {
+		if s, ok := a.crewSession(runners, w, r); ok {
+			a.acceptLocationNotice(w, r, s.runnerID)
 		}
 	})
 	mux.HandleFunc("POST /api/full/location/stop", func(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +104,56 @@ func (a *App) locationRoutes(mux *http.ServeMux, runners *crew) {
 	})
 }
 
+// Aviso de ubicación: antes de compartirla por primera vez, la persona lee el aviso (PointForm.locationNotice en
+// pointform.js) y marca «Acepto». Se guarda en su usuario con la versión del texto; si el texto cambia en algo importante,
+// se sube la versión y todos lo vuelven a aceptar. Sin aceptación vigente no se guarda ninguna posición (428).
+const locationNoticeVersion = "2026-10-15"
+
+// locationConsent: cuándo aceptó el aviso vigente, o vacío.
+func (u User) locationConsent() string {
+	if u.LocationConsentVersion != locationNoticeVersion {
+		return ""
+	}
+	return u.LocationConsentAt
+}
+
+func (a *App) acceptLocationNotice(w http.ResponseWriter, r *http.Request, userID string) {
+	f, ok := decodeFields(w, r, map[string]int{"accept": 0})
+	if !ok {
+		return
+	}
+	var accept bool
+	if json.Unmarshal(f["accept"], &accept) != nil || !accept {
+		failField(w, 400, "accept", "Marca «Acepto» para compartir tu ubicación.")
+		return
+	}
+	var u User
+	err := a.db.Update(func(tx *bolt.Tx) error {
+		var found bool
+		if u, found = getUser(tx, userID); !found {
+			return errMissing
+		}
+		u.LocationConsentAt, u.LocationConsentVersion = nowStamp(), locationNoticeVersion
+		return putJSON(tx.Bucket(usersBucket), u.ID, u)
+	})
+	if serviceError(w, err) {
+		return
+	}
+	response(w, 200, map[string]string{"locationConsentAt": u.LocationConsentAt, "version": locationNoticeVersion})
+}
+
 func (a *App) saveLocation(w http.ResponseWriter, r *http.Request, userID string) {
+	var consent string
+	a.db.View(func(tx *bolt.Tx) error {
+		if u, ok := getUser(tx, userID); ok {
+			consent = u.locationConsent()
+		}
+		return nil
+	})
+	if consent == "" {
+		failField(w, 428, "locationConsent", "Acepta el aviso de ubicación para compartirla.")
+		return
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1024)
 	var in liveLocation
 	if json.NewDecoder(r.Body).Decode(&in) != nil || in.Lat < -90 || in.Lat > 90 || in.Lon < -180 || in.Lon > 180 || in.Accuracy < 0 {
@@ -106,7 +166,23 @@ func (a *App) saveLocation(w http.ResponseWriter, r *http.Request, userID string
 		if e != nil {
 			return e
 		}
-		return putJSON(b, userID, in)
+		if e := putJSON(b, userID, in); e != nil {
+			return e
+		}
+		// Recorrido GPS (track.go); una vez por hora se borra lo que pasó de trackKeep.
+		if e := recordTrack(tx, userID, in); e != nil {
+			return e
+		}
+		a.mu.Lock()
+		prune := time.Since(a.trackPruned) > time.Hour
+		if prune {
+			a.trackPruned = time.Now()
+		}
+		a.mu.Unlock()
+		if prune {
+			return pruneTracks(tx, in.At.Add(-trackKeep))
+		}
+		return nil
 	}); e != nil {
 		fail(w, 500, "No se pudo guardar la ubicación.")
 		return

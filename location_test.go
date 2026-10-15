@@ -18,6 +18,7 @@ func TestRunnerLiveLocationVisibleToCodeUsersOnly(t *testing.T) {
 	if w := s.crewCall("POST", "/api/runner/location", `{"lat":7.43,"lon":-80.19,"accuracy":12}`, rosaCookie, "wrong"); w.Code != 403 {
 		t.Fatalf("location needs CSRF: %d", w.Code)
 	}
+	s.crewCall("POST", "/api/runner/location/consent", `{"accept":true}`, rosaCookie, rosaCSRF)
 	if w := s.crewCall("POST", "/api/runner/location", `{"lat":95,"lon":-80.19}`, rosaCookie, rosaCSRF); w.Code != 400 {
 		t.Fatalf("bad location: %d", w.Code)
 	}
@@ -38,6 +39,7 @@ func TestRunnerLiveLocationVisibleToCodeUsersOnly(t *testing.T) {
 	var sess map[string]any
 	json.Unmarshal(s.crewCall("GET", "/api/runner/session", "", fufoRunner, "").Body.Bytes(), &sess)
 	fufoCSRF, _ := sess["csrf"].(string)
+	s.crewCall("POST", "/api/runner/location/consent", `{"accept":true}`, fufoRunner, fufoCSRF)
 	s.crewCall("POST", "/api/runner/location", `{"lat":7.5,"lon":-80.3}`, fufoRunner, fufoCSRF)
 	runners := func(c *http.Cookie) *httptest.ResponseRecorder {
 		r := httptest.NewRequest("GET", "/api/full/runners", nil)
@@ -112,6 +114,7 @@ func TestCodeUserSharesLocationFromPublicMap(t *testing.T) {
 	fufo, bea := viewer("FUFO12"), viewer("BEA123")
 	call := func(method, path, body string, c *http.Cookie) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, path, strings.NewReader(body))
+		r.Header.Set("Content-Type", "application/json")
 		if c != nil {
 			r.AddCookie(c)
 		}
@@ -122,6 +125,7 @@ func TestCodeUserSharesLocationFromPublicMap(t *testing.T) {
 	if w := call("POST", "/api/full/location", `{"lat":7.5,"lon":-80.3}`, nil); w.Code != 401 {
 		t.Fatalf("sharing needs a code session: %d", w.Code)
 	}
+	call("POST", "/api/full/location/consent", `{"accept":true}`, bea)
 	if w := call("POST", "/api/full/location", `{"lat":7.5,"lon":-200}`, bea); w.Code != 400 {
 		t.Fatalf("bad location: %d", w.Code)
 	}
@@ -202,7 +206,9 @@ func TestLiveLocationStoredInDatabaseAndSurvivesRestart(t *testing.T) {
 		app.db.View(func(tx *bolt.Tx) error { n = tx.Bucket(locationsBucket).Stats().KeyN; return nil })
 		return n
 	}
-	if w := call(s.h, "POST", "/api/full/location", `{"lat":7.5,"lon":-80.3,"accuracy":9}`, viewer(s.h, "BEA123")); w.Code != 200 {
+	beaFirst := viewer(s.h, "BEA123")
+	call(s.h, "POST", "/api/full/location/consent", `{"accept":true}`, beaFirst)
+	if w := call(s.h, "POST", "/api/full/location", `{"lat":7.5,"lon":-80.3,"accuracy":9}`, beaFirst); w.Code != 200 {
 		t.Fatalf("share: %d %s", w.Code, w.Body.String())
 	}
 	if n := stored(s.app); n != 1 {
@@ -238,5 +244,56 @@ func TestLiveLocationStoredInDatabaseAndSurvivesRestart(t *testing.T) {
 	defer again.db.Close()
 	if n := stored(again); n != 0 || len(again.locations) != 0 {
 		t.Fatalf("stale position pruned on start: %d %v", n, again.locations)
+	}
+}
+
+// Nobody's location is stored until they accept the location notice; the acceptance is recorded with the notice version.
+func TestLocationNeedsAcceptedNotice(t *testing.T) {
+	s := newServiceHarness(t)
+	fufo := s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)["id"].(string)
+	viewer := s.viewerCookie("FUFO12")
+	if w := s.as(viewer, "POST", "/api/full/location", `{"lat":7.5,"lon":-80.3}`); w.Code != 428 || !strings.Contains(w.Body.String(), `"field":"locationConsent"`) {
+		t.Fatalf("no location without the notice: %d %s", w.Code, w.Body.String())
+	}
+	if body := s.as(viewer, "GET", "/api/full/me", "").Body.String(); !strings.Contains(body, `"locationConsent":false`) {
+		t.Fatalf("session says it's missing: %s", body)
+	}
+	if w := s.as(viewer, "POST", "/api/full/location/consent", `{"accept":false}`); w.Code != 400 {
+		t.Fatalf("must tick Acepto: %d", w.Code)
+	}
+	if w := s.as(nil, "POST", "/api/full/location/consent", `{"accept":true}`); w.Code != 401 {
+		t.Fatalf("needs a session: %d", w.Code)
+	}
+	if w := s.as(viewer, "POST", "/api/full/location/consent", `{"accept":true}`); w.Code != 200 {
+		t.Fatalf("accept: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.as(viewer, "POST", "/api/full/location", `{"lat":7.5,"lon":-80.3}`); w.Code != 200 {
+		t.Fatalf("shares after accepting: %d", w.Code)
+	}
+	var users []adminUser
+	json.Unmarshal(s.call("GET", "/api/admin/users", "", true).Body.Bytes(), &users)
+	if len(users) != 1 || users[0].LocationConsentAt == "" {
+		t.Fatalf("admin sees when it was accepted: %+v", users)
+	}
+	// A new notice version asks everyone again.
+	s.app.db.Update(func(tx *bolt.Tx) error {
+		u, _ := getUser(tx, fufo)
+		u.LocationConsentVersion = "old"
+		return putJSON(tx.Bucket(usersBucket), u.ID, u)
+	})
+	if w := s.as(viewer, "POST", "/api/full/location", `{"lat":7.5,"lon":-80.3}`); w.Code != 428 {
+		t.Fatalf("older notice: %d", w.Code)
+	}
+	// Runner panel: same rule, and its session tells the page.
+	cookie, csrf := s.crewLogin("/api/runner", "Rosa")
+	if body := s.crewCall("GET", "/api/runner/session", "", cookie, "").Body.String(); !strings.Contains(body, `"locationConsent":false`) {
+		t.Fatalf("runner session: %s", body)
+	}
+	if w := s.crewCall("POST", "/api/runner/location", `{"lat":7.4,"lon":-80.2}`, cookie, csrf); w.Code != 428 {
+		t.Fatalf("runner without notice: %d", w.Code)
+	}
+	s.crewCall("POST", "/api/runner/location/consent", `{"accept":true}`, cookie, csrf)
+	if w := s.crewCall("POST", "/api/runner/location", `{"lat":7.4,"lon":-80.2}`, cookie, csrf); w.Code != 200 {
+		t.Fatalf("runner after notice: %d", w.Code)
 	}
 }

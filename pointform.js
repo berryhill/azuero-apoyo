@@ -5,6 +5,9 @@
   const svg = path => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
   const icons = {
     pin: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'),
+    toilet: svg('<path d="M7 3h4v6H7z"/><path d="M5 9h14a6 6 0 0 1-6 6h-2a6 6 0 0 1-6-6Z"/><path d="M9 15l-1 6h8l-1-6"/>'),
+    trash: svg('<path d="M4 7h16"/><path d="M10 3h4l1 4H9z"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>'),
+    spray: svg('<path d="M9 10h6v11H9z"/><path d="M10 10V6h4v4"/><path d="M14 6h3"/><path d="M19 3v.01M21 5v.01M19 7v.01"/>'),
     people: svg('<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2A5 5 0 0 1 21 19"/>'),
     list: svg('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'),
     lock: svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
@@ -46,17 +49,17 @@
     mattress: svg('<rect x="2" y="8" width="20" height="9" rx="3"/><path d="M5 17v2.5M19 17v2.5M6.5 12.5h.01M10 12.5h.01M14 12.5h.01M17.5 12.5h.01"/>')
   };
   const style = `.pf-thumb{position:relative;margin:0;width:76px}.pf-thumb a{display:grid;place-items:center;width:76px;height:76px;border-radius:9px;overflow:hidden;background:#e7eef0;border:1px solid #d5e0e2;text-decoration:none}.pf-thumb img{width:100%;height:100%;object-fit:cover}.pf-thumb-icon{font-size:26px;color:#173c46}
-.pfp{border:0;border-radius:14px;padding:0;width:min(460px,94vw);max-height:92dvh;color:#173c46;font:inherit}.pfp::backdrop{background:#10263ab8}.pfp-box{padding:20px;display:flex;flex-direction:column;gap:6px}.pfp h2{margin:0;font-size:20px}.pfp h3{margin:6px 0 0;font-size:16px}.pfp-for,.pfp-hint{margin:0;color:#667982;font-size:13px}
+.pfp{border:0;border-radius:14px;padding:0;width:min(460px,calc(100% - 24px));max-height:calc(92dvh / var(--text-zoom,1));color:#173c46;font:inherit}@media(max-width:760px){.pfp{inset:0;width:auto;height:auto;max-width:none;max-height:none;margin:0;border-radius:0}.pfp-box{height:100%;box-sizing:border-box;padding:max(14px,env(safe-area-inset-top)) 14px 14px}.pfp-pick{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}.pfp-pick:has(+.pfp-qty:not([hidden])),.pfp-pick[hidden]{flex:none}.pfp .pfp-options{max-height:none;flex:1 1 auto;min-height:140px}.pfp-actions{margin-top:auto;padding-top:10px;background:#fff}}.pfp::backdrop{background:#10263ab8}.pfp-box{padding:20px;display:flex;flex-direction:column;gap:6px}.pfp h2{margin:0;font-size:20px}#pfPackTitle,.pfp-pick>label{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.pfp-for{display:none}.pfp-pick input{margin-top:0}.pfp h3{margin:6px 0 0;font-size:16px}.pfp-for,.pfp-hint{margin:0;color:#667982;font-size:13px}
 .pfp label{display:block;font-size:12px;font-weight:750;margin:8px 0 0}.pfp input{width:100%;padding:11px;border:1px solid #cad9d9;border-radius:9px;font:inherit;background:#fff;box-sizing:border-box}
-.pfp-options{max-height:min(300px,40dvh);overflow:auto;margin-top:6px;border:1px solid #e1e9ea;border-radius:10px}.pfp-options button{display:flex;align-items:center;gap:9px;width:100%;margin:0;padding:10px 12px;border:0;border-radius:0;border-bottom:1px solid #eef3f3;background:#fff;color:#173c46;font:inherit;font-weight:650;text-align:left;cursor:pointer}.pfp-options button:last-child{border-bottom:0}.pfp-options button.hl,.pfp-options button:hover{background:#eef6f4}.pfp-options svg,.pfp-line svg,.pfp-chosen svg{flex:none;color:#2d7f86}.pfp-options .pfp-new{color:#19745f}
+.pfp-options{max-height:min(300px,calc(40dvh / var(--text-zoom,1)));overflow:auto;margin-top:6px;border:1px solid #e1e9ea;border-radius:10px}.pfp-options button{display:flex;align-items:center;gap:9px;width:100%;margin:0;padding:10px 12px;border:0;border-radius:0;border-bottom:1px solid #eef3f3;background:#fff;color:#173c46;font:inherit;font-weight:650;text-align:left;cursor:pointer}.pfp-options button:last-child{border-bottom:0}.pfp-options button.hl,.pfp-options button:hover{background:#eef6f4}.pfp-options svg,.pfp-line svg,.pfp-chosen svg{flex:none;color:#2d7f86}.pfp-options .pfp-new{color:#19745f}
 .pfp-chosen{display:flex;align-items:center;gap:8px;font-size:16px;margin-top:4px}.pfp-qtyrow{display:flex;gap:6px}.pfp-qtyrow input{text-align:center;font-size:18px;font-weight:800}.pfp-step{flex:none;width:48px;margin:0;border:1px solid #cad9d9;border-radius:9px;background:#fff;font-size:22px;font-weight:800;color:#173c46;cursor:pointer}
 .pfp-list{display:flex;flex-direction:column;gap:4px;margin-top:8px}.pfp-line{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid #e1e9ea;border-radius:9px;background:#fbfdfd}.pfp-line span{flex:1;font-weight:650;overflow-wrap:anywhere}.pfp-line input{width:86px;padding:6px;text-align:center}.pfp-del{margin:0;border:0;background:none;color:#9a4536;font-size:15px;padding:4px 6px;cursor:pointer}
 .pfp-btn{border:0;border-radius:10px;background:#19745f;color:#fff;font:inherit;font-weight:800;padding:12px 16px;margin:8px 0 0;width:100%;cursor:pointer}.pfp-btn.pfp-plain{background:#eef3f3;color:#173c46}.pfp-btn:disabled{opacity:.5}.pfp-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.pfp-actions .pfp-btn{flex:1 1 120px;width:auto;margin:0}.pfp-msg{margin:0;color:#a33527;font-size:13px}
 .pf-pack{margin:8px 0}.pf-pack-title{display:flex;align-items:center;gap:6px;font-size:12px;color:#173c46;margin-bottom:5px}.pf-pack-title svg{width:15px;height:15px;color:#2d7f86}.pf-pack-chips{display:flex;flex-wrap:wrap;gap:5px}.pf-pack-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #c9dde0;border-radius:16px;padding:3px 9px;font-size:12px;font-weight:650;color:#1f3a46;background:#f3f9f9}.pf-pack-chip svg{width:15px;height:15px;color:#2d7f86;flex:none}.pf-pack-chip b{color:#0f6f63}
-.pf-section{border:1px solid #e1e9ea;border-radius:12px;padding:10px 14px 14px;margin:0 0 12px;background:#fbfdfd;min-width:0}
+.pf-gpslive{display:flex;align-items:center;gap:8px;margin:8px 0 0;padding:8px 10px;border-radius:10px;background:#f1f6f5;border:1px solid #dbe7e5;font-size:13px;font-weight:650;color:#36505a}.pf-gl-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#9aa9ad;animation:pfglpulse 1.2s ease-in-out infinite}.pf-gl-t{flex:1;min-width:0}.pf-gl-mini{flex:none;width:56px;height:6px;border-radius:4px;background:#e1e9e9;overflow:hidden}.pf-gl-mini i{display:block;height:100%;width:0;background:#9aa9ad;transition:width .4s}.pf-gpslive[data-q=good]{background:#eaf6f0;border-color:#bfe2cf}.pf-gpslive[data-q=good] .pf-gl-dot,.pf-gpslive[data-q=good] i{background:#23834f;animation:none}.pf-gpslive[data-q=mid] .pf-gl-dot,.pf-gpslive[data-q=mid] i{background:#d69a1b}.pf-gpslive[data-q=low] .pf-gl-dot,.pf-gpslive[data-q=low] i{background:#c62828}.pf-gpslive[data-q=off] .pf-gl-dot{animation:none}@keyframes pfglpulse{50%{opacity:.35}}.pf-section{border:1px solid #e1e9ea;border-radius:12px;padding:10px 14px 14px;margin:0 0 12px;background:#fbfdfd;min-width:0}
 .pf-section legend{display:flex;align-items:center;gap:7px;font-weight:800;font-size:15px;color:#173c46;padding:0 6px}
 .pf-section legend svg{color:#2d7f86}.pf-step{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#1d6f7a;color:#fff;font-size:12px;font-weight:800}.pf-admin{background:#fffaf4;border-color:#ecd9c8}.pf-admin legend svg{color:#b5653f}
-.pf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.pf-grid .wide{grid-column:1/-1}
+.pf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}.pf-grid .wide{grid-column:1/-1}
 .pf label{display:block;margin:0;font-size:12px;font-weight:700;color:#36505a}.pf .pf-ico{display:flex;align-items:center;gap:5px}.pf .pf-ico svg{color:#2d7f86;flex:none}
 .pf input,.pf textarea,.pf select{display:block;width:100%;max-width:none;min-height:0;margin-top:4px;padding:9px 10px;border:1px solid #d5e0e2;border-radius:8px;background:#fff;font:inherit;font-weight:400;color:#152b3a}
 .pf textarea{min-height:64px;resize:vertical}.pf input:focus,.pf textarea:focus,.pf select:focus{outline:2px solid #2d7f8655;border-color:#2d7f86}
@@ -74,7 +77,7 @@
 .pf .pf-num{display:flex;margin-top:4px}.pf .pf-num input{flex:1;width:auto;min-width:0;margin:0;border-radius:0;text-align:center}
 .pf .pf-numbtn{flex:none;width:36px;margin:0;padding:0;border:1px solid #d5e0e2;background:#f1f6f6;color:#1d6f7a;font-size:18px;font-weight:800;line-height:1;cursor:pointer}.pf .pf-numbtn:hover{background:#e2efee}
 .pf .pf-dec{order:-1;border-radius:8px 0 0 8px;border-right:0}.pf .pf-inc{border-radius:0 8px 8px 0;border-left:0}
-dialog.pf-mapdialog{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#dfe8e8}dialog.pf-mapdialog::backdrop{background:#10263ab8}
+dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#dfe8e8}dialog.pf-mapdialog::backdrop{background:#10263ab8}
 .pf-mapdialog .pf-mapbox{width:100%;height:100%}.pf-mapdialog .pf-mapclose{position:absolute;top:12px;right:12px;z-index:1000;display:flex;margin:0;padding:9px;border:0;border-radius:50%;background:#fff;color:#173c46;box-shadow:0 2px 8px #0004;cursor:pointer}
 .pf-mapdialog .pf-mapgps{position:absolute;top:60px;right:12px;z-index:1000;display:flex;align-items:center;gap:6px;margin:0;padding:9px 12px;border:0;border-radius:20px;background:#fff;color:#1f6fd1;font:inherit;font-size:13px;font-weight:800;box-shadow:0 2px 8px #0004;cursor:pointer}.pf-mapdialog .pf-mapgps:disabled{opacity:.6;cursor:wait}
 .pf-mapdialog .pf-mappanel{position:absolute;left:12px;right:12px;bottom:22px;z-index:1000;margin:0 auto;max-width:520px;padding:10px 12px;border-radius:12px;background:#fffffff2;color:#173c46;font-size:13px;box-shadow:0 2px 10px #0004}
@@ -82,7 +85,7 @@ dialog.pf-mapdialog{width:100vw;height:100dvh;max-width:none;max-height:none;mar
 .pf-mapdialog .pf-mapuse{display:block;width:100%;margin:0;padding:11px;border:0;border-radius:9px;background:#1d6f7a;color:#fff;font:inherit;font-size:15px;font-weight:800;cursor:pointer}.pf-mapdialog .pf-mapuse:disabled{opacity:.5;cursor:not-allowed}
 .pf-mapdialog .pf-crosshair{position:absolute;top:50%;left:50%;z-index:1000;width:44px;height:44px;transform:translate(-50%,-50%);pointer-events:none;color:#c62828;filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff)}
 .pf-me{width:22px;height:22px;border-radius:50%;background:#1f6fd1;border:3px solid #fff;box-shadow:0 0 0 2px #1f6fd1,0 1px 6px #0006}
-@media(max-width:560px){.pf-member{grid-template-columns:22px 1.4fr .7fr 1.3fr 26px;grid-template-areas:'num name name name del' '. phone age ced .';row-gap:4px;padding:6px 0;border-top:1px dashed #dbe5e6}.pf-member:first-child{border-top:0}.pf-needs{grid-template-columns:1fr 1fr}}`;
+@media(max-width:560px){.pf-section{padding:8px 10px 12px}.pf-grid{gap:8px;grid-template-columns:minmax(0,1fr)}.pf-grid:has([data-filter="count"]){grid-template-columns:repeat(2,minmax(0,1fr))}.pf-member{grid-template-columns:22px minmax(0,1fr) minmax(0,1.6fr) 26px;grid-template-areas:'num name name del' '. phone phone .' '. age ced .';row-gap:4px;padding:6px 0;border-top:1px dashed #dbe5e6}.pf-member:first-child{border-top:0}.pf-needs{grid-template-columns:repeat(auto-fill,minmax(9.5em,1fr))}}`;
   if (!document.getElementById('pointform-style')) document.head.insertAdjacentHTML('beforeend', `<style id="pointform-style">${style}</style>`);
 
   // filter: «count» y «age» solo dígitos (0–999); «phone» dígitos, espacios, +, - y paréntesis.
@@ -96,7 +99,20 @@ dialog.pf-mapdialog{width:100vw;height:100dvh;max-width:none;max-height:none;mar
   // Los tres pasos llevan número (1, 2, 3); la sección de administración lleva candado.
   const section = (icon, title, body, cls = '') => `<fieldset class="pf-section ${cls}"><legend>${typeof icon === 'number' ? `<span class="pf-step">${icon}</span>` : icons[icon]}${esc(title)}</legend>${body}</fieldset>`;
   // «Reparación de casa» es solo para administración: la atienden constructores y no se publica.
-  const NEEDS = [['Agua', 'drop'], ['Alimentos', 'food'], ['Refugio (carpa / lona / toldo)', 'tent'], ['Kit de cocina', 'pot'], ['Kit de bebé', 'bottle'], ['Gasolina para generador', 'fuel'], ['Diésel para generador', 'fuel'], ['Reparación de casa', 'repair', 'pf-repair', 'admin']];
+  const NEEDS = [['Agua', 'drop'], ['Alimentos', 'food'], ['Refugio (carpa / lona / toldo)', 'tent'], ['Kit de cocina', 'pot'], ['Kit de bebé', 'bottle'], ['Gasolina para generador', 'fuel'], ['Diésel para generador', 'fuel'], ['Saneamiento / baño', 'toilet'], ['Reparación de casa', 'repair', 'pf-repair', 'admin']];
+  // Servicios del punto que se repiten: nombre, ícono y cada cuántos días se sugiere.
+  const SERVICES = [['Recolección de basura', 'trash', 7], ['Cambio de baño portátil', 'toilet', 7], ['Fumigación de mosquitos', 'spray', 14], ['Ronda médica', 'medicine', 30]];
+  const serviceIcon = name => icons[(SERVICES.find(s => s[0] === name) || [, 'other'])[1]] || '';
+  // Estado de un servicio para mostrarlo igual en todas las páginas: cuenta regresiva hasta la próxima vez.
+  function serviceStatus(n, now = Date.now()) {
+    if (n.status === 'IN_PROGRESS') return {cls: 'route', text: 'En camino'};
+    if (n.status === 'COMPLETED') return {cls: 'ok', text: 'Completado'};
+    const due = Date.parse(n.nextDueAt || '');
+    if (!due || due <= now) { const late = due ? Math.floor((now - due) / 864e5) : 0; return late >= 1 ? {cls: 'late', text: `Atrasado ${late} ${late === 1 ? 'día' : 'días'}`} : {cls: 'due', text: 'Toca hoy'}; }
+    const days = Math.ceil((due - now) / 864e5);
+    return days <= 1 ? {cls: 'soon', text: 'Mañana'} : {cls: days <= 2 ? 'soon' : 'ok', text: `En ${days} días`};
+  }
+  const serviceScheduled = (n, now = Date.now()) => n.kind === 'service' && n.status === 'OPEN' && Date.parse(n.nextDueAt || '') > now;
   const COUNTS = [['people', 'Personas', 'people'], ['adults', 'Adultos', 'adult'], ['children', 'Niños', 'child'], ['babies', 'Bebés', 'baby'], ['olderAdults', 'Mayores', 'elder'], ['disabled', 'Discapacitados', 'disabled']];
 
   // Casillas de necesidades con iconos y «Otros»; también las usa el formulario de necesidades del panel.
@@ -236,13 +252,17 @@ dialog.pf-mapdialog{width:100vw;height:100dvh;max-width:none;max-height:none;mar
     const otros = root.querySelector('.pf-otros'), otrosCheck = root.querySelector('.pf-otros-check'), otrosText = root.querySelector('.pf-otros-text');
     for (const box of boxes) box.checked = needs.checked.includes(box.dataset.need);
     otrosText.value = needsText(needs.checked.filter(l => !shown.includes(l)), needs.other);
-    otrosCheck.checked = !!otrosText.value;
-    otros.hidden = !otrosText.value;
-    otrosCheck.onchange = () => { otros.hidden = !otrosCheck.checked; if (otrosCheck.checked) otrosText.focus(); };
+    // «Otros» marcado ⇔ hay texto: escribir lo marca y desmarcarlo borra el texto, así nunca se pierde en silencio.
+    const sync = () => { otrosCheck.checked = !!otrosText.value.trim(); otros.hidden = !otrosCheck.checked; };
+    sync();
+    otrosCheck.onchange = () => { otros.hidden = !otrosCheck.checked; if (otrosCheck.checked) otrosText.focus(); else otrosText.value = ''; };
+    otrosText.oninput = () => { if (otrosText.value.trim()) sync(); };
   }
   function readNeeds(root) {
     const checked = [...root.querySelectorAll('[data-need]:checked')].map(b => b.dataset.need);
-    return needsText(checked, root.querySelector('.pf-otros-check').checked ? root.querySelector('.pf-otros-text').value : '');
+    const otrosCheck = root.querySelector('.pf-otros-check'), otrosText = root.querySelector('.pf-otros-text');
+    if (otrosText.value.trim()) otrosCheck.checked = true;
+    return needsText(checked, otrosText.value);
   }
   function readMembers(root) {
     return [...root.querySelectorAll('.pf-member')].map(row => Object.fromEntries(memberFields.map(([k]) => [k, row.querySelector(`[data-k="${k}"]`).value.trim()])));
@@ -358,7 +378,7 @@ dialog.pf-mapdialog{width:100vw;height:100dvh;max-width:none;max-height:none;mar
     if (!box) return;
     const c = linkCoords(root.querySelector('[name="gps"]').value);
     if (box._map) { box._map.remove(); box._map = null; }
-    box.hidden = !(c && inPanama(c) && window.L);
+    box.hidden = !(c && inPanama(c) && window.L) || noMap();
     if (box.hidden) return;
     const map = box._map = L.map(box, {zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, tap: false}).setView(c, 16);
     map.attributionControl.setPrefix(false);
@@ -370,8 +390,66 @@ dialog.pf-mapdialog{width:100vw;height:100dvh;max-width:none;max-height:none;mar
   }
   // Punto agregado más recientemente (por fecha de creación).
   const lastAdded = list => list.reduce((a, p) => !a || String(p.created || '') > String(a.created || '') ? p : a, null);
+
+
+  // GPS en segundo plano: al abrir el formulario (¡Ayuda!, Agregar punto, punto nuevo sin conexión) el teléfono empieza a
+  // buscar señal, así al tocar el botón de GPS ya hay una lectura. Se guarda la más precisa reciente; se apaga a los 5 min.
+  let warm = null, warmBest = null, warmTimer = null;
+  const warmSubs = new Set();
+  function warmGps() {
+    if (!navigator.geolocation) return;
+    clearTimeout(warmTimer);
+    warmTimer = setTimeout(() => { if (warm !== null) navigator.geolocation.clearWatch(warm); warm = null; }, 5 * 60000);
+    if (warm !== null) return;
+    warm = navigator.geolocation.watchPosition(pos => {
+      if (!warmBest || pos.coords.accuracy <= warmBest.coords.accuracy || Date.now() - warmBest.timestamp > 60000) warmBest = pos;
+      warmSubs.forEach(fn => fn(warmBest, null));
+    }, err => { warmSubs.forEach(fn => fn(null, err)); if (err.code === 1) { navigator.geolocation.clearWatch(warm); warm = null; } }, {enableHighAccuracy: true, maximumAge: 0});
+  }
+  const freshFix = (ms = 120000) => warmBest && Date.now() - warmBest.timestamp < ms ? warmBest : null;
+  // Sin mapa (sin conexión, o el mapa no cargó): en vez del mapa se muestra solo el GPS buscando tu posición, con la
+  // precisión en vivo (verde ≤15 m, amarillo ≤50 m, rojo más). «Usar esta ubicación» toma la lectura más precisa.
+  const noMap = () => navigator.onLine === false || !window.L || (typeof offOn !== 'undefined' && offOn);
+  function gpsLock(root) {
+    const gps = root.querySelector('[name="gps"]'), msg = root.querySelector('.pf-gpsmsg');
+    if (!navigator.geolocation) { msg.textContent = 'Este dispositivo no permite obtener la ubicación. Pega un enlace de mapa.'; return; }
+    if (!document.getElementById('pf-gpslock-style')) document.head.insertAdjacentHTML('beforeend', `<style id="pf-gpslock-style">.pf-gpslock{border:0;border-radius:16px;padding:0;width:min(400px,calc(100% - 24px));color:#173c46;font:15px Inter,system-ui,sans-serif;box-shadow:0 20px 60px #10263a66}.pf-gpslock::backdrop{background:#10263ad0}.pf-gl{padding:20px;display:flex;flex-direction:column;gap:12px;text-align:center}.pf-gl h2{margin:0;font-size:19px}.pf-gl p{margin:0;color:#4b6670;font-size:14px;line-height:1.45}.pf-gl-acc{font-size:44px;font-weight:900;line-height:1;color:#173c46}.pf-gl-acc small{display:block;font-size:13px;font-weight:700;color:#667982;margin-top:6px}.pf-gl-bar{height:10px;border-radius:6px;background:#e7eeee;overflow:hidden}.pf-gl-bar i{display:block;height:100%;width:0;border-radius:6px;background:#c62828;transition:width .4s,background .4s}.pf-gl-coords{font:700 13px ui-monospace,monospace;color:#36505a}.pf-gl-acts{display:flex;gap:8px}.pf-gl-acts button{flex:1;border:0;border-radius:12px;padding:13px;font:800 15px Inter,system-ui,sans-serif;cursor:pointer;background:#eef3f3;color:#173c46}.pf-gl-acts .go{background:#19745f;color:#fff}.pf-gl-acts .go:disabled{opacity:.45;cursor:default}</style>`);
+    let d = document.getElementById('pfGpsLock');
+    if (!d) {
+      document.body.insertAdjacentHTML('beforeend', `<dialog id="pfGpsLock" class="pf-gpslock" aria-labelledby="pfGlTitle"><div class="pf-gl"><h2 id="pfGlTitle">${icons.locate} Ubicación GPS</h2><p>Sin mapa: el teléfono está buscando tu posición. Espera a que la precisión baje (menos metros es mejor) y úsala.</p><div class="pf-gl-acc" id="pfGlAcc">…<small>Buscando señal GPS</small></div><div class="pf-gl-bar"><i id="pfGlBar"></i></div><p class="pf-gl-coords" id="pfGlCoords"></p><div class="pf-gl-acts"><button type="button" data-gl="cancel">Cancelar</button><button type="button" class="go" data-gl="use" disabled>Usar esta ubicación</button></div></div></dialog>`);
+      d = document.getElementById('pfGpsLock');
+    }
+    let best = freshFix(), n = best ? 1 : 0;
+    const draw = (pos) => {
+      const acc = Math.round(pos.coords.accuracy || 0), color = acc <= 15 ? '#23834f' : acc <= 50 ? '#d69a1b' : '#c62828';
+      d.querySelector('#pfGlAcc').innerHTML = `±${acc} m<small>${acc <= 15 ? 'Buena precisión' : acc <= 50 ? 'Precisión media: espera un poco más' : 'Poca precisión: sal a cielo abierto si puedes'} · ${n} ${n === 1 ? 'lectura' : 'lecturas'}</small>`;
+      const bar = d.querySelector('#pfGlBar'); bar.style.width = Math.max(8, Math.min(100, 100 - Math.min(acc, 200) / 2)) + '%'; bar.style.background = color;
+      d.querySelector('#pfGlCoords').textContent = best ? `${best.coords.latitude.toFixed(6)}, ${best.coords.longitude.toFixed(6)}` : '';
+      const use = d.querySelector('[data-gl="use"]'); use.disabled = !best; if (best) use.textContent = `Usar esta ubicación (±${Math.round(best.coords.accuracy)} m)`;
+    };
+    const watch = navigator.geolocation.watchPosition(pos => { n++; if (!best || pos.coords.accuracy <= best.coords.accuracy) best = pos; draw(pos); }, err => {
+      d.querySelector('#pfGlAcc').innerHTML = `—<small>${err.code === 1 ? 'Permiso de ubicación denegado: actívalo en el navegador.' : 'Todavía sin señal GPS…'}</small>`;
+    }, {enableHighAccuracy: true, maximumAge: 0, timeout: 30000});
+    const done = () => { navigator.geolocation.clearWatch(watch); d.onclick = null; if (d.open) d.close(); };
+    d.onclick = e => {
+      const b = e.target.closest('[data-gl]');
+      if (!b) return;
+      if (b.dataset.gl === 'use' && best) {
+        const c = [best.coords.latitude, best.coords.longitude];
+        gps.value = mapLink(c); gps.dispatchEvent(new Event('input', {bubbles: true}));
+        msg.textContent = inPanama(c) ? `✓ Ubicación GPS agregada (precisión aprox. ±${Math.round(best.coords.accuracy)} m).` : 'Tu ubicación queda fuera de Panamá; revisa el enlace antes de enviar.';
+      }
+      done();
+    };
+    d.oncancel = () => done();
+    d.querySelector('[data-gl="use"]').disabled = true; d.querySelector('[data-gl="use"]').textContent = 'Usar esta ubicación';
+    d.querySelector('#pfGlAcc').innerHTML = '…<small>Buscando señal GPS</small>'; d.querySelector('#pfGlBar').style.width = '0'; d.querySelector('#pfGlCoords').textContent = '';
+    d.showModal();
+    if (best) draw(best);
+  }
   function locate(root) {
     const btn = root.querySelector('.pf-gps'), msg = root.querySelector('.pf-gpsmsg'), gps = root.querySelector('[name="gps"]');
+    if (noMap()) { gpsLock(root); return; }
     const view = openGpsMap(root);
     if (!navigator.geolocation) { msg.textContent = 'Este dispositivo no permite obtener la ubicación. Pega un enlace de mapa.'; view?.status(msg.textContent); return; }
     btn.disabled = true; msg.textContent = 'Buscando tu ubicación…';
@@ -389,7 +467,7 @@ dialog.pf-mapdialog{width:100vw;height:100dvh;max-width:none;max-height:none;mar
       msg.textContent = err.code === 1 ? 'Permiso de ubicación denegado. Actívalo en el navegador o pega un enlace de mapa.' : 'No se pudo obtener tu ubicación' + (window.isSecureContext ? '. Intenta de nuevo o pega un enlace de mapa.' : ' (requiere HTTPS).');
       view?.status(msg.textContent);
       btn.disabled = false;
-    }, {enableHighAccuracy: true, timeout: 20000, maximumAge: 0});
+    }, {enableHighAccuracy: true, timeout: 20000, maximumAge: 15000});
   }
   // Dibuja el formulario dentro de `root` (un contenedor dentro del <form>) y carga los datos de `point`.
   // `nearby`: función que devuelve los puntos del mapa de pantalla completa que se abre con «Enviar mi ubicación GPS».
@@ -407,6 +485,36 @@ dialog.pf-mapdialog{width:100vw;height:100dvh;max-width:none;max-height:none;mar
     label.querySelector('.pf-yo').onclick = e => { e.preventDefault(); set(me.name, me.telephone || ''); };
     label.querySelector('.pf-clearcoord').onclick = e => { e.preventDefault(); set('', ''); root.querySelector('[name="coordinator"]').focus(); };
   }
+
+  // Progreso del GPS dentro del formulario, sin bloquear: bajo el botón se ve la precisión en vivo y el campo de ubicación
+  // se llena solo con la mejor lectura mientras sigues escribiendo. Si eliges un lugar en el mapa o pegas un enlace, ya
+  // no se toca.
+  function gpsLive(root) {
+    const btn = root.querySelector('.pf-gps'), gpsEl = root.querySelector('[name="gps"]');
+    if (!btn || !navigator.geolocation) return;
+    let box = root.querySelector('.pf-gpslive');
+    if (!box) { btn.insertAdjacentHTML('afterend', '<div class="pf-gpslive" role="status"><span class="pf-gl-dot"></span><span class="pf-gl-t">Buscando señal GPS…</span><span class="pf-gl-mini"><i></i></span></div>'); box = root.querySelector('.pf-gpslive'); }
+    root._autoGps = gpsEl.value ? null : '';
+    gpsEl.addEventListener('input', () => { root._autoGps = null; });
+    let shown = Infinity;
+    const update = (fix, err) => {
+      if (!root.isConnected) { warmSubs.delete(update); return; }
+      const t = box.querySelector('.pf-gl-t'), bar = box.querySelector('i');
+      if (err && !fix) { if (err.code === 1) { t.textContent = 'GPS no disponible: permiso de ubicación denegado.'; box.dataset.q = 'off'; } return; }
+      const acc = Math.round(fix.coords.accuracy || 0), own = root._autoGps === null && gpsEl.value;
+      box.dataset.q = acc <= 15 ? 'good' : acc <= 50 ? 'mid' : 'low';
+      bar.style.width = Math.max(10, Math.min(100, 100 - Math.min(acc, 200) / 2)) + '%';
+      if (own) { t.textContent = `Usando la ubicación que elegiste (GPS ±${acc} m).`; return; }
+      t.textContent = acc <= 15 ? `GPS ±${acc} m ✓ ubicación agregada` : `GPS ±${acc} m · mejorando…`;
+      const c = [fix.coords.latitude, fix.coords.longitude];
+      if (inPanama(c) && (gpsEl.value === '' || gpsEl.value === root._autoGps) && acc <= shown - 5) {
+        shown = acc; gpsEl.value = root._autoGps = mapLink(c);
+        if (!noMap()) drawGpsThumb(root);
+      }
+    };
+    warmSubs.add(update);
+    if (warmBest) update(warmBest, null);
+  }
   function render(root, {admin = false, edit = false, point = {}, nearby = null, me = null} = {}) {
     root._nearby = nearby;
     root.classList.add('pf');
@@ -421,6 +529,7 @@ dialog.pf-mapdialog{width:100vw;height:100dvh;max-width:none;max-height:none;mar
     root.querySelector('[name="gps"]').addEventListener('input', () => drawGpsThumb(root));
     setMe(root, me);
     drawGpsThumb(root);
+    if (!admin) { warmGps(); gpsLive(root); }
     root.oninput = e => { const f = filters[e.target.dataset?.filter]; if (f) { const v = f(e.target.value); if (v !== e.target.value) e.target.value = v; } };
     root.onclick = e => {
       const b = e.target.closest('.pf-numbtn'); if (!b) return;
@@ -447,5 +556,215 @@ dialog.pf-mapdialog{width:100vw;height:100dvh;max-width:none;max-height:none;mar
   }
   const validPhone = s => (String(s ?? '').match(/\d/g) || []).length >= 7;
   const hasPhone = data => validPhone(data.coordinatorPhone) || (data.members || []).some(m => validPhone(m.phone));
-  window.PointForm = {render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe};
+  // Aviso de ubicación en vivo (página pública con código y panel de corredores): una casilla «Acepto compartir mi ubicación»
+  // antes de compartirla si la persona no ha aceptado la versión vigente (el servidor guarda cuándo la aceptó; ver location.go). «Aceptar y activar»
+  // solo se habilita con la casilla marcada. Devuelve true si aceptó. Si el texto cambia en algo importante, sube
+  // locationNoticeVersion en location.go para que todos lo vuelvan a aceptar.
+  function locationNotice() {
+    let d = document.getElementById('pfLocNotice');
+    if (!d) {
+      if (!document.getElementById('pf-locnotice-style')) document.head.insertAdjacentHTML('beforeend', `<style id="pf-locnotice-style">dialog.pf-locnotice{width:min(440px,calc(calc(100vw / var(--text-zoom,1)) - 24px));max-height:calc(calc(100dvh / var(--text-zoom,1)) - 24px);padding:0;border:0;border-radius:16px;box-shadow:0 18px 50px #10263a66;color:#173542;font:15px system-ui,-apple-system,sans-serif}dialog.pf-locnotice::backdrop{background:#10263ab8}.pf-ln-box{padding:20px 20px 16px}.pf-ln-box h2{margin:0 0 10px;font-size:20px}.pf-ln-text{margin:0 0 14px;font-size:14px;line-height:1.5;color:#36505a}.pf-ln-ok{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1.5px solid #b9d3d8;border-radius:10px;background:#f3faf9;font-weight:700;font-size:14px;line-height:1.35;cursor:pointer}.pf-ln-ok input{width:22px;height:22px;margin:0;flex:none;accent-color:#19745f}.pf-ln-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}.pf-ln-actions button{border:0;border-radius:10px;padding:11px 16px;font:inherit;font-weight:800;cursor:pointer;background:#19745f;color:#fff}.pf-ln-actions button:disabled{opacity:.45;cursor:not-allowed}.pf-ln-actions .pf-ln-no{background:#fff;color:#173542;border:1px solid #cad9d9}</style>`);
+      document.body.insertAdjacentHTML('beforeend', `<dialog id="pfLocNotice" class="pf-locnotice" aria-labelledby="pfLocNoticeTitle"><form method="dialog" class="pf-ln-box"><h2 id="pfLocNoticeTitle">📍 Tu ubicación, por tu seguridad</h2><p class="pf-ln-text">Estás en una zona de desastre. Compartir tu ubicación en vivo puede salvarte: si algo pasa, se sabrá dónde estás y se podrá llegar a ti rápido. Puedes apagarla cuando quieras.</p><label class="pf-ln-ok"><input type="checkbox" name="ok" required> Por mi seguridad, acepto que mi ubicación se use y se comparta mientras esté activa.</label><div class="pf-ln-actions"><button type="submit" class="pf-ln-no" value="no" formnovalidate>Ahora no</button><button type="submit" value="yes" disabled>Aceptar y activar</button></div></form></dialog>`);
+      d = document.getElementById('pfLocNotice');
+      const ok = d.querySelector('[name=ok]');
+      ok.onchange = () => { d.querySelector('[value=yes]').disabled = !ok.checked; };
+    }
+    const ok = d.querySelector('[name=ok]');
+    ok.checked = false;
+    d.querySelector('[value=yes]').disabled = true;
+    d.returnValue = '';
+    d.showModal();
+    return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'yes' && ok.checked), {once: true}));
+  }
+
+  // Cola sin conexión (página pública y Runners). Al guardar un punto sin internet (o si el servidor no responde) queda
+  // en este navegador (localStorage), sus datos se copian al portapapeles y se envía solo al volver la conexión, al abrir la
+  // página o cada minuto. Cada punto lleva clientRef: si el servidor ya lo recibió, el reenvío no crea otro.
+  // Si el servidor lo rechaza (dato inválido), queda en la cola con el motivo para corregirlo o quitarlo.
+  const QKEY = 'pointQueue';
+  let qSend = null, qSent = null, qBusy = false;
+  const qLoad = () => { try { const l = JSON.parse(localStorage.getItem(QKEY) || '[]'); return Array.isArray(l) ? l : []; } catch { return []; } };
+  const qSave = l => { try { localStorage.setItem(QKEY, JSON.stringify(l)); } catch {} };
+  const newRef = () => 'q-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  function queuePoint(record) {
+    const l = qLoad();
+    if (!l.some(x => x.ref === record.clientRef)) l.push({ref: record.clientRef, record, at: new Date().toISOString(), error: ''});
+    qSave(l);
+    try { navigator.clipboard?.writeText(JSON.stringify(record, null, 2)).catch(() => {}); } catch {}
+    drawQueue();
+  }
+  // Envía el punto; sin conexión (o 502–504) lo deja en la cola. Devuelve {queued:true} o {res}.
+  async function sendOrQueue(record, send) {
+    record.clientRef ||= newRef();
+    if (navigator.onLine === false) { queuePoint(record); enterOffline(true); return {queued: true}; }
+    let r;
+    try { r = await send(record); } catch { queuePoint(record); enterOffline(true); return {queued: true}; }
+    if (r.status >= 502 && r.status <= 504) { queuePoint(record); enterOffline(true); return {queued: true}; }
+    return {res: r};
+  }
+  async function flushQueue() {
+    if (qBusy || !qSend) return;
+    if (!qLoad().length) { drawQueue(); return; }
+    qBusy = true; drawQueue();
+    let sent = 0;
+    for (const item of qLoad()) {
+      if (item.error) continue;
+      let r;
+      try { r = await qSend(item.record); } catch { break; }
+      if (r.ok) { qSave(qLoad().filter(x => x.ref !== item.ref)); sent++; continue; }
+      if (r.status >= 500 || r.status === 401 || r.status === 429) break;
+      const body = await r.json().catch(() => ({})), l = qLoad(), x = l.find(x => x.ref === item.ref);
+      if (x) { x.error = body.error || 'Error HTTP ' + r.status; qSave(l); }
+    }
+    qBusy = false; drawQueue();
+    if (sent && qSent) qSent(sent);
+  }
+  function queueStyle() {
+    if (document.getElementById('pf-queue-style')) return;
+    document.head.insertAdjacentHTML('beforeend', `<style id="pf-queue-style">.pfq-chip{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:1500;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;background:#10263a;color:#fff;padding:10px 16px;font:800 14px Inter,system-ui,sans-serif;box-shadow:0 8px 24px #10263a66;cursor:pointer}.pfq-chip[hidden]{display:none}.pfq-chip .err{background:#c62828;border-radius:999px;padding:1px 8px;font-size:12px}.pfq-dlg{border:0;border-radius:16px;padding:0;width:min(460px,calc(100% - 24px));max-height:calc(88dvh / var(--text-zoom,1));color:#173c46;font:15px Inter,system-ui,sans-serif;box-shadow:0 20px 60px #10263a66}.pfq-dlg::backdrop{background:#10263ab8}.pfq-box{padding:18px;display:flex;flex-direction:column;gap:10px}.pfq-box h2{margin:0;font-size:18px}.pfq-box p{margin:0;color:#667982;font-size:13px;line-height:1.45}.pfq-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:calc(50dvh / var(--text-zoom,1));overflow:auto}.pfq-list li{border:1px solid #e1e9ea;border-radius:10px;padding:9px 11px;display:flex;flex-direction:column;gap:4px}.pfq-list b{font-size:14px}.pfq-list small{color:#667982}.pfq-list .e{color:#a33527;font-weight:700}.pfq-row{display:flex;gap:6px;flex-wrap:wrap}.pfq-row button{border:1px solid #cad9d9;background:#fff;color:#173c46;border-radius:8px;padding:5px 10px;font:700 12px Inter,system-ui,sans-serif;cursor:pointer}.pfq-row .del{color:#a33527;border-color:#e3b9b0}.pfq-acts{display:flex;gap:8px}.pfq-acts button{flex:1;border:0;border-radius:10px;padding:12px;font:800 15px Inter,system-ui,sans-serif;cursor:pointer;background:#eef3f3;color:#173c46}.pfq-acts .go{background:#19745f;color:#fff}</style>`);
+  }
+  function drawQueue() {
+    if (!qSend) return;
+    queueStyle();
+    let chip = document.getElementById('pfQueue');
+    if (!chip) { chip = document.createElement('button'); chip.type = 'button'; chip.id = 'pfQueue'; chip.className = 'pfq-chip'; document.body.appendChild(chip); chip.onclick = openQueue; }
+    const l = qLoad(), bad = l.filter(x => x.error).length;
+    chip.hidden = !l.length;
+    chip.innerHTML = `📤 ${qBusy ? 'Enviando…' : `${l.length} ${l.length === 1 ? 'punto por enviar' : 'puntos por enviar'}`}${bad ? ` <span class="err">${bad} con error</span>` : ''}`;
+    if (document.getElementById('pfQueueDlg')?.open) fillQueue();
+  }
+  function fillQueue() {
+    const d = document.getElementById('pfQueueDlg'), l = qLoad();
+    d.querySelector('.pfq-list').innerHTML = l.length ? l.map((x, i) => `<li><b>${esc(x.record.area || 'Sin zona')}${x.record.place ? ' · ' + esc(x.record.place) : ''}</b><small>Guardado ${esc(new Date(x.at).toLocaleTimeString('es-PA', {hour: 'numeric', minute: '2-digit'}))}${x.record.coordinatorPhone ? ' · ' + esc(x.record.coordinatorPhone) : ''}</small>${x.error ? `<span class="e">No se pudo enviar: ${esc(x.error)}</span>` : ''}<div class="pfq-row"><button type="button" data-qcopy="${i}">Copiar datos</button>${x.error ? `<button type="button" data-qretry="${i}">Reintentar</button>` : ''}<button type="button" class="del" data-qdel="${i}">Quitar</button></div></li>`).join('') : '<li><small>No hay puntos por enviar.</small></li>';
+  }
+  function openQueue() {
+    queueStyle();
+    let d = document.getElementById('pfQueueDlg');
+    if (!d) {
+      document.body.insertAdjacentHTML('beforeend', '<dialog id="pfQueueDlg" class="pfq-dlg" aria-labelledby="pfQueueTitle"><div class="pfq-box"><h2 id="pfQueueTitle">Puntos por enviar</h2><p>Se guardaron en este teléfono porque no había conexión. Se envían solos cuando vuelve internet.</p><ul class="pfq-list"></ul><div class="pfq-acts"><button type="button" data-qclose>Cerrar</button><button type="button" class="go" data-qsend>Enviar ahora</button></div></div></dialog>');
+      d = document.getElementById('pfQueueDlg');
+      d.addEventListener('click', async e => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        const l = qLoad();
+        if (b.dataset.qclose !== undefined) d.close();
+        else if (b.dataset.qsend !== undefined) { l.forEach(x => { x.error = ''; }); qSave(l); await flushQueue(); fillQueue(); }
+        else if (b.dataset.qcopy) { try { await navigator.clipboard.writeText(JSON.stringify(l[+b.dataset.qcopy].record, null, 2)); b.textContent = 'Copiado'; } catch { b.textContent = 'No se pudo copiar'; } }
+        else if (b.dataset.qretry) { l[+b.dataset.qretry].error = ''; qSave(l); await flushQueue(); fillQueue(); }
+        else if (b.dataset.qdel && confirm('¿Quitar este punto de la cola? No se enviará.')) { l.splice(+b.dataset.qdel, 1); qSave(l); drawQueue(); fillQueue(); }
+      });
+    }
+    fillQueue();
+    d.showModal();
+  }
+
+  // Modo sin conexión: al perder la conexión (o si un envío falla por falta de red) una pantalla cubre toda la página.
+  // Ahí solo se ven los puntos guardados en el teléfono: tocar uno lo abre para editarlo, «+ Agregar otro punto» y
+  // «Reintentar envío». No se sale hasta que hay conexión y todos se enviaron bien. Si había un formulario abierto,
+  // lo escrito pasa a la pantalla sin conexión para no perderlo.
+  let offOn = false, offEdit = null;
+  function offlineStyle() {
+    if (document.getElementById('pf-offline-style')) return;
+    document.head.insertAdjacentHTML('beforeend', `<style id="pf-offline-style">.pfo{position:fixed;inset:0;z-index:5000;display:flex;flex-direction:column;background:#f2f6f5;color:#173c46;font:15px Inter,system-ui,sans-serif}.pfo[hidden]{display:none}.pfo-head{flex:none;display:flex;align-items:center;gap:10px;padding:max(12px,env(safe-area-inset-top)) 16px 12px;background:#10263a;color:#fff}.pfo-head h2{margin:0;font-size:18px;flex:1}.pfo-dot{width:10px;height:10px;border-radius:50%;background:#f0a54a;box-shadow:0 0 0 4px #f0a54a33}.pfo-badge{min-width:26px;text-align:center;border-radius:999px;background:#ed7654;color:#fff;font-weight:800;padding:3px 9px;font-size:14px}.pfo-body{flex:1;overflow:auto;padding:14px 16px 18px}.pfo-body>p{margin:0 0 12px;color:#4b6670;font-size:14px;line-height:1.45}.pfo-list{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}.pfo-list button{width:100%;text-align:left;border:1px solid #d6e1e0;border-radius:12px;background:#fff;padding:12px 14px;font:inherit;color:#173c46;cursor:pointer;display:flex;flex-direction:column;gap:3px;box-shadow:0 1px 3px #17354214}.pfo-list b{font-size:15px}.pfo-list small{color:#667982}.pfo-list .e{color:#a33527;font-weight:700;font-size:13px}.pfo-add{width:100%;border:2px dashed #9fb6bb;border-radius:12px;background:#fff;color:#19745f;font:800 15px Inter,system-ui,sans-serif;padding:13px;cursor:pointer}.pfo-foot{flex:none;display:flex;flex-direction:column;gap:6px;padding:10px 16px max(12px,env(safe-area-inset-bottom));background:#fff;border-top:1px solid #dce5e4}.pfo-foot .row{display:flex;gap:8px}.pfo-foot button{flex:1;border:0;border-radius:12px;padding:14px;font:800 16px Inter,system-ui,sans-serif;cursor:pointer}.pfo-go{background:#19745f;color:#fff}.pfo-plain{background:#eef3f3;color:#173c46}.pfo-status{margin:0;text-align:center;font-size:13px;color:#4b6670;min-height:18px}.pfo-del{margin-top:14px;width:100%;border:1px solid #e3b9b0;border-radius:10px;background:#fff;color:#a33527;font:700 14px Inter,system-ui,sans-serif;padding:11px;cursor:pointer}.pfo-toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:5100;background:#19745f;color:#fff;border-radius:999px;padding:10px 18px;font:800 14px Inter,system-ui,sans-serif;box-shadow:0 8px 24px #0004}</style>`);
+  }
+  function offlineEl() {
+    let o = document.getElementById('pfOffline');
+    if (o) return o;
+    offlineStyle();
+    document.body.insertAdjacentHTML('beforeend', '<div id="pfOffline" class="pfo" role="dialog" aria-modal="true" aria-labelledby="pfoTitle" hidden><div class="pfo-head"><span class="pfo-dot" aria-hidden="true"></span><h2 id="pfoTitle">Sin conexión</h2><span class="pfo-badge" id="pfoBadge" title="Puntos por enviar">0</span></div><div class="pfo-body" id="pfoBody"></div><div class="pfo-foot" id="pfoFoot"></div></div>');
+    o = document.getElementById('pfOffline');
+    o.addEventListener('click', offlineClick);
+    return o;
+  }
+  function lockPage(on) { for (const el of document.body.children) if (el.id !== 'pfOffline' && !el.classList.contains('pfo-toast')) el.inert = on; }
+  // saved: el punto del formulario ya quedó en la cola (al guardar sin conexión), así que no se copia como borrador.
+  const addFormOpen = () => [...document.querySelectorAll('.pf')].some(r => r.id !== 'pfoForm' && r.closest('.modalbg.open,dialog[open]'));
+  function enterOffline(saved = false) {
+    if (!qSend) return;
+    const o = offlineEl();
+    if (!offOn) {
+      // Lo que se estaba escribiendo en un formulario abierto pasa aquí como punto nuevo.
+      const live = [...document.querySelectorAll('.pf')].find(r => r.id !== 'pfoForm' && r.closest('.modalbg.open,dialog[open]'));
+      if (live) {
+        const draft = values(live);
+        if (!saved && Object.entries(draft).some(([k, v]) => k === 'members' ? v.length : String(v ?? '').trim())) offEdit = {draft};
+        const host = live.closest('.modalbg.open,dialog[open]');
+        if (host.tagName === 'DIALOG') host.close(); else host.classList.remove('open');
+      }
+    }
+    offOn = true;
+    o.hidden = false;
+    lockPage(true);
+    drawOffline();
+  }
+  function leaveOffline(msg) {
+    offOn = false; offEdit = null;
+    offlineEl().hidden = true;
+    lockPage(false);
+    if (msg) { const t = document.createElement('div'); t.className = 'pfo-toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); }
+  }
+  function drawOffline(status = '') {
+    const l = qLoad(), body = document.getElementById('pfoBody'), foot = document.getElementById('pfoFoot');
+    document.getElementById('pfoBadge').textContent = l.length;
+    if (offEdit) {
+      const existing = offEdit.ref && l.find(x => x.ref === offEdit.ref);
+      body.innerHTML = `<p>${existing ? 'Corrige el punto y guárdalo de nuevo en el teléfono.' : 'Nuevo punto: se guarda en el teléfono hasta que haya conexión.'}</p><div id="pfoForm"></div>${existing ? '<button type="button" class="pfo-del" data-o="del">Quitar este punto</button>' : ''}<p class="pfo-status" id="pfoFormMsg" role="status"></p>`;
+      render(document.getElementById('pfoForm'), {point: existing ? existing.record : offEdit.draft || {}});
+      foot.innerHTML = '<div class="row"><button type="button" class="pfo-plain" data-o="back">Volver</button><button type="button" class="pfo-go" data-o="save">Guardar en el teléfono</button></div>';
+      body.scrollTop = 0;
+      return;
+    }
+    body.innerHTML = `<p>No hay conexión. Puedes seguir agregando puntos: quedan guardados en este teléfono y se envían cuando vuelva internet. Toca uno para editarlo.</p><ul class="pfo-list">${l.map(x => `<li><button type="button" data-o="edit" data-ref="${esc(x.ref)}"><b>${esc(x.record.area || 'Sin zona')}${x.record.place ? ' · ' + esc(x.record.place) : ''}</b><small>${esc(new Date(x.at).toLocaleTimeString('es-PA', {hour: 'numeric', minute: '2-digit'}))}${x.record.coordinatorPhone ? ' · ' + esc(x.record.coordinatorPhone) : ''}${x.record.needs ? ' · ' + esc(x.record.needs) : ''}</small>${x.error ? `<span class="e">El servidor no lo aceptó: ${esc(x.error)}. Tócalo para corregirlo.</span>` : ''}</button></li>`).join('')}</ul><button type="button" class="pfo-add" data-o="new">+ Agregar otro punto</button>`;
+    foot.innerHTML = `<p class="pfo-status" id="pfoStatus" role="status">${esc(status)}</p><button type="button" class="pfo-go" data-o="check">Reintentar envío</button>`;
+  }
+  // Reintentar envío: si hay conexión se envía todo; solo cuando la cola queda vacía se sale.
+  let checking = false;
+  async function checkOnline() {
+    if (checking) return;
+    checking = true;
+    drawOffline('Intentando enviar…');
+    const ok = await fetch('/health', {cache: 'no-store'}).then(r => r.ok).catch(() => false);
+    if (!ok) { checking = false; drawOffline('Todavía sin conexión. Intenta de nuevo en un momento.'); return; }
+    drawOffline('Conectado. Enviando…');
+    const before = qLoad().length;
+    await flushQueue();
+    checking = false;
+    const l = qLoad();
+    if (!l.length) { leaveOffline(before ? `Conectado: ${before === 1 ? 'se envió 1 punto' : `se enviaron ${before} puntos`}.` : 'Conectado.'); return; }
+    drawOffline(l.some(x => x.error) ? 'Hay puntos que el servidor no aceptó: tócalos para corregirlos.' : 'El servidor no respondió. Intenta de nuevo en un momento.');
+  }
+  function offlineClick(e) {
+    const b = e.target.closest('[data-o]');
+    if (!b) return;
+    const act = b.dataset.o;
+    if (act === 'check') checkOnline();
+    else if (act === 'new') { offEdit = {draft: {}}; drawOffline(); }
+    else if (act === 'edit') { offEdit = {ref: b.dataset.ref}; drawOffline(); }
+    else if (act === 'back') { offEdit = null; drawOffline(); }
+    else if (act === 'del') {
+      if (!confirm('¿Quitar este punto? No se enviará.')) return;
+      qSave(qLoad().filter(x => x.ref !== offEdit.ref)); offEdit = null; drawQueue(); drawOffline();
+    } else if (act === 'save') {
+      const record = values(document.getElementById('pfoForm'));
+      if (!hasPhone(record)) { document.getElementById('pfoFormMsg').textContent = 'Agrega al menos un teléfono (7 dígitos o más): del coordinador o de alguna persona.'; return; }
+      const l = qLoad(), x = offEdit.ref && l.find(x => x.ref === offEdit.ref);
+      if (x) { record.clientRef = x.ref; x.record = record; x.error = ''; qSave(l); }
+      else { record.clientRef = newRef(); l.push({ref: record.clientRef, record, at: new Date().toISOString(), error: ''}); qSave(l); }
+      offEdit = null; drawQueue(); drawOffline('Guardado en el teléfono.');
+    }
+  }
+  // La página dice cómo enviar (send) y qué hacer tras enviar (sent, p. ej. recargar la lista).
+  function setQueue({send, sent} = {}) {
+    qSend = send; qSent = sent || null;
+    drawQueue();
+    if (navigator.onLine !== false) flushQueue();
+  }
+  if (typeof addEventListener === 'function' && typeof document !== 'undefined' && document.addEventListener) {
+    addEventListener('online', () => { if (offOn) checkOnline(); else flushQueue(); });
+    // Solo si estás agregando un punto (formulario abierto); navegando sin conexión no se bloquea nada.
+    addEventListener('offline', () => { if (addFormOpen()) enterOffline(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flushQueue(); });
+    setInterval(() => { if (qSend && qLoad().some(x => !x.error)) flushQueue(); }, 60000);
+  }
+  window.PointForm = {render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
 })();

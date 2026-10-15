@@ -97,7 +97,7 @@ func TestCampServiceNeedsAndPublicPrivacy(t *testing.T) {
 	points := s.call("GET", "/api/points", "", false)
 	// Assigning a runner puts the need en ruta.
 	if n["status"] != "IN_PROGRESS" || n["enRouteAt"] == nil {
-		t.Fatalf("assigned need must be en ruta: %v", n)
+		t.Fatalf("assigned need must be en camino: %v", n)
 	}
 	if !bytes.Contains(points.Body.Bytes(), []byte(`"campStatus":"IN_PROGRESS"`)) || !bytes.Contains(points.Body.Bytes(), []byte(`"highestUrgency":"urgente"`)) || bytes.Contains(points.Body.Bytes(), []byte("6999-1111")) {
 		t.Fatalf("aggregate: %s", points.Body.String())
@@ -451,7 +451,7 @@ func TestAssigningRunnerPutsNeedEnRuta(t *testing.T) {
 	id := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","urgency":"normal"}`, 201)["id"].(string)
 	n := s.expect("PATCH", "/api/admin/needs/"+id, `{"runnerId":"`+runner+`"}`, 200)
 	if n["status"] != "IN_PROGRESS" || n["enRouteAt"] == nil {
-		t.Fatalf("assigning a runner must put the need en ruta: %v", n)
+		t.Fatalf("assigning a runner must put the need en camino: %v", n)
 	}
 	// Moving it back to Abierta on purpose keeps the same runner without forcing en ruta again.
 	if n := s.expect("PATCH", "/api/admin/needs/"+id, `{"status":"OPEN","runnerId":"`+runner+`"}`, 200); n["status"] != "OPEN" {

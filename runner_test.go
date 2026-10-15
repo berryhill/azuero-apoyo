@@ -110,6 +110,13 @@ func TestRunnerTakeCompleteReleaseAndFollowup(t *testing.T) {
 	if w := luis.call("POST", "/api/runner/needs/"+n2+"/complete", "{}"); w.Code != 200 {
 		t.Fatalf("complete: %d", w.Code)
 	}
+	// Sent again from the offline screen: still fine for the same runner, never for someone else.
+	if w := luis.call("POST", "/api/runner/needs/"+n2+"/complete", "{}"); w.Code != 200 {
+		t.Fatalf("complete again (offline resend): %d %s", w.Code, w.Body.String())
+	}
+	if w := ana.call("POST", "/api/runner/needs/"+n2+"/complete", "{}"); w.Code != 409 {
+		t.Fatalf("another runner on a completed need: %d", w.Code)
+	}
 	if w := luis.call("POST", "/api/runner/camps/"+s.camp+"/needs", `{"need":"More water","urgency":"Urgent"}`); w.Code != 201 {
 		t.Fatalf("followup: %d %s", w.Code, w.Body.String())
 	}
@@ -157,7 +164,7 @@ func TestNeedTimestamps(t *testing.T) {
 	}
 	s.expect("PATCH", "/api/admin/needs/"+id, `{"status":"IN_PROGRESS"}`, 200)
 	if pub := s.call("GET", "/api/camps/"+s.camp+"/needs", "", false).Body.String(); !strings.Contains(pub, `"enRouteAt":"20`) {
-		t.Fatalf("public needs should show when it went en ruta: %s", pub)
+		t.Fatalf("public needs should show when it went en camino: %s", pub)
 	}
 	if w := s.call("PATCH", "/api/admin/needs/"+id, `{"createdAt":"2000-01-01T00:00:00Z"}`, true); w.Code != 400 {
 		t.Fatalf("timestamps must be server-set: %d", w.Code)

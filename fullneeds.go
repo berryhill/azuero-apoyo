@@ -19,7 +19,7 @@ type crewChoice struct {
 	Team bool `json:"team,omitempty"`
 }
 
-var errNeedClosed = errors.New("Esta necesidad ya no está abierta ni en ruta.")
+var errNeedClosed = errors.New("Esta necesidad ya no está abierta ni en camino.")
 var errOtherTeam = errors.New("Esta carrera la lleva otro equipo.")
 
 // assignable: a quien entró con código le salen los corredores de su equipo y los que no tienen código;

@@ -1,0 +1,138 @@
+package main
+
+import (
+	"crypto/rand"
+	"math/big"
+	"net/http"
+	"strings"
+	"time"
+
+	bolt "go.etcd.io/bbolt"
+)
+
+// Alta desde la página pública («Entrar» → «Crear mi código»): cualquiera crea su usuario con nombre y teléfono y el
+// servidor le genera un código fácil de recordar pero difícil de adivinar: palabra + 2 dígitos + parte del nombre + 1 dígito,
+// p. ej. LORO47JUAN3 (unas 80 × 100 × 10 combinaciones por nombre, y entrar sigue limitado a 10 códigos incorrectos cada
+// 10 minutos por conexión). El usuario queda pendiente: sin roles su código no abre ningún panel ni la vista completa hasta
+// que administración le dé acceso en Usuarios.
+var signupWords = []string{
+	"AGUILA", "ALCE", "ARDILLA", "BALLENA", "BUHO", "BURRO", "CABRA", "CAIMAN", "CAMELLO", "CANGREJO",
+	"CASTOR", "CEBRA", "CERDO", "CIERVO", "CISNE", "COBRA", "CONDOR", "CONEJO", "COYOTE", "DELFIN",
+	"DRAGON", "ERIZO", "FOCA", "GACELA", "GALLO", "GANSO", "GATO", "GAVIOTA", "GORILA", "GRILLO",
+	"HALCON", "HIENA", "HORMIGA", "IGUANA", "JAGUAR", "JIRAFA", "KOALA", "LEON", "LINCE", "LOBO",
+	"LORO", "MANATI", "MANGO", "MAPACHE", "MONO", "MORSA", "NUTRIA", "OCELOTE", "OSO", "OVEJA",
+	"PALOMA", "PANDA", "PANTERA", "PATO", "PELICANO", "PERICO", "PEZ", "PIÑA", "PINGUINO", "PUMA",
+	"RANA", "RATON", "RENO", "SAPO", "SALMON", "TAPIR", "TIBURON", "TIGRE", "TOPO", "TORO",
+	"TORTUGA", "TUCAN", "VENADO", "YAK", "ZORRO", "COCO", "LIMON", "MAREA", "OLA", "SOL",
+}
+
+func randomBelow(n int) int {
+	v, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
+	if err != nil {
+		panic(err)
+	}
+	return int(v.Int64())
+}
+
+// signupNamePart: hasta 5 letras del primer nombre, sin tildes ni signos («José» → JOSE); AMIGO si no queda ninguna.
+func signupNamePart(name string) string {
+	first := strings.Fields(name)
+	if len(first) == 0 {
+		return "AMIGO"
+	}
+	var b strings.Builder
+	for _, c := range strings.ToUpper(foldText(first[0])) {
+		if c >= 'A' && c <= 'Z' && b.Len() < 5 {
+			b.WriteRune(c)
+		}
+	}
+	if b.Len() < 2 {
+		return "AMIGO"
+	}
+	return b.String()
+}
+
+func signupCode(name string) string {
+	word := strings.ReplaceAll(signupWords[randomBelow(len(signupWords))], "Ñ", "N")
+	return word + string(rune('0'+randomBelow(10))) + string(rune('0'+randomBelow(10))) + signupNamePart(name) + string(rune('0'+randomBelow(10)))
+}
+
+var errSignupPhoneTaken = userFieldError{"telephone", "Ya hay una cuenta con ese teléfono. Entra con tu código; si lo perdiste, pídelo a administración."}
+
+const signupPendingNote = "Se registró desde la página pública: pendiente de aprobación. Dale acceso (corredor, constructor o agente) para activarlo."
+
+func (a *App) signupRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /api/session/signup", func(w http.ResponseWriter, r *http.Request) {
+		// Altas desde una misma conexión: como los códigos, 10 cada 10 minutos, para que nadie llene la lista de usuarios.
+		key, now := "signup|"+clientIP(r), time.Now()
+		a.mu.Lock()
+		at := a.codeAttempts[key]
+		if now.After(at.until) {
+			at = attempt{}
+		}
+		if at.count >= codeMaxWrong {
+			a.mu.Unlock()
+			fail(w, 429, "Demasiadas cuentas creadas desde esta conexión. Espera unos minutos e intenta de nuevo.")
+			return
+		}
+		a.mu.Unlock()
+		f, ok := decodeFields(w, r, map[string]int{"name": 120, "telephone": 40})
+		if !ok {
+			return
+		}
+		name := strings.Join(strings.Fields(fieldText(f, "name")), " ")
+		phone := strings.Join(strings.Fields(fieldText(f, "telephone")), " ")
+		if len(strings.Fields(name)) < 2 {
+			failField(w, 400, "name", "Escribe tu nombre y apellido.")
+			return
+		}
+		if len(phoneDigits(phone)) < 7 {
+			failField(w, 400, "telephone", "Escribe un teléfono válido (por ejemplo 6000-0000).")
+			return
+		}
+		u := User{ID: randomToken(), Name: name, Telephone: phone, Roles: []string{}, CreatedAt: nowStamp(), Note: signupPendingNote}
+		u.UpdatedAt = u.CreatedAt
+		var code string
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			digits := phoneDigits(phone)
+			if e := eachUser(tx, func(other User) error {
+				if phoneDigits(other.Telephone) == digits {
+					return errSignupPhoneTaken
+				}
+				return nil
+			}); e != nil {
+				return e
+			}
+			for tries := 0; ; tries++ {
+				code = signupCode(name)
+				if _, e := userByAccessCode(tx, code); e == errMissing {
+					break
+				} else if e != nil {
+					return e
+				}
+				if tries > 50 {
+					return errBusyCode
+				}
+			}
+			u.CodeHash, u.AccessCode = accessCodeHash(tx, code), code
+			return putJSON(tx.Bucket(usersBucket), u.ID, u)
+		})
+		if err == nil {
+			a.mu.Lock()
+			at = a.codeAttempts[key]
+			if now.After(at.until) {
+				at = attempt{}
+			}
+			at.count++
+			at.until = now.Add(codeWindow)
+			a.codeAttempts[key] = at
+			a.mu.Unlock()
+		}
+		if userError(w, err) {
+			return
+		}
+		response(w, 201, map[string]any{"id": u.ID, "name": u.Name, "accessCode": code, "pending": true})
+	})
+}
+
+var errBusyCode = userFieldError{"accessCode", "No se pudo generar un código libre. Intenta de nuevo."}

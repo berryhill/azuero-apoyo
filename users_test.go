@@ -307,7 +307,7 @@ func TestNeedsOfAccessCodeRunnersAreReservedFromPublicAndOtherRunners(t *testing
 		}
 	}
 	if !found {
-		t.Fatalf("reserved need must still be listed as en ruta: %s", pub.String())
+		t.Fatalf("reserved need must still be listed as en camino: %s", pub.String())
 	}
 	// It still counts toward the camp's public status and urgency.
 	s.expect("PATCH", "/api/admin/needs/"+normal, `{"status":"COMPLETED"}`, 200)

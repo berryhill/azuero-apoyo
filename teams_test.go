@@ -196,7 +196,9 @@ func TestCodeUsersOnlySeeAndActOnTheirOwnTeamsRuns(t *testing.T) {
 		t.Fatalf("own team: %d %s", w.Code, w.Body.String())
 	}
 	// Live map: Fufo shares; Bea sees him, Yan doesn't.
-	s.as(s.viewerCookie("FUFO12"), "POST", "/api/full/location", `{"lat":7.5,"lon":-80.3}`)
+	fufoC := s.viewerCookie("FUFO12")
+	s.as(fufoC, "POST", "/api/full/location/consent", `{"accept":true}`)
+	s.as(fufoC, "POST", "/api/full/location", `{"lat":7.5,"lon":-80.3}`)
 	if body := s.as(beaC, "GET", "/api/full/runners", "").Body.String(); !strings.Contains(body, "Fufo") {
 		t.Fatalf("teammate on the map: %s", body)
 	}
