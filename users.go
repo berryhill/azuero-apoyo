@@ -30,7 +30,7 @@ const (
 	roleDonations = "donations"
 )
 
-var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier}
+var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier, roleTeamManager}
 
 type User struct {
 	ID        string `json:"id"`
@@ -171,7 +171,7 @@ type legacyUser struct {
 
 func (l legacyUser) linkKey() string { return l.role + ":" + l.ID }
 
-var roleLabels = map[string]string{roleRunner: "Corredor", roleBuilder: "Constructor", roleAgent: "Agente", roleDonations: "Donaciones", roleSupplier: "Acopio"}
+var roleLabels = map[string]string{roleRunner: "Corredor", roleBuilder: "Constructor", roleAgent: "Agente", roleDonations: "Donaciones", roleSupplier: "Acopio", roleTeamManager: "Team manager"}
 
 // orderRoles deja los roles sin repetir y en el orden fijo de userRoles.
 func orderRoles(roles []string) []string {
@@ -651,6 +651,9 @@ func applyUserFields(tx *bolt.Tx, u *User, f map[string]json.RawMessage) error {
 	}
 	if u.TeamID != "" && u.CodeHash == "" {
 		return userFieldError{"teamId", "Solo los usuarios con código de acceso pueden estar en un equipo. Asígnale un código."}
+	}
+	if u.has(roleTeamManager) && u.TeamID == "" {
+		return userFieldError{"teamId", "Un team manager tiene que estar en un equipo: elige su equipo primero."}
 	}
 	return nil
 }

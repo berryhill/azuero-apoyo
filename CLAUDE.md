@@ -17,4 +17,6 @@ Read [AGENTS.md](AGENTS.md) first. This repo is an active emergency-relief tool,
 
 Run `go test ./...`, `go vet ./...`, `go build ./...`, `node --test feature_ui_test.mjs`, and `python3 -m unittest ci_index_test.py`. Use a throwaway local bbolt file for write-path browser checks; never write test needs to production. Do not fabricate snapshot records. Do not print or change credentials, run the password-rotation workflow, or add IP-wide login restrictions. `ADMIN_BOOTSTRAP_PASSWORD` initializes a new DB; it does not reset the existing hash.
 
+Keep `MANUAL.md` current (in English; quote Spanish UI labels as shown): every new feature or behavior change updates the manual in the same task (what it does, who uses it, how it relates to roles, states and privacy); remove what no longer exists.
+
 End with a short factual handoff: changed files, exercised path, test result, live vs local status, and what's blocked. If a deployment or credential operation was not explicitly authorized, stop before it.

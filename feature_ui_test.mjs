@@ -1086,15 +1086,6 @@ test('runner header: ✕ to sign out (no «Cambiar nombre») and «Mapa público
   assert.match(runner, /function syncPublicNav\(\)\{window\.AppNav\?\.draw\(\);/);
   assert.equal((runner.match(/syncPublicNav\(\)/g) || []).length, 4, 'defined, after sign-in or session check, and after sign-out');
 });
-test('Usuarios can sort by name or by creation date, newest or oldest first', () => {
-  assert.match(admin, /<select id="userSort" aria-label="Ordenar usuarios"><option value="name">Nombre \(A–Z\)<\/option><option value="newest">Más recientes primero<\/option><option value="oldest">Más antiguos primero<\/option><\/select>/);
-  const sortSrc = admin.match(/if\(sort!=='name'\)rows\.sort\([^;]*;return sort==='newest'\?-d:d\}\);/)[0];
-  const order = (sort, list) => { const rows = [...list]; new Function('rows', 'sort', sortSrc)(rows, sort); return rows.map(u => u.name); };
-  const list = [{name: 'B', createdAt: '2026-10-02T00:00:00Z'}, {name: 'Old'}, {name: 'A', createdAt: '2026-10-05T00:00:00Z'}];
-  assert.deepEqual(order('newest', list), ['A', 'B', 'Old'], 'users without a date (migrated) sort as oldest');
-  assert.deepEqual(order('oldest', list), ['Old', 'B', 'A']);
-  assert.match(admin, /data-label=\"Creado\">\$\{u\.createdAt\?`<small class=\"user-created\" title=\"Creado\">\$\{clean\(stamp\(u\.createdAt\)\)\}<\/small>`/);
-});
 test('Usuarios: «+ Nuevo» top right opens the user form as its own page (like camp needs), no intro text', () => {
   const ops = admin.slice(admin.indexOf('id="operations"'));
   assert.doesNotMatch(ops.slice(0, ops.indexOf('id="userForm"')), /Corredores y constructores también pueden registrarse|runner\.html ↗/, 'no intro text or links');
@@ -1136,7 +1127,7 @@ test('runner footer shows the user ID with a copy button; Usuarios shows and sea
 });
 test('Usuarios shows a green/grey dot before each name and the last active time', () => {
   assert.match(admin, /<span class="presence\$\{u\.online\?' on':''\}" title="\$\{u\.online\?'En línea':'Desconectado'\}"[^>]*><\/span>\$\{keyBtn\(u\)\}<b>\$\{clean\(u\.name\)\}<\/b>/);
-  assert.match(admin, /\$\{u\.online\?'En línea':u\.lastActiveAt\?'Activo '\+clean\(stamp\(u\.lastActiveAt\)\):'Sin actividad'\}/);
+  assert.match(admin, /\$\{u\.online\?'En línea':u\.lastActiveAt\?'Activo '\+clean\(stamp\(u\.lastActiveAt\)\):''\}/);
   assert.match(admin, /\.presence\{[^}]*background:#b5c0c3[^}]*\}\.presence\.on\{background:#23a35a/);
   assert.match(admin, /setInterval\(\(\)=>\{if\(\$\('#dashboard'\)\.classList\.contains\('users-mode'\)&&!userFormOpen\(\)&&!renamingTeam&&!\$\('#teamsBox'\)\.contains\(document\.activeElement\)&&!\$\('#userBatch'\)\.contains\(document\.activeElement\)&&!Object\.keys\(keyTips\)\.length\)Promise\.all\(\[loadRunners\(\),adminRequest\('\/api\/admin\/needs'\)/, 'refreshes users and their runs');
 });
@@ -1411,7 +1402,7 @@ test('Usuarios: checkboxes per user; selected users that no longer match the sea
   assert.doesNotMatch(admin, /id="userSelAll"/, 'select-all is a button over the results, not a filter checkbox');
   assert.match(admin, /<div class="user-batch" id="userBatch" hidden><b id="userSelCount"><\/b><span class="teampop-wrap"><button type="button" id="userBatchMove" aria-haspopup="listbox" aria-expanded="false">👥 Mover a equipo ▾<\/button><div class="teampop" id="teamPop" hidden><input id="teamPopSearch" type="search" placeholder="Buscar o crear equipo…"[^>]*role="combobox"[^>]*><div id="teamPopList" role="listbox"[^>]*><\/div><\/div><\/span><button type="button" class="quiet" id="userBatchUnteam">Quitar del equipo<\/button><button type="button" class="quiet-red" id="userBatchOff">Desactivar<\/button><button type="button" class="quiet" id="userBatchOn">Activar<\/button><button type="button" class="linkbtn" id="userBatchClear">Limpiar selección<\/button><\/div>/);
   assert.match(admin, /\.user-batch\{position:sticky;top:0/, 'the batch bar stays in view while scrolling');
-  const src = [admin.match(/const userSel=[^\n]*/)[0], "let userTeamFilter='';const teams=[];", admin.match(/const userHead=[^\n]*/)[0], admin.match(/const userCard=[^\n]*/)[0], ...['userResults', 'drawUsers', 'syncUserSel', 'batchUsers'].map(f => admin.match(new RegExp(`(async )?function ${f}\\([^\\n]*`))[0])].join('\n');
+  const src = [admin.match(/const userSel=[^\n]*/)[0], "let userTeamFilter='';const teams=[];", admin.match(/let userSortKey=[^\n]*/)[0], admin.match(/const ROLE_FILTERS=[^\n]*/)[0], admin.match(/const sortBtn=[^\n]*/)[0], admin.match(/const roleHead=[^\n]*/)[0], admin.match(/const userHead=[^\n]*/)[0], admin.match(/const userCard=[^\n]*/)[0], ...['userResults', 'drawUsers', 'syncUserSel', 'batchUsers'].map(f => admin.match(new RegExp(`(async )?function ${f}\\([^\\n]*`))[0])].join('\n');
   const els = {}; const el = k => els[k] ??= {value: '', checked: false, querySelectorAll: () => []};
   el('#userRole').value = ''; el('#userTeam').value = ''; el('#userSort').value = 'name';
   const users = [{id: 'u1', name: 'Fufo', roles: ['runner'], hasAccessCode: true}, {id: 'u2', name: 'Bea', roles: ['agent'], hasAccessCode: true, teamId: 't1'}, {id: 'u3', name: 'Ana', roles: ['runner'], hasAccessCode: false}];
@@ -1478,12 +1469,14 @@ test('batch «Mover a equipo» is a team search dropdown that can also create th
 });
 
 test('Usuarios: every user is a row with the same columns (Usuario, Accesos, Equipo, Actividad, Creado) under a header; labeled lines on phones', () => {
-  const head = new Function('clean', `let userTeamFilter='t1';const teams=[{id:'t1',name:'Norte'}];${admin.match(/const userHead=[^\n]*/)[0]};return userHead`)(s => String(s));
-  assert.equal(head(), '<div class="user-head"><span></span><span>Usuario</span><span>Accesos</span><span>Equipo</span><span>Actividad</span><span>Creado</span><span></span></div>', 'Seleccionados: plain header, no filter');
-  assert.match(head(true), /^<div class="user-head with-filters">[^]*<span><select id="userTeam" class="head-filter on" aria-label="Filtrar por equipo"><option value="">Equipo: todos<\/option><option value="t1" selected>👥 Norte<\/option><option value="__none__">Sin equipo<\/option><\/select><\/span><span>Actividad/, 'Resultados: team filter in the Equipo column, highlighted when on');
+  const head = new Function('clean', `let userTeamFilter='t1';const teams=[{id:'t1',name:'Norte'}];${admin.match(/let userSortKey=[^\n]*/)[0]};${admin.match(/const ROLE_FILTERS=[^\n]*/)[0]};${admin.match(/const sortBtn=[^\n]*/)[0]};${admin.match(/const roleHead=[^\n]*/)[0]};${admin.match(/const userHead=[^\n]*/)[0]};return userHead`)(s => String(s));
+  const plain = head().replace(/<button[^>]*data-usort="(\w+)"[^>]*>([^<]*)<span class="arrow"[^>]*>([^<]*)<\/span><\/button>/g, '[$1:$2$3]');
+  assert.equal(plain, '<div class="user-head"><span></span><span>[name:Usuario]</span><span class="rolehead">[roles:Roles]</span><span>Equipo</span><span>[activity:Actividad]</span><span>[created:Creado▼]</span><span></span></div>', 'sortable headers; newest first by default; Seleccionados has no filters');
+  assert.match(head(true), /^<div class="user-head with-filters">[^]*<span><select id="userTeam" class="head-filter on" aria-label="Filtrar por equipo"><option value="">Equipo: todos<\/option><option value="t1" selected>👥 Norte<\/option><option value="__none__">Sin equipo<\/option><\/select><\/span><span><button type="button" class="sorth" data-usort="activity"/, 'Resultados: team filter in the Equipo column, highlighted when on');
   assert.doesNotMatch(admin, /<div class="userbar">[^]*?id="userTeam"[^]*?<div id="userList">/, 'no longer in the top filter bar');
-  assert.match(admin, /\.user-head\.with-filters\{display:flex;padding:4px 0\}\.user-head\.with-filters>span:not\(:has\(select\)\)\{display:none\}/, 'phones keep just the filter');
-  assert.match(admin, /role=\$\('#userRole'\)\.value,team=userTeamFilter,/);
+  assert.match(admin, /\.user-head\.with-filters\{display:flex!important;flex-wrap:wrap;gap:6px 12px;padding:4px 0\}/, 'phones keep the sort buttons and filters');
+  assert.match(head(true), /<button type="button" class="head-filter rolefilter" data-rolefilter aria-expanded="false" aria-label="Filtrar por rol">▾<\/button><div class="rolepop" id="rolePop" hidden><label class="check"><input type="checkbox" data-rolecheck="runner"> Corredor<\/label>/, 'Roles: checkbox filter, several at once');
+  assert.doesNotMatch(admin, /id="userRole"|id="userSort"/, 'no more top filters that repeat the headers');
   assert.match(admin, /\.user-card,\.user-head\{display:grid;grid-template-columns:22px minmax\(190px,2\.2fr\)[^}]*\}/, 'rows and header share one column grid');
   assert.match(admin, /@media\(max-width:720px\)\{\.user-head\{display:none\}[^}]*\}[^@]*\.uc-col:before\{content:attr\(data-label\)/, 'phones: one labeled line per column');
   assert.match(admin, /\$\{userHead\(\)\}\$\{chosen\.map\(userCard\)/);
@@ -1492,10 +1485,11 @@ test('Usuarios: every user is a row with the same columns (Usuario, Accesos, Equ
   const a = card({id: 'u1abcdefgh', name: 'Fufo', roles: ['runner'], teamId: 't1', online: true, createdAt: '1 oct'});
   const b = card({id: 'u2abcdefgh', name: 'Ana', roles: [], disabled: true});
   const cols = h => [...h.matchAll(/<div class="uc-col" data-label="([^"]+)">/g)].map(m => m[1]);
-  assert.deepEqual(cols(a), ['Accesos', 'Equipo', 'Actividad', 'Creado']);
+  assert.deepEqual(cols(a), ['Roles', 'Equipo', 'Actividad', 'Creado']);
   assert.deepEqual(cols(b), cols(a), 'same columns for every user, so they line up');
   assert.match(a, /data-label="Equipo"><span class="team-chip">👥 Norte<\/span>/);
-  assert.match(b, /data-label="Accesos"><span class="role-chip pending"[^>]*>Pendiente<\/span>[^]*data-label="Equipo"><span class="uc-none">Sin equipo<\/span>[^]*Sin actividad[^]*data-label="Creado"><span class="uc-none">—<\/span>/, 'empty values are shown, not skipped');
+  assert.match(b, /data-label="Roles"><span class="role-chip pending"[^>]*>Pendiente<\/span>/);
+  assert.match(b, /data-label="Equipo"><\/div><div class="uc-col" data-label="Actividad"><small class="user-active"><\/small><\/div><div class="uc-col" data-label="Creado"><\/div>/, 'empty values stay blank, no «Sin …» text');
   assert.match(b, /<b>Ana<\/b><span class="role-chip off">Desactivado<\/span>/);
 });
 test('user view: «Recorrido GPS» map with period picker and a timelapse player (play, drag, speed, skip pauses)', () => {
@@ -1897,7 +1891,7 @@ test('phone header (nav.js, panels): logo · page name · «+» page action · �
   assert.doesNotMatch(nav, /¿Tienes cuenta\?/, 'Login lives in the bar only, not repeated in the menu');
   assert.match(nav, /body:has\(\.top>\.mbar\) \.addbar\{display:none!important\}/, 'the public page drops its second row');
   assert.match(nav, /\.top:has\(>\.mbar\)>\.appnav,\.top:has\(>\.mbar\) \.textsize,\.top:has\(>\.mbar\)>\.topright\{display:none!important\}/, 'on a phone the separate pieces fold into the menu');
-  assert.match(nav, /<div class="msuser"><b>\$\{esc\(name\)\}<\/b>\$\{copyId \? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID<\/button>' : ''\}<button type="button" data-m="logout">/);
+  assert.match(nav, /<div class="msuser"><b>\$\{esc\(name\)\}\$\{roleChips\}<\/b>\$\{copyId \? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID<\/button>' : ''\}<button type="button" data-m="logout">/);
   assert.match(nav, /if \(e\.target\.closest\('\[data-m="logout"\]'\)\) \{ showSheet\(false\); \(document\.getElementById\('logout'\) \|\| document\.getElementById\('codeLogout'\)\)\?\.click\(\); return; \}/, 'Salir uses the page\'s own sign-out (with its confirmation)');
   assert.match(nav, /<div class="msize"><span class="lbl">Tamaño del texto<\/span>/);
   assert.match(nav, /\.mbar,\.msheet\{display:none\}/, 'computer header unchanged');
@@ -2376,4 +2370,53 @@ test('command center on phones: opened point stacks full width; title is the poi
   assert.equal(pointName({area: 'la Colorada', code: 'P-f1bc49236515'}), 'la Colorada');
   assert.equal(pointName({area: 'Sin ubicación', place: 'Escuela'}), 'Escuela');
   assert.ok(autoCode('P-f1bc49236515') && !autoCode('AB-6'));
+});
+
+test('Usuarios: click a header to sort (again to reverse); newest first by default; Roles filter checks several roles', () => {
+  const src = [admin.match(/let userSortKey=[^\n]*/)[0], 'const userSel=new Set();let userTeamFilter="";', admin.match(/function userResults\(\)\{[^\n]*/)[0]].join('\n');
+  const users = [{id: 'a', name: 'Bea', roles: ['runner'], createdAt: '2026-10-02'}, {id: 'b', name: 'Ana', roles: [], createdAt: '2026-10-05', lastActiveAt: '2026-10-14'}, {id: 'c', name: 'Ceci', roles: ['supplier', 'agent'], createdAt: '2026-10-01', online: true}];
+  const el = {'#userSearch': {value: ''}, '#userShowDisabled': {checked: false}, '#userOnlyCode': {checked: false}};
+  const run = (setup) => new Function('$', 'users', 'fold', 'roleNames', `${src};${setup};return userResults().map(u=>u.name)`)(k => el[k], users, x => String(x).toLowerCase(), {runner: 'Corredor', agent: 'Agente', supplier: 'Acopio'});
+  assert.deepEqual(run(''), ['Ana', 'Bea', 'Ceci'], 'created, newest first');
+  assert.deepEqual(run("userSortDir='asc'"), ['Ceci', 'Bea', 'Ana']);
+  assert.deepEqual(run("userSortKey='name';userSortDir='asc'"), ['Ana', 'Bea', 'Ceci']);
+  assert.deepEqual(run("userSortKey='activity';userSortDir='desc'"), ['Ceci', 'Ana', 'Bea'], 'online first, then last activity');
+  assert.deepEqual(run("userRoleFilter.add('runner');userRoleFilter.add('__none__')"), ['Ana', 'Bea'], 'any of the checked roles, «Sin acceso» = no roles');
+  assert.match(admin, /if\(userSortKey===k\)userSortDir=userSortDir==='asc'\?'desc':'asc';else\{userSortKey=k;/);
+});
+
+test('signup.html: a link to send people; signed out → code or new account; signed in → their pages', () => {
+  const page = readFileSync(new URL('./signup.html', import.meta.url), 'utf8');
+  assert.match(page, /<form id="signinForm" novalidate data-signin><fieldset class="sg sg-code"><legend>Ya tengo código<\/legend>[^]*<fieldset class="sg sg-new"><legend>Crear cuenta nueva<\/legend>/);
+  assert.match(page, /fetch\('\/api\/session\/code',\{method:'POST'/, 'signs in on every page at once');
+  assert.match(page, /const \{code\}=await AppNav\.createAccount\([^\n]*?\);showDone\(await signIn\(code\),code\)/, 'new account: signed in, code shown');
+  assert.match(page, /fetch\('\/api\/full\/me'/, 'already signed in: shows where to go');
+  assert.match(page, /p=>`<a class="btn go" href="\$\{clean\(p\.url\)\}">/);
+  const main = readFileSync(new URL('./main.go', import.meta.url), 'utf8');
+  assert.match(main, /"\/signup\.html"/, 'served');
+  assert.match(readFileSync(new URL('./Dockerfile', import.meta.url), 'utf8'), /signup\.html/, 'shipped');
+});
+
+test('team manager: «Mi equipo» only in the ☰ menu on phones (desktop: page menu); ☰ shows the user roles', () => {
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  assert.match(nav, /\['\/team\.html', '👥', \(\) => 'Mi equipo', u => has\(u, 'teammanager'\), 'menu'\]/);
+  assert.match(nav, /pages\.filter\(\(\[url, , , ok, where\]\) => url === here \|\| ok\(u\) && where !== 'menu'\)/, 'not in the phone page bar');
+  assert.match(nav, /const menuOnly = signedIn && u \? pages\.filter\(\(\[url, , , ok, where\]\) => where === 'menu' && url !== here && ok\(u\)\)/);
+  assert.match(nav, /const roleChips = signedIn && u\?\.roles\?\.length \? `<span class="msroles">/);
+});
+
+test('«Mi equipo» (team.html): invite links (one use, expiring), members with roles, change roles, remove; invite opens signup.html', () => {
+  const page = readFileSync(new URL('./team.html', import.meta.url), 'utf8');
+  const signup = readFileSync(new URL('./signup.html', import.meta.url), 'utf8');
+  assert.match(page, /<select id="hours" aria-label="Vence en"><option value="24">Vence en 24 horas<\/option><option value="72" selected>Vence en 3 días<\/option><option value="168">Vence en 7 días<\/option><\/select>/);
+  assert.match(page, /const url=location\.origin\+'\/signup\.html\?invite='\+encodeURIComponent\(r\.token\)/);
+  for (const api of ["'/api/full/team/invites','POST'", "/revoke','POST'", "/remove','POST'", "'PATCH',{roles}"]) assert.ok(page.includes(api), api);
+  assert.match(page, /\$\{self\?'':`<div class="acts"><button type="button" class="btn small ghost" data-roles=/, 'not on yourself');
+  assert.match(page, /\$\{can\?'':' disabled'\}/, 'admin-only roles cannot be changed here');
+  assert.match(signup, /let invite=new URLSearchParams\(location\.search\)\.get\('invite'\)\|\|'';/);
+  assert.match(signup, /fetch\('\/api\/full\/invites\/accept',\{method:'POST'/);
+  assert.match(signup, /showDone\(user\);await acceptInvite\(\);return\}showEnter\(\)/, 'already signed in: joins right away');
+  assert.match(signup, /showDone\(await signIn\(code\),code\);await acceptInvite\(\)/, 'new account: joins after creating it');
+  const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
+  assert.match(admin, /<input type="checkbox" name="roles" value="teammanager"> Team manager <small>\(necesita equipo\)<\/small><\/label>/);
 });

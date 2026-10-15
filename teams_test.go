@@ -35,7 +35,7 @@ func (s *serviceHarness) viewerCookie(code string) *http.Cookie {
 func (s *serviceHarness) as(c *http.Cookie, method, path, body string) *httptest.ResponseRecorder {
 	s.t.Helper()
 	r := httptest.NewRequest(method, path, strings.NewReader(body))
-	if method == "POST" {
+	if method == "POST" || method == "PATCH" {
 		r.Header.Set("Content-Type", "application/json")
 	}
 	if c != nil {

@@ -431,6 +431,9 @@ func openApp(path, static string) (*App, error) {
 		if e := ensureSupplyCenters(tx); e != nil {
 			return e
 		}
+		if e := ensureTeamInvites(tx); e != nil {
+			return e
+		}
 		b, e := tx.CreateBucketIfNotExists(meta)
 		if e != nil {
 			return e
@@ -462,7 +465,7 @@ func openApp(path, static string) (*App, error) {
 
 // migrate pone al día los datos guardados (al arrancar y después de importar un respaldo, que puede ser más viejo).
 func (a *App) migrate() error {
-	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateNeedUrgency, ensureDonations, ensureSupplyCenters} {
+	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateNeedUrgency, ensureDonations, ensureSupplyCenters, ensureTeamInvites} {
 		if err := a.db.Update(step); err != nil {
 			return err
 		}
@@ -1421,12 +1424,13 @@ func (a *App) routes() http.Handler {
 	a.statsRoutes(mux)
 	a.donationRoutes(mux)
 	a.supplierRoutes(mux)
+	a.teamInviteRoutes(mux)
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		name := ""
 		switch r.URL.Path {
 		case "/", "/index.html":
 			name = "index.html"
-		case "/admin.html", "/donations.html", "/supplier.html", "/camp.html", "/runner.html", "/builder.html", "/command.html", "/pointform.js", "/nav.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
+		case "/admin.html", "/donations.html", "/supplier.html", "/signup.html", "/team.html", "/camp.html", "/runner.html", "/builder.html", "/command.html", "/pointform.js", "/nav.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
 			name = strings.TrimPrefix(r.URL.Path, "/")
 		default:
 			http.NotFound(w, r)
@@ -2194,6 +2198,9 @@ func userPanels(u User) []map[string]string {
 	if u.has(roleDonations) {
 		panels = append(panels, map[string]string{"label": "Donaciones", "url": "/donations.html"})
 	}
+	if u.has(roleTeamManager) && u.TeamID != "" {
+		panels = append(panels, map[string]string{"label": "Mi equipo", "url": "/team.html"})
+	}
 	return panels
 }
 
@@ -2254,6 +2261,9 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 		if item.has(roleDonations) {
 			a.startDeskSession(w, r, item.ID)
 			panels = append(panels, map[string]string{"label": "Donaciones", "url": "/donations.html"})
+		}
+		if item.has(roleTeamManager) && item.TeamID != "" {
+			panels = append(panels, map[string]string{"label": "Mi equipo", "url": "/team.html"})
 		}
 		if len(panels) == 0 && len(item.Roles) == 0 {
 			// Alta desde la página pública todavía sin acceso (signup.go).
