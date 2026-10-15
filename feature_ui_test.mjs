@@ -1834,10 +1834,10 @@ test('admin: points without GPS use the crossed-pin icon (card title, review «D
   assert.match(admin, /<span class="nogpsline">\$\{noGpsIco\}Sin GPS: no aparece en el mapa<\/span>/);
 });
 
-test('runner: Ver en el mapa (or tapping a card background) centers the point with a flag, no pop-up, and highlights the card', () => {
+test('runner: Ver en el mapa (or tapping a card background) centers the point with a flag, opens its card, and highlights the list card', () => {
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
-  assert.match(runner, /function applyFocus\(\)\{[^\n]*map\.closePopup\(\);map\.setView\(pin\.getLatLng\(\),16\)\}/);
-  assert.doesNotMatch(runner.match(/function applyFocus\(\)\{[^\n]*/)[0], /openPopup/, 'no pop-up');
+  assert.match(runner, /function applyFocus\(\)\{[^\n]*map\.closePopup\(\);map\.setView\(pin\.getLatLng\(\),16\);/);
+  assert.match(runner.match(/function applyFocus\(\)\{[^\n]*/)[0], /if\(n&&n\.camp\.id===focusCamp\)\{[^}]*pin\.openPopup\(\)\}/, 'chosen in the list: its card opens on the pin');
   assert.match(runner, /focused\?L\.marker\(camp\.coords,\{icon:L\.divIcon\(\{className:'',html:focusFlag,/, 'a flag instead of a bigger circle');
   assert.match(runner, /const bg=!e\.target\.closest\('button,a,input,select,textarea,label,summary,\[data-pick\],\.telx'\)&&!String\(getSelection\(\)\)\.trim\(\)&&e\.target\.closest\('\[data-need\]'\);/, 'card background, not its buttons, phone links or a text selection');
   assert.match(runner, /highlightNeed=n\.id;if\(!hasCoords\(n\)\)\{focusCamp=null;render\(\);fitAllPins\(\);return\}focusCamp=n\.camp\.id;pendingFocus=true;/, 'picking a card without GPS removes the old flag');
@@ -2218,4 +2218,23 @@ test('runners: «¡Yo lo llevo!» switches to «Yo» with the taken run highligh
   assert.match(take, /highlightNeed=id;setMainTab\('mine'\);await refresh\(\);/);
   assert.match(take, /if\(window\.matchMedia\('\(max-width:760px\)'\)\.matches&&document\.body\.classList\.contains\('mobile-map'\)\)mobileView\('list'\);/, 'from a map pin on a phone, back to the list');
   assert.match(take, /scrollIntoView\(\{behavior:'smooth',block:'center'\}\)/);
+});
+
+test('runners: a run chosen in the list opens on the map with its card (¡Yo lo llevo!) already open; other map moves do not', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  assert.match(runner, /focusCamp=n\.camp\.id;pendingFocus=true;popupNeedId=n\.id;render\(\);/, 'only the list sets it');
+  assert.equal((runner.match(/popupNeedId=n\.id/g) || []).length, 1);
+  assert.match(runner, /const n=popupNeedId&&findNeed\(popupNeedId\);popupNeedId=null;if\(n&&n\.camp\.id===focusCamp\)\{pin\.setPopupContent\(popupShort\(n\)\);pin\.openPopup\(\)\}/);
+  const short = runner.match(/function popupShort\(n\)\{[^\n]*/)[0];
+  assert.match(short, /<button class="btn take" type="button" data-take=/, '«¡Yo lo llevo!» is the one main button');
+  assert.match(short, /class="poplink" data-list=/, 'Ver en la lista as a small link');
+  assert.doesNotMatch(short, /needDetails|data-back/, 'no needs list, contacts or extra links');
+});
+
+test('runners: «¡Yo lo llevo!» asks first (point + what to carry); «Cancelar» takes nothing and keeps the map card open', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  const take = runner.slice(runner.indexOf('async function takeNeed('), runner.indexOf('function flash('));
+  assert.match(take, /if\(await AppNav\.choose\('¿Llevas esta carrera\?',\{detail,options:\[\['take','✓ Sí, la llevo','ok'\],\['no','Cancelar',''\]\]\}\)!=='take'\)return false\}button\.disabled=true;/, 'confirm before the request');
+  assert.ok(take.indexOf("AppNav.choose(") < take.indexOf("/take'"), 'nothing is sent before confirming');
+  assert.match(runner, /takeNeed\(b\.dataset\.take,b\)\.then\(ok=>\{if\(!ok\)return;/, 'cancel in the map card does not close it');
 });
