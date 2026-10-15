@@ -1296,7 +1296,10 @@ test('«Solo Nuestro Equipo»: code users can limit the public list/map and runn
   assert.match(template, /const coordRows=\(\)=>all\(\)\.filter\(r=>\(!teamOnly\|\|teamPoint\(r\)\)&&/, 'filters the list, the map and the counts');
   assert.match(template, /if\(!u&&\(selectedCoordinator\|\|teamOnly\)\)\{selectedCoordinator='';teamOnly=false;/, 'signing out clears it');
   assert.match(runner, /body:not\(\.code-user\) \.rfilter\{display:none\}/, 'only for code users');
-  assert.match(runner, /<nav class="mobile-nav" aria-label="Vista móvil"><button type="button" data-view="list" class="active" title="Lista" aria-label="Lista"><svg[^]*?<\/button><button type="button" data-view="map" title="Mapa" aria-label="Mapa"><svg/, 'phone tabs are icons');
+  assert.match(runner, /<nav class="mobile-nav" aria-label="Vista móvil"><button type="button" data-view="list" class="active" aria-pressed="true"><svg[^]*?<\/svg><span>Lista<\/span><\/button><button type="button" data-view="map" aria-pressed="false"><svg[^]*?<\/svg><span>Mapa<\/span><\/button><\/nav>/, 'phone tabs: icon + word, selected one announced');
+  assert.match(runner, /\.mobile-nav\{display:flex;height:50px;gap:6px;padding:5px 10px;background:#e9f0f0;/, 'a segmented control on a soft track, same 50px height');
+  assert.match(runner, /\.mobile-nav button\.active\{background:#173c46;border-color:#173c46;color:#fff;box-shadow:/, 'selected = dark pill');
+  assert.match(runner, /b\.classList\.toggle\('active',on\);b\.setAttribute\('aria-pressed',on\)/);
   assert.doesNotMatch(runner, /en camino · \$\{shown\.length\} por llevar|Tus carreras <small>/, 'no 2/10 count line');
   assert.match(runner, /const listed=\(\)=>teamOnly\?available\.filter\(n=>n\.camp\.team\):available;/);
   assert.match(runner, /renderMap\(\[\.\.\.mine,\.\.\.shown\]\)/, 'your own runs always stay');
