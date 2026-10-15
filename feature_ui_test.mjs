@@ -2211,3 +2211,11 @@ test('runners map: choosing a run keeps the map on it even with live GPS; «🎯
   assert.match(runner, /let first=true;setFollow\(true\);watchId=navigator\.geolocation\.watchPosition\(/, 'turning live on follows the person');
   assert.match(runner, /if\(err\.code!==1\)return;stopLive\(\);flash\('Permite el acceso a tu ubicación para verla en el mapa\.'\)/, 'only a denied permission turns live location off');
 });
+
+test('runners: «¡Yo lo llevo!» switches to «Yo» with the taken run highlighted and in view (from the map too)', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  const take = runner.slice(runner.indexOf('async function takeNeed('), runner.indexOf('function flash('));
+  assert.match(take, /highlightNeed=id;setMainTab\('mine'\);await refresh\(\);/);
+  assert.match(take, /if\(window\.matchMedia\('\(max-width:760px\)'\)\.matches&&document\.body\.classList\.contains\('mobile-map'\)\)mobileView\('list'\);/, 'from a map pin on a phone, back to the list');
+  assert.match(take, /scrollIntoView\(\{behavior:'smooth',block:'center'\}\)/);
+});
