@@ -248,6 +248,10 @@ type CampNeed struct {
 	// o se la asignó en persona a un corredor. Solo esa persona de acopio la ve en «Por despachar».
 	SupplierID          string `json:"supplierId,omitempty"`
 	SupplierRequestedAt string `json:"supplierRequestedAt,omitempty"`
+	// Al revés: el corredor con la carrera pide a los acopios que la surtan (SupplyAskedAt); cada acopio responde si
+	// puede o no (SupplyOffers) y el corredor elige uno, que queda como SupplierID. Se borra si deja de estar en camino.
+	SupplyAskedAt string        `json:"supplyAskedAt,omitempty"`
+	SupplyOffers  []SupplyOffer `json:"supplyOffers,omitempty"`
 	// Solo en la respuesta de la ficha para quien entró con código (nombre del conductor asignado, sin su ID); nunca se guarda.
 	RunnerName string `json:"runnerName,omitempty"`
 }
@@ -650,6 +654,9 @@ func putNeed(b *bolt.Bucket, n *CampNeed) error {
 	// Vuelve a Abierta sin pedido de acopio (se la habían asignado en persona): queda libre de ese acopio.
 	if n.Status == "OPEN" && n.SupplierRequestedAt == "" || n.Status == "DELETED" {
 		n.SupplierID, n.SupplierRequestedAt = "", ""
+	}
+	if n.Status != "IN_PROGRESS" || n.SupplierID != "" {
+		n.SupplyAskedAt, n.SupplyOffers = "", nil
 	}
 	rescheduleService(n)
 	return putJSON(b, n.ID, n)
@@ -2068,14 +2075,17 @@ type runnerNeed struct {
 	// Pedido de acopio (Abierta) o acopio donde se recoge (en camino): quién, dónde y su teléfono para llamarle.
 	RequestedAt string        `json:"requestedAt,omitempty"`
 	Supplier    *supplierInfo `json:"supplier,omitempty"`
-	Packing     []PackingLine `json:"packing,omitempty"`
-	Media       []MediaItem   `json:"media,omitempty"`
-	Scope       string        `json:"scope,omitempty"`
-	Materials   []PackingLine `json:"materials,omitempty"`
-	Progress    int           `json:"progress,omitempty"`
-	Kind        string        `json:"kind,omitempty"`
-	RepeatDays  int           `json:"repeatDays,omitempty"`
-	Assessments []Assessment  `json:"assessments,omitempty"`
+	// Pedido del corredor a los acopios (en su carrera): cuándo lo pidió y qué acopios dijeron que pueden surtirla.
+	SupplyAskedAt string        `json:"supplyAskedAt,omitempty"`
+	SupplyOffers  []supplyOffer `json:"supplyOffers,omitempty"`
+	Packing       []PackingLine `json:"packing,omitempty"`
+	Media         []MediaItem   `json:"media,omitempty"`
+	Scope         string        `json:"scope,omitempty"`
+	Materials     []PackingLine `json:"materials,omitempty"`
+	Progress      int           `json:"progress,omitempty"`
+	Kind          string        `json:"kind,omitempty"`
+	RepeatDays    int           `json:"repeatDays,omitempty"`
+	Assessments   []Assessment  `json:"assessments,omitempty"`
 	// assigned: la necesidad está asignada a quien consulta (puede armar su lista de empaque).
 	Assigned bool       `json:"assigned,omitempty"`
 	Camp     runnerCamp `json:"camp"`
@@ -2243,6 +2253,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.routingRoutes(mux, runners)
 	a.mediaRoutes(mux, runners)
 	a.repairRoutes(mux, builders)
+	a.supplyAskRoutes(mux, runners)
 	a.locationRoutes(mux, runners)
 	a.settingsRoutes(mux)
 	a.backupRoutes(mux)
@@ -2450,7 +2461,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					}
 				}
 				who := *c.assignee(&n)
-				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), Supplier: supplierOf(tx, n.SupplierID), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
+				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), Supplier: supplierOf(tx, n.SupplierID), SupplyAskedAt: n.SupplyAskedAt, SupplyOffers: offersFor(tx, n), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
 				if item.Assigned {
 					item.Media = n.Media
 				} else if c.repair {
@@ -2849,6 +2860,7 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 						}
 					}
 					n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName, n.SupplierID, n.SupplierRequestedAt = "", "", "", "", "", ""
+					n.SupplyAskedAt, n.SupplyOffers = "", nil
 					if !reveal {
 						n.Packing, n.Media = nil, nil
 					} else {

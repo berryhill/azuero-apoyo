@@ -228,3 +228,112 @@ func TestSupplyRequestsRunnersAndDispatchesItsOwnRuns(t *testing.T) {
 		t.Fatalf("panels: %s", w.Body.String())
 	}
 }
+
+// The other way round: a runner with a run asks supply centers; each says whether it can supply it; the runner sees
+// the ones that can (to pick the closest) and chooses one, which then dispatches it.
+func TestRunnerAsksSupplyCentersAndPicksOne(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)
+	s.expect("POST", "/api/admin/users", `{"name":"Pedro Acopio","telephone":"6999-1212","roles":["supplier"],"accessCode":"PEDRO77"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","status":"OPEN"}`, 201)
+	need := s.needsOf(s.camp)[0].ID
+	julie, jcsrf := s.supplierLogin("JULIE77")
+	pedro, pcsrf := s.supplierLogin("PEDRO77")
+	s.agentCall("POST", "/api/supplier/center", `{"center":"Villa Marina"}`, julie, jcsrf)
+	s.agentCall("POST", "/api/supplier/center", `{"center":"Las Tablas"}`, pedro, pcsrf)
+	rc := s.runnerLogin("Rui Corre")
+	if w := rc.call("POST", "/api/runner/needs/"+need+"/supply-ask", `{}`); w.Code != 409 {
+		t.Fatalf("only on your own run: %d", w.Code)
+	}
+	rc.call("POST", "/api/runner/needs/"+need+"/take", ``)
+	asks := func(c *http.Cookie) []supplierRun {
+		var v struct{ Asks []supplierRun }
+		json.Unmarshal(s.agentCall("GET", "/api/supplier/runs", "", c, "").Body.Bytes(), &v)
+		return v.Asks
+	}
+	if len(asks(julie)) != 0 {
+		t.Fatalf("nothing asked yet")
+	}
+	if w := rc.call("POST", "/api/runner/needs/"+need+"/supply-ask", `{}`); w.Code != 200 {
+		t.Fatalf("ask: %d %s", w.Code, w.Body.String())
+	}
+	if a := asks(julie); len(a) != 1 || a[0].RunnerName != "Rui Corre" || a[0].MyOffer != "" {
+		t.Fatalf("Julie sees the ask: %+v", a)
+	}
+	// Julie can, Pedro can't (and stops seeing it).
+	if w := s.agentCall("POST", "/api/supplier/needs/"+need+"/offer", `{"can":true}`, julie, jcsrf); w.Code != 200 {
+		t.Fatalf("offer: %d %s", w.Code, w.Body.String())
+	}
+	s.agentCall("POST", "/api/supplier/needs/"+need+"/offer", `{"can":false}`, pedro, pcsrf)
+	if len(asks(pedro)) != 0 {
+		t.Fatalf("declined ask hidden for Pedro")
+	}
+	if a := asks(julie); a[0].MyOffer != "can" || a[0].OfferedBy != 1 {
+		t.Fatalf("Julie's offer: %+v", a[0])
+	}
+	body := rc.call("GET", "/api/runner/needs", "").Body.String()
+	if !strings.Contains(body, `"supplyOffers":[{"supplierId"`) || !strings.Contains(body, "Villa Marina") || strings.Contains(body, "Las Tablas") {
+		t.Fatalf("runner sees only centers that can: %s", body)
+	}
+	// Pedro changes his mind and can after all; the runner picks Julie.
+	s.agentCall("POST", "/api/supplier/needs/"+need+"/offer", `{"can":true}`, pedro, pcsrf)
+	if w := rc.call("POST", "/api/runner/needs/"+need+"/supply-choose", `{"supplierId":"nope"}`); w.Code != 409 {
+		t.Fatalf("only an offering center: %d", w.Code)
+	}
+	var julieID string
+	var users []map[string]any
+	json.Unmarshal(s.call("GET", "/api/admin/users", "", true).Body.Bytes(), &users)
+	for _, u := range users {
+		if u["name"] == "Julie Acopio" {
+			julieID = u["id"].(string)
+		}
+	}
+	if w := rc.call("POST", "/api/runner/needs/"+need+"/supply-choose", `{"supplierId":"`+julieID+`"}`); w.Code != 200 {
+		t.Fatalf("choose: %d %s", w.Code, w.Body.String())
+	}
+	if len(asks(julie)) != 0 || len(asks(pedro)) != 0 {
+		t.Fatalf("chosen: no longer an ask")
+	}
+	if v := s.supplierView(julie); findRun(v.Runs, need) == nil {
+		t.Fatalf("in Julie's Por despachar: %+v", v.Runs)
+	}
+	if v := s.supplierView(pedro); findRun(v.Runs, need) != nil {
+		t.Fatalf("not Pedro's")
+	}
+	if w := rc.call("POST", "/api/runner/needs/"+need+"/supply-ask", `{}`); w.Code != 409 {
+		t.Fatalf("already has a center: %d", w.Code)
+	}
+	if w := s.agentCall("POST", "/api/supplier/needs/"+need+"/packing", `{"items":[{"item":"Agua","quantity":2}]}`, julie, jcsrf); w.Code != 200 {
+		t.Fatalf("Julie packs it: %d", w.Code)
+	}
+	// Withdraw and cancel on another run.
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Carpas","status":"OPEN"}`, 201)
+	var tents string
+	for _, n := range s.needsOf(s.camp) {
+		if n.Need == "Carpas" {
+			tents = n.ID
+		}
+	}
+	rc.call("POST", "/api/runner/needs/"+tents+"/take", ``)
+	rc.call("POST", "/api/runner/needs/"+tents+"/supply-ask", `{}`)
+	s.agentCall("POST", "/api/supplier/needs/"+tents+"/offer", `{"can":true}`, julie, jcsrf)
+	s.agentCall("POST", "/api/supplier/needs/"+tents+"/offer", `{"withdraw":true}`, julie, jcsrf)
+	if a := asks(julie); len(a) != 1 || a[0].MyOffer != "" {
+		t.Fatalf("withdrawn: %+v", a)
+	}
+	rc.call("POST", "/api/runner/needs/"+tents+"/supply-ask", `{"cancel":true}`)
+	if len(asks(julie)) != 0 {
+		t.Fatalf("cancelled ask is gone")
+	}
+	if w := s.agentCall("POST", "/api/supplier/needs/"+tents+"/offer", `{"can":true}`, julie, jcsrf); w.Code != 409 {
+		t.Fatalf("no ask to answer: %d", w.Code)
+	}
+	// Releasing the run clears the ask.
+	rc.call("POST", "/api/runner/needs/"+tents+"/supply-ask", `{}`)
+	rc.call("POST", "/api/runner/needs/"+tents+"/release", ``)
+	for _, n := range s.needsOf(s.camp) {
+		if n.ID == tents && (n.SupplyAskedAt != "" || len(n.SupplyOffers) != 0) {
+			t.Fatalf("released run keeps no ask: %+v", n)
+		}
+	}
+}

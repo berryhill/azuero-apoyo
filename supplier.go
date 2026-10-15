@@ -85,6 +85,9 @@ type supplierRun struct {
 	DispatchedByName string `json:"dispatchedByName,omitempty"`
 	// Dónde va el corredor, si comparte su ubicación en vivo (reciente); solo en las carreras de este acopio.
 	RunnerLive *runnerOnMap `json:"runnerLive,omitempty"`
+	// «Corredores piden»: qué respondió este acopio («can» o «no»; vacío si no ha respondido) y cuántos más pueden.
+	MyOffer   string `json:"myOffer,omitempty"`
+	OfferedBy int    `json:"offeredBy,omitempty"`
 	// Pedir corredor: el pedido es de este acopio (mine) o de otro (Supplier).
 	RequestedAt string `json:"requestedAt,omitempty"`
 	RequestMine bool   `json:"requestMine,omitempty"`
@@ -206,7 +209,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if !ok {
 			return
 		}
-		runs, open, runners := []supplierRun{}, []supplierRun{}, []supplierRunner{}
+		runs, open, runners, asks := []supplierRun{}, []supplierRun{}, []supplierRunner{}, []supplierRun{}
 		now := time.Now()
 		live := map[string]liveLocation{}
 		a.mu.Lock()
@@ -242,7 +245,8 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 					active[n.RunnerID]++
 				}
 				camp, ok := camps[n.CampID]
-				if !ok || !(supplierOwns(n, me.ID) || supplierCanRequest(n)) {
+				asking := supplyAskOpen(n)
+				if !ok || !(supplierOwns(n, me.ID) || supplierCanRequest(n) || asking) {
 					return nil
 				}
 				if n.Need, _ = splitRepair(n.Need); n.Need == "" {
@@ -260,13 +264,33 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 					open = append(open, run)
 					return nil
 				}
+				if asking {
+					// Un acopio que dijo que no, ya no la ve; los demás ven si ya respondieron y cuántos pueden.
+					o := myOffer(n, me.ID)
+					if o != nil && !o.Can {
+						return nil
+					}
+					if o != nil {
+						run.MyOffer = "can"
+					}
+					for _, x := range n.SupplyOffers {
+						if x.Can {
+							run.OfferedBy++
+						}
+					}
+					run.Media, run.Packing, run.RequestedAt = nil, nil, n.SupplyAskedAt
+				}
 				if u, found := getUser(tx, n.RunnerID); found {
 					run.RunnerName, run.RunnerPhone = u.Name, u.Telephone
 					if loc, ok := live[n.RunnerID]; ok {
 						run.RunnerLive = &runnerOnMap{ID: u.ID, Name: u.Name, Lat: loc.Lat, Lon: loc.Lon, Accuracy: loc.Accuracy, At: loc.At.UTC().Format(time.RFC3339), Seconds: int(now.Sub(loc.At).Seconds())}
 					}
 				}
-				runs = append(runs, run)
+				if asking {
+					asks = append(asks, run)
+				} else {
+					runs = append(runs, run)
+				}
 				return nil
 			}); e != nil {
 				return e
@@ -303,7 +327,54 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if e := a.db.View(func(tx *bolt.Tx) (e error) { centers, e = supplyCenters(tx); return e }); serviceError(w, e) {
 			return
 		}
-		response(w, 200, map[string]any{"runs": runs, "open": open, "runners": runners, "center": me.SupplyCenter, "centers": centers})
+		response(w, 200, map[string]any{"runs": runs, "open": open, "asks": asks, "runners": runners, "center": me.SupplyCenter, "centers": centers})
+	})
+	// «Corredores piden»: este acopio puede surtir la carrera (can), no puede (can:false) o retira su oferta (withdraw).
+	mux.HandleFunc("POST /api/supplier/needs/{id}/offer", func(w http.ResponseWriter, r *http.Request) {
+		me, _, ok := a.supplierSession(w, r)
+		if !ok {
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"can": 0, "withdraw": 0})
+		if !ok {
+			return
+		}
+		var can, withdraw bool
+		json.Unmarshal(f["can"], &can)
+		json.Unmarshal(f["withdraw"], &withdraw)
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(needsBucket)
+			v := b.Get([]byte(r.PathValue("id")))
+			if v == nil {
+				return errMissing
+			}
+			var n CampNeed
+			if e := json.Unmarshal(v, &n); e != nil {
+				return e
+			}
+			if !a.campExists(tx, n.CampID) || !supplyAskOpen(n) {
+				return errNoAsk
+			}
+			kept := n.SupplyOffers[:0:0]
+			for _, o := range n.SupplyOffers {
+				if o.SupplierID != me.ID {
+					kept = append(kept, o)
+				}
+			}
+			if !withdraw {
+				kept = append(kept, SupplyOffer{SupplierID: me.ID, Can: can, At: nowStamp()})
+			}
+			n.SupplyOffers = kept
+			return putNeed(b, &n)
+		})
+		if errors.Is(err, errNoAsk) {
+			fail(w, 409, err.Error())
+			return
+		}
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 200, map[string]bool{"ok": true})
 	})
 	// Nombre del centro de acopio de esta persona (texto; los corredores lo ven en los pedidos y en su carrera).
 	mux.HandleFunc("POST /api/supplier/center", func(w http.ResponseWriter, r *http.Request) {
@@ -566,5 +637,133 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return
 		}
 		response(w, 200, map[string]any{"id": n.ID, "dispatchedAt": n.DispatchedAt, "dispatchedByName": n.DispatchedByName})
+	})
+}
+
+// SupplyOffer: la respuesta de un acopio al pedido del corredor (puede surtirla o no).
+type SupplyOffer struct {
+	SupplierID string `json:"supplierId"`
+	Can        bool   `json:"can"`
+	At         string `json:"at"`
+}
+
+// supplyOffer: un acopio que puede surtir la carrera, como lo ve el corredor para elegir el más cercano.
+type supplyOffer struct {
+	SupplierID string `json:"supplierId"`
+	Name       string `json:"name"`
+	Phone      string `json:"phone,omitempty"`
+	Center     string `json:"center,omitempty"`
+	At         string `json:"at"`
+}
+
+// offersFor: solo los acopios que dijeron que pueden, mientras el pedido sigue abierto.
+func offersFor(tx *bolt.Tx, n CampNeed) []supplyOffer {
+	if n.SupplyAskedAt == "" || n.SupplierID != "" {
+		return nil
+	}
+	out := []supplyOffer{}
+	for _, o := range n.SupplyOffers {
+		if !o.Can {
+			continue
+		}
+		if u, ok := getUser(tx, o.SupplierID); ok && !u.Disabled && u.has(roleSupplier) {
+			out = append(out, supplyOffer{SupplierID: u.ID, Name: u.Name, Phone: u.Telephone, Center: u.SupplyCenter, At: o.At})
+		}
+	}
+	return out
+}
+
+// supplyAskOpen: el corredor pidió acopio y todavía no eligió uno.
+func supplyAskOpen(n CampNeed) bool {
+	return !isRepair(n) && n.Status == "IN_PROGRESS" && n.RunnerID != "" && n.SupplierID == "" && n.SupplyAskedAt != ""
+}
+
+func myOffer(n CampNeed, me string) *SupplyOffer {
+	for i := range n.SupplyOffers {
+		if n.SupplyOffers[i].SupplierID == me {
+			return &n.SupplyOffers[i]
+		}
+	}
+	return nil
+}
+
+var errNoAsk = errors.New("Este corredor ya no está pidiendo acopio para esta carrera.")
+var errNotOffered = errors.New("Ese acopio no ofreció surtir esta carrera.")
+
+// Corredor: pedir acopio para su carrera en camino, cancelar el pedido o elegir uno de los acopios que pueden.
+func (a *App) supplyAskRoutes(mux *http.ServeMux, runners *crew) {
+	mine := func(w http.ResponseWriter, r *http.Request, apply func(tx *bolt.Tx, n *CampNeed, f map[string]json.RawMessage) error) {
+		s, ok := a.crewSession(runners, w, r)
+		if !ok {
+			return
+		}
+		if s.agent {
+			fail(w, 403, errAgentNoRuns.Error())
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"cancel": 0, "supplierId": 128})
+		if !ok {
+			return
+		}
+		var n CampNeed
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(needsBucket)
+			v := b.Get([]byte(r.PathValue("id")))
+			if v == nil {
+				return errMissing
+			}
+			if e := json.Unmarshal(v, &n); e != nil {
+				return e
+			}
+			if isRepair(n) || n.RunnerID != s.runnerID || n.Status != "IN_PROGRESS" {
+				return errNotYours
+			}
+			if n.SupplierID != "" {
+				return errRequestedElsewhere
+			}
+			if e := apply(tx, &n, f); e != nil {
+				return e
+			}
+			return putNeed(b, &n)
+		})
+		switch {
+		case errors.Is(err, errNotYours), errors.Is(err, errRequestedElsewhere), errors.Is(err, errNoAsk), errors.Is(err, errNotOffered):
+			msg := err.Error()
+			if errors.Is(err, errRequestedElsewhere) {
+				msg = "Esta carrera ya tiene acopio."
+			}
+			fail(w, 409, msg)
+		case serviceError(w, err):
+		default:
+			response(w, 200, map[string]any{"id": n.ID, "supplyAskedAt": n.SupplyAskedAt, "supplierId": n.SupplierID})
+		}
+	}
+	mux.HandleFunc("POST /api/runner/needs/{id}/supply-ask", func(w http.ResponseWriter, r *http.Request) {
+		mine(w, r, func(tx *bolt.Tx, n *CampNeed, f map[string]json.RawMessage) error {
+			var cancel bool
+			json.Unmarshal(f["cancel"], &cancel)
+			if cancel {
+				n.SupplyAskedAt, n.SupplyOffers = "", nil
+			} else if n.SupplyAskedAt == "" {
+				n.SupplyAskedAt = nowStamp()
+			}
+			return nil
+		})
+	})
+	mux.HandleFunc("POST /api/runner/needs/{id}/supply-choose", func(w http.ResponseWriter, r *http.Request) {
+		mine(w, r, func(tx *bolt.Tx, n *CampNeed, f map[string]json.RawMessage) error {
+			if n.SupplyAskedAt == "" {
+				return errNoAsk
+			}
+			pick := fieldText(f, "supplierId")
+			if o := myOffer(*n, pick); o == nil || !o.Can {
+				return errNotOffered
+			}
+			if u, ok := getUser(tx, pick); !ok || u.Disabled || !u.has(roleSupplier) {
+				return errNotOffered
+			}
+			n.SupplierID = pick
+			return nil
+		})
 	})
 }

@@ -2274,7 +2274,7 @@ test('Supply ↔ Runners: Supply asks for a runner («📣 Pedidos» for runners
   assert.match(runner, /requests=\(\)=>available\.filter\(n=>n\.requestedAt&&n\.status==='OPEN'\)/);
   assert.match(runner, /if\(tab==='req'\)\{const req=requests\(\);feed\.innerHTML=req\.length\?req\.map\(n=>`<article class="card reqcard[^`]*\$\{supplierLine\(n,true\)\}[^`]*data-take=/);
   assert.match(runner, /function supplierLine\(n,asking\)\{const x=n\.supplier;[^\n]*\$\{asking\?'Pide':'Recoger en acopio'\}: <b>\$\{clean\(x\.center\|\|'Centro de acopio'\)\}<\/b> · \$\{clean\(x\.name\)\}/);
-  assert.match(runner, /\$\{supplierLine\(n,false\)\}\$\{n\.dispatchedAt\?/, 'pickup line on the «Yo» card');
+  assert.match(runner, /\$\{supplierLine\(n,false\)\}\$\{supplyAskBox\(n\)\}\$\{n\.dispatchedAt\?/, 'pickup line on the «Yo» card');
   const tabNow = new Function('mine', 'mainTab', `return (${runner.match(/const tabNow=([^\n;]*);/)[1]})()`);
   assert.equal(tabNow([], 'req'), 'req');
   // Supply: three tabs, center name, request/cancel, in-person assign with a runner picker.
@@ -2308,4 +2308,22 @@ test('runners: «Carrera completada» offers «📝 Actualizar necesidad» (open
   assert.match(runner, /<button class="btn" type="submit">Guardar necesidad<\/button><button class="btn plain" type="button" id="backFollowup">Volver<\/button><\/div>/);
   assert.match(runner, /if\(e\.target\.id==='openFollowup'\)\{\$\('#fuChoice'\)\.hidden=true;\$\('#fuForm'\)\.hidden=false;/);
   assert.match(runner, /if\(e\.target\.id==='skipFollowup'\)\{followup=null;await refresh\(\)\}/);
+});
+
+test('Runners ask supply centers; Supply answers «Puedo surtirla» / «No puedo»; the runner picks the closest', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  const box = runner.match(/function supplyAskBox\(n\)\{[^\n]*/)[0];
+  assert.match(box, /if\(n\.supplier\)return '';/, 'only runs without a supply center');
+  assert.match(box, /data-supplyask="\$\{id\}">📣 Pedir a acopios<\/button>/);
+  assert.match(box, /acopios pueden'\} surtirla: elige el más cercano/);
+  assert.match(box, /data-choose="\$\{id\}" data-supplier="\$\{clean\(o\.supplierId\)\}">Elegir<\/button>/);
+  assert.match(box, /data-supplycancel="\$\{id\}">Cancelar pedido<\/button>/);
+  for (const api of ["/supply-ask','POST',{})", "/supply-ask','POST',{cancel:true})", "/supply-choose','POST',{supplierId:o.supplierId})"]) assert.ok(runner.includes(api), api);
+  assert.match(page, /data-main="asks"[^>]*><span aria-hidden="true">🏃<\/span> Corredores piden <b id="cntAsk"><\/b>/);
+  const card = page.match(/function askCard\(n\)\{[^\n]*/)[0];
+  assert.match(card, /\$\{runnerSection\(n\)\}\$\{destSection\(n\)\}/);
+  assert.match(card, /data-offer="\$\{id\}">✓ Puedo surtirla<\/button><button class="btn assign" type="button" data-decline="\$\{id\}">✗ No puedo<\/button>/);
+  assert.match(card, /data-withdraw="\$\{id\}">Retirar<\/button>/);
+  for (const api of ["/offer','POST',{can:true})", "/offer','POST',{can:false})", "/offer','POST',{withdraw:true})"]) assert.ok(page.includes(api), api);
 });
