@@ -83,6 +83,20 @@ func teamOf(tx *bolt.Tx, id string) string {
 	return u.TeamID
 }
 
+// verifyStamp anota «verificado por equipo» cuando quien crea o actualiza (u) es de un equipo: nombre del equipo,
+// persona y hora. Si u no es de ningún equipo, lo quita: el dato cambió sin una revisión de equipo. u nil
+// (administración con la contraseña maestra) no lo cambia.
+func verifyStamp(tx *bolt.Tx, u *User, team, by, at *string) {
+	if u == nil {
+		return
+	}
+	if t, ok := getTeam(tx, teamOf(tx, u.ID)); ok {
+		*team, *by, *at = t.Name, u.Name, nowStamp()
+		return
+	}
+	*team, *by, *at = "", "", ""
+}
+
 // teamView responde, para quien mira (me), si otra persona es de su equipo. me vacío es el público: nadie lo es.
 type teamView struct {
 	tx       *bolt.Tx

@@ -32,6 +32,8 @@ type supplierView struct {
 	Center  string
 	Centers []string
 	Enroute []supplierRun
+	History []supplierRun
+	Live    []runnerOnMap
 }
 
 func (s *serviceHarness) supplierView(cookie *http.Cookie) supplierView {
@@ -164,15 +166,11 @@ func TestSupplyRequestsRunnersAndDispatchesItsOwnRuns(t *testing.T) {
 	s.app.mu.Lock()
 	s.app.locations[runnerID] = liveLocation{Lat: 7.45, Lon: -80.3, Accuracy: 12, At: time.Now()}
 	s.app.mu.Unlock()
-	if r := findRun(s.supplierView(julie).Runs, water); r == nil || r.RunnerLive == nil || r.RunnerLive.Lat != 7.45 {
-		t.Fatalf("live position: %+v", r)
+	// Strict rule: live GPS only for team mates. Rui is not on Julie's team: no position.
+	if r := findRun(s.supplierView(julie).Runs, water); r == nil || r.RunnerLive != nil || len(s.supplierView(julie).Live) != 0 {
+		t.Fatalf("not a team mate: no live position: %+v", r)
 	}
-	s.app.mu.Lock()
-	s.app.locations[runnerID] = liveLocation{Lat: 7.45, Lon: -80.3, At: time.Now().Add(-10 * time.Minute)}
-	s.app.mu.Unlock()
-	if r := findRun(s.supplierView(julie).Runs, water); r.RunnerLive != nil {
-		t.Fatalf("stale position is not shown")
-	}
+
 	// Pack and dispatch: still IN_PROGRESS; the runner sees it; public hides who.
 	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/packing", `{"items":[{"item":"Agua","quantity":4,"unit":"galones"}]}`, julie, jcsrf); w.Code != 200 {
 		t.Fatalf("pack: %d %s", w.Code, w.Body.String())
@@ -481,5 +479,85 @@ func TestAnotherRunnerToTheSameNeed(t *testing.T) {
 	}
 	if statuses[orig] != "IN_PROGRESS" || statuses[second] != "COMPLETED" {
 		t.Fatalf("each run completes on its own: %v", statuses)
+	}
+}
+
+// History: once the runner completes a run linked to this center, it leaves «Por despachar»/«Despachadas» and shows in
+// this center's history (with runner and delivery time); other centers don't see it.
+func TestSupplyHistoryShowsItsCompletedRuns(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)
+	s.expect("POST", "/api/admin/users", `{"name":"Otro Acopio","telephone":"6999-1111","roles":["supplier"],"accessCode":"OTRO777"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua (Para beber)","status":"OPEN"}`, 201)
+	var water string
+	for _, n := range s.needsOf(s.camp) {
+		if n.Need == "Agua (Para beber)" {
+			water = n.ID
+		}
+	}
+	julie, jcsrf := s.supplierLogin("JULIE77")
+	other, _ := s.supplierLogin("OTRO777")
+	rc := s.runnerLogin("Rui Corre")
+	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/request", `{}`, julie, jcsrf); w.Code != 200 {
+		t.Fatalf("request: %d %s", w.Code, w.Body.String())
+	}
+	if w := rc.call("POST", "/api/runner/needs/"+water+"/take", ``); w.Code != 200 {
+		t.Fatalf("take: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/dispatch", `{}`, julie, jcsrf); w.Code != 200 {
+		t.Fatalf("dispatch: %d %s", w.Code, w.Body.String())
+	}
+	if len(s.supplierView(julie).History) != 0 {
+		t.Fatal("nothing delivered yet")
+	}
+	if w := rc.call("POST", "/api/runner/needs/"+water+"/complete", ``); w.Code != 200 {
+		t.Fatalf("complete: %d %s", w.Code, w.Body.String())
+	}
+	v := s.supplierView(julie)
+	h := findRun(v.History, water)
+	if h == nil || h.CompletedAt == "" || h.DispatchedAt == "" || h.RunnerName != "Rui Corre" || findRun(v.Runs, water) != nil {
+		t.Fatalf("delivered run moves to history: %+v runs %d", h, len(v.Runs))
+	}
+	if len(s.supplierView(other).History) != 0 {
+		t.Fatal("other centers don't see it")
+	}
+}
+
+// Strict rule: a runner's live GPS is only shown to their own team. Supply sees its team mates on the map and on its
+// linked runs; a runner from another team (even on a run linked to this center) has no position.
+func TestSupplyLiveLocationOnlyForTeamMates(t *testing.T) {
+	s := newServiceHarness(t)
+	julie := s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)["id"].(string)
+	lia := s.expect("POST", "/api/admin/users", `{"name":"Lia Mate","telephone":"6999-2020","roles":["runner"],"accessCode":"LIAMATE7"}`, 201)["id"].(string)
+	otto := s.expect("POST", "/api/admin/users", `{"name":"Otto Otro","telephone":"6999-3030","roles":["runner"],"accessCode":"OTTOOTRO7"}`, 201)["id"].(string)
+	s.team("Equipo Villa", julie, lia)
+	s.team("Equipo Sur", otto)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","status":"OPEN"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Arroz","status":"OPEN"}`, 201)
+	var water, rice string
+	for _, n := range s.needsOf(s.camp) {
+		switch n.Need {
+		case "Agua":
+			water = n.ID
+		case "Arroz":
+			rice = n.ID
+		}
+	}
+	jc, jt := s.supplierLogin("JULIE77")
+	s.agentCall("POST", "/api/supplier/needs/"+water+"/assign", `{"runnerId":"`+lia+`"}`, jc, jt)
+	s.agentCall("POST", "/api/supplier/needs/"+rice+"/assign", `{"runnerId":"`+otto+`"}`, jc, jt)
+	s.app.mu.Lock()
+	s.app.locations[lia] = liveLocation{Lat: 7.45, Lon: -80.3, At: time.Now()}
+	s.app.locations[otto] = liveLocation{Lat: 7.5, Lon: -80.4, At: time.Now()}
+	s.app.mu.Unlock()
+	v := s.supplierView(jc)
+	if r := findRun(v.Runs, water); r == nil || r.RunnerLive == nil {
+		t.Fatalf("team mate's position on the run: %+v", r)
+	}
+	if r := findRun(v.Runs, rice); r == nil || r.RunnerLive != nil {
+		t.Fatalf("another team's runner: no position even on my run: %+v", r)
+	}
+	if len(v.Live) != 1 || v.Live[0].Name != "Lia Mate" {
+		t.Fatalf("Supply map: only team mates: %+v", v.Live)
 	}
 }

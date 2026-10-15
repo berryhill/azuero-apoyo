@@ -6,6 +6,34 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 
 ---
 
+## What's new
+
+**2026-10-15**
+- **Live location is strictly team-only** on every page: runners without a code (no team) and other teams no longer
+  appear on anyone's map, and Supply sees a runner's position only if they are on its team (§7, §8, §15).
+- Supply: «📍 Centro» is a button with a typeahead list (no always-open text box), «Solo mi equipo» switch on the same
+  line, Buscar in the header, and the map shows your team's live runners (§8).
+- Supply: tabs renamed and reordered (¡A empacar!, Despachadas, ¡Abastéceme!, Por surtir last), icons on phones, and a
+  🕓 history of delivered runs next to «Lista / Mapa» (§8).
+- Phone header: the menu button shows your initials when signed in; page links that don't fit collapse into a
+  «current page ▾» dropdown; the header search box now also shows on desktop (§2).
+- Comando: Buscar in the header, «+ Agregar punto» always visible, totals with icons in the «Puntos» tab (§10).
+- Runners: header search (🔍 on phones) filters the open tab and the map (§7).
+- Needs: options as tap buttons with icons for Agua, Alimentos, generator fuel, prepaid data card and cooking gas,
+  with «Otra» to type another; the separate gasolina/diésel boxes became one fuel need; «Saneamiento / baño» removed
+  (§6).
+- House repair is in every need form with optional materials; it always goes to Builders as a private repair need,
+  and builders see the requested materials (§6, §9).
+- The same need checklist and need chips everywhere, including the home «Reportar necesidad» window and the public
+  camp page (§6).
+- «Verificado por equipo» gold badge on points and needs created or updated by someone in a team (§6, §15).
+- Comando: «Ya no necesita nada» asks who fulfilled it and can complete the need for that runner (§10).
+- Mi equipo: role icons and a quick member search (§12).
+- Home on phones opens on «📊 Resumen» (§14).
+- Development environments (localhost, local network) show a «DEV» marker on every page (§16).
+
+---
+
 ## 1. What it is
 
 Azuero Apoyo coordinates relief after a disaster in Azuero (Panama):
@@ -26,9 +54,9 @@ Everything the community reports is *reported* data, not verified, and the app p
 
 | Page | Who | What it does |
 | --- | --- | --- |
-| `/` (home) | Public and everyone | Map and list of points, «📊 Resumen» figures, «¡Ayuda!» to report a point, «Login». |
+| `/` (home) | Public and everyone | Map and list of points, «📊 Resumen» figures (the first view on phones), «¡Ayuda!» to report a point, «Reportar necesidad» on a selected point, «Login». |
 | `/signup.html` | Anyone (link to share) | Sign in with a code or create an account. When signed in, shows which pages the person can open. Also accepts team invites (`?invite=…`). |
-| `/camp.html?id=…` | Public | Public page of an approved point (no private data) with a link to Google/Apple Maps. |
+| `/camp.html?id=…` | Public | Public page of an approved point (no private data): need chips with their options, «Verificado por un equipo» badge, link to Google/Apple Maps. |
 | `/runner.html` («Runners») | Runner role (and agents, for packing lists only) | Take runs, route, packing list, photos, complete. |
 | `/builder.html` («Constructores») | Builder role | Repair jobs: assess, take, progress, materials, photos. |
 | `/supplier.html` («Supply») | Supply role | Collection center: request runners, assign in person, answer runner requests, pack, dispatch. |
@@ -37,8 +65,11 @@ Everything the community reports is *reported* data, not verified, and the app p
 | `/team.html` («Mi equipo») | Team manager role | Invite people to the team, see members, change their roles, remove them. Lives in the ☰ menu. |
 | `/admin.html` | Admin (master password) | Everything: review reports, points, needs, users, teams, backups, newsletter. |
 
-On phones the top bar links to the pages the person can use; rarely used ones (Mi equipo) are in the ☰ menu. The ☰
-menu also shows the signed-in name and **roles**, «Copiar mi ID», «Salir» and text size (90 %–150 %).
+On phones the top bar links to the pages the person can use; rarely used ones (Mi equipo) are in the menu. If the links
+don't fit, they shrink to icons and then collapse into one «current page ▾» button that opens the list as a dropdown,
+so the page action (＋ «Agregar punto»), 🔍 and the menu button always stay visible on the right. When signed in, the
+menu button shows the person's **initials** in a gold circle (e.g. «MS»; tooltip with the full name) instead of ☰. The
+menu shows the signed-in name and **roles**, «Copiar mi ID», «Salir» and text size (90 %–150 %).
 
 ---
 
@@ -100,7 +131,8 @@ adults, children, babies, elderly, disability), reported needs and notes.
 - `approved`: published. Approving creates its open needs.
 - `archived`: hidden from the public and runners; can be restored.
 - `rejected` («Duplicado»): merged into another existing point.
-- Signed-in code users can add points that publish immediately.
+- Signed-in code users can add points that publish immediately (with the gold «Verificado por equipo» badge if they
+  are in a team, see §6).
 
 **GPS**
 
@@ -131,10 +163,36 @@ A need belongs to a point and says what is missing (item text: «Agua, Arroz, Ca
 | `COMPLETED` («Completada») | Delivered. |
 | `DELETED` | Removed (not shown). |
 
+- **Need checklist**: the same one everywhere a need is entered (home «¡Ayuda!» and «Reportar necesidad», Comando,
+  admin point and need editors, runner follow-up after a run). Grouped as «Agua y comida», «Refugio y cuidado»,
+  «Energía y comunicación», «Casa» and «¿Algo más?» (Otros), two per row. Checking a need that has options makes it
+  full width and shows its options as buttons to tap (one or several):
+  - **Agua**: glass icon «Para beber», pot icon «Para cocinar».
+  - **Alimentos**: hot-meal icon «Comida preparada», pan icon «Ingredientes para cocinar».
+  - **Combustible para generador**: Gasolina (selected automatically when checked), Diésel, «Otro».
+  - **Tarjeta de datos prepago**: Tigo, +Móvil (the only active mobile networks in Panama; Claro became +Móvil in
+    2023, Digicel left in 2024; typing «Claro» shows the +Móvil badge), «Otra».
+  - **Gas de cocina**: Tropigas, Panagas, «Otra».
+  - **Reparación de casa** (in every form): optional materials: hojas de zinc, carriola, varilla, tubo de hierro,
+    bolsas de cemento, bloques, tornillos, clavos, soldadura, «Otro».
+  «Otra/Otro» opens a short field to type the name. Choices are saved in parentheses, e.g. «Agua (Para beber /
+  Para cocinar)», «Gas de cocina (Gas Sol)», and need chips on every page (including the public camp page) show
+  them as small colored badges (not official logos). The Resumen counts all options of one need in one row. There is
+  no bathroom box: the portable toilet is a recurring service; older «Saneamiento / baño» needs show as text.
+- **House repair**: a separate kind of need for Builders, never public. Whoever reports it (public, runners, agents,
+  admin), the server stores «Reparación de casa (materials)» as its own repair need, apart from any supplies. Builders see the requested materials on the
+  card as «PIDEN hojas de zinc · varilla …». When editing a repair need, its materials can be changed.
 - **Urgency**: normal or urgent (shows «Urgente»).
+- **«Verificado por equipo»** (gold award badge): a point or need created or updated by someone in a team is marked
+  as checked more thoroughly. Stamped by the server when:
+  - a code user in a team adds a point (home or panels);
+  - an agent in a team creates a point, edits a point, or creates/updates a need in Comando;
+  - a runner in a team records a new need after completing a run.
+  An update by someone without a team removes the mark (the data changed without a team check); edits by admin with
+  the master password keep it. Panels with a session show the team, person and date («Equipo Norte»); public pages
+  show only «Verificado por un equipo», without names.
 - **Recurring services** (garbage, portable toilet, fumigation, medical round): repeat every N days; once completed
   they are scheduled and don't count as open until due.
-- **House repairs**: a separate kind of need for Builders; never public.
 - **Several runners on the same need**: a supply center can send «otro runner» to a need that is already on the way.
   This creates another run (a linked copy, `sameAs`) with its own runner, supply center, packing list, photos,
   dispatch and «Completé», so every shipment is documented. Cards show «👥 También va: …».
@@ -148,6 +206,11 @@ A need belongs to a point and says what is missing (item text: «Agua, Arroz, Ca
 Tabs: **Yo** (my runs on the way), **Runs** (open needs) and **📦 Pedidos** (supply centers asking for a runner).
 On phones, «Lista / Mapa» switch between the list and the map.
 
+- **Buscar** (search): in the header, like the home page; on phones it opens from the 🔍 button. It filters the open
+  tab (Yo, Runs, Pedidos) and the map by point code, zone, place, need, coordinator, supply center or runner,
+  ignoring accents and case; tab counters follow it. In «Yo», non-matching runs are hidden without changing stop
+  numbers or order.
+
 - **«¡Yo lo llevo!»** asks for confirmation (point and what to bring); accepting moves it to «Yo» with the run
   highlighted.
 - **Picking from the list** (card or «Ver en el mapa»): the map centers on the point and opens a short popup with
@@ -156,37 +219,47 @@ On phones, «Lista / Mapa» switch between the list and the map.
   map/Maps/share buttons. With a supply center: «📦 Recoger en acopio: Villa Marina · Julie» plus phone.
 - **Packing list**, **📷 Foto de partida**, **✓ Completé** (the confirmation shows what is being delivered and allows
   delivery photos) and «No puedo continuar» (the need goes back to open).
-- **After completing**: «📝 Actualizar necesidad» (opens the form to record what is still missing) or
-  «✓ No necesitan nada más».
+- **After completing**: «📝 Actualizar necesidad» (opens the same need checklist to record what is still missing,
+  including a house repair, which goes to Builders) or «✓ No necesitan nada más».
+- **Gold badge**: a card shows the gold «Equipo …» badge next to the point name when a team verified the point or that need.
 - **«Pedir a acopios»** (ask supply centers, on a run with no center): centers answer whether they can supply it; the
   card lists those that can («✓ 2 acopios pueden surtirla: elige el más cercano») and «Elegir» links the run to the
   chosen center.
-- **Live location**: once permission is granted it is shared with the team (and with the supply center of the
-  runner's runs). The map follows the runner until they pick a run or move the map; «🎯 Ir a mi ubicación» resumes
+- **Live location**: once permission is granted it is shared **only with the runner's own team** (strict rule, on
+  every page: other teams, the public, people without a team and other supply centers never see it). The map follows the runner until they pick a run or move the map; «🎯 Ir a mi ubicación» resumes
   following. Losing signal doesn't stop it; only denying permission does.
 - **Offline**: a screen still shows the route; photos and «Completé» stay on the phone and are sent when the
   connection returns.
-- **Reorder** the route by dragging ☰ or with ▲ ▼.
+- **Reorder** the route by dragging ☰ or with ▲ ▼. A runner can have up to 10 runs on the way at once.
 
 ---
 
 ## 8. Supply (`supplier.html`)
 
-Top: **📍 Centro** (the collection center name, with a shared list of centers the team already used; saved when
-picked or when leaving the field), search, and the **Todas / Solo mi equipo** filter.
+Top line: the **📍 Centro** button shows the chosen collection center («📍 Villa Marina ▾»; orange «Elige tu centro»
+when none). Tapping it opens the shared list of centers with a field to filter or type a new one («＋ Usar «…» (centro
+nuevo)»); picking saves it right away. Next to it, the **Solo mi equipo** switch. **Buscar** (runner, point or phone)
+is in the header like other pages (🔍 on phones).
+
+**Map**: the points of the open tab plus **your team's runners sharing live location** (orange trucks), even when they
+are not on a run of this center; with no points it centers on your team. Runners of other teams never appear.
 
 Tabs:
 
 | Tab | Content |
 | --- | --- |
-| 📦 Por despachar | Runs linked to this center, on the way, not dispatched yet. |
+| 📦 ¡A empacar! | Runs linked to this center, on the way, not dispatched yet: pack them and dispatch. |
 | 🚚 Despachadas | Linked runs already dispatched (still on the way). |
-| 📣 Pedir runner | Open needs: «📣 Pedir runner» (request a runner) or «🏃 Asignar en persona» (assign in person). Below, «🚚 Ya en camino»: other people's runs, with «Pedir otro runner» / «Otro en persona». |
-| 🏃 Runners piden | Runners with a run asking for a supply center: «✓ Puedo surtirlo» / «✗ No puedo» / «Retirar». |
+| 🏃 ¡Abastéceme! | Runners with a run asking for a supply center: «✓ Puedo surtirlo» / «✗ No puedo» / «Retirar». |
+| 🙌 Por surtir (last) | Open needs this center could supply: «📣 Pedir runner» (request a runner) or «🏃 Asignar en persona» (assign in person). Below, «🚚 Ya en camino»: other people's runs, with «Pedir otro runner» / «Otro en persona». |
+| 🕓 Historial | Runs of this center already delivered in the last 30 days (up to 60, newest first): point, items, runner, when it left and when it was delivered, packing list and photos. Read only. On phones it is the small clock button to the right of «Lista / Mapa»; on desktop, the clock at the end of the tabs. |
+
+On phones each tab shows its icon above the name and the count below.
 
 **Card in three parts**
 
-1. **Runner**: name, phone, «La tomó hace…» (taken … ago), live («📍 Ver runner en el mapa») if sharing location, who
+1. **Runner**: name, phone, «La tomó hace…» (taken … ago), live («📍 Ver runner en el mapa») if sharing location and on
+   your team, who
    dispatched it, «👥 También va».
 2. **Destination**: point, directions, «Necesita», place contacts, show on map / Maps.
 3. **To load**: packing list, departure photos, «🚚 Despachada» (with confirmation) or «Salió del acopio» with
@@ -194,32 +267,32 @@ Tabs:
 
 **Each supply center only sees and dispatches the runs linked to it.** A run becomes linked to a center when:
 
-- the center requested a runner and a runner accepted it in «Pedidos»;
+- the center requested a runner (in «Por surtir») and a runner accepted it in «Pedidos»;
 - the center assigned it in person;
 - a runner asked for a center and chose this one;
 - the center sent «otro runner» (a new linked run).
 
-**Solo mi equipo** (my team only): «Pedir runner» shows only points my team added; the other tabs show my team's
+**Solo mi equipo** (my team only): «Por surtir» shows only points my team added; the other tabs show my team's
 points or runs by my team's runners; the runner picker shows only my team's runners.
 
 ### Supply ↔ Runner flows
 
 ```
 A) Center requests a runner
-   Supply «📣 Pedir runner» ─▶ Runner sees it in «📦 Pedidos» (who, center, phone)
-   ─▶ «¡Yo lo llevo!» ─▶ run in the runner's «Yo» and in the center's «Por despachar»
+   Supply «🙌 Por surtir» → «📣 Pedir runner» ─▶ Runner sees it in «📦 Pedidos» (who, center, phone)
+   ─▶ «¡Yo lo llevo!» ─▶ run in the runner's «Yo» and in the center's «¡A empacar!»
    ─▶ center packs + departure photo ─▶ «🚚 Despachada» ─▶ runner «✓ Completé»
 
 B) Runner in person
-   Supply «🏃 Asignar en persona» (pick the runner) ─▶ same as A from «Por despachar»
+   Supply «🏃 Asignar en persona» (pick the runner) ─▶ same as A from «¡A empacar!»
 
 C) Runner asks for a center
-   Runner (in «Yo») «📣 Pedir a acopios» ─▶ centers see it in «🏃 Runners piden»
+   Runner (in «Yo») «📣 Pedir a acopios» ─▶ centers see it in «🏃 ¡Abastéceme!»
    ─▶ «✓ Puedo surtirlo» (one or more) ─▶ runner «Elegir» the closest
-   ─▶ run in that center's «Por despachar» ─▶ same as A
+   ─▶ run in that center's «¡A empacar!» ─▶ same as A
 
 D) Another runner on the same need
-   Supply «🚚 Ya en camino» ─▶ «Pedir otro runner» / «Otro en persona» ─▶ new run linked to this center
+   Supply «🙌 Por surtir» → «🚚 Ya en camino» ─▶ «Pedir otro runner» / «Otro en persona» ─▶ new run linked to this center
 ```
 
 If a runner drops a run a center requested, it goes back to «Pedidos». If they drop one assigned in person, it
@@ -233,12 +306,17 @@ Tabs «🔨 Mis obras» (my jobs) and «🚩 Obras» (jobs). Each repair job has
 (what's left), required materials, Before / Progress / Final photos and «✓ Obra terminada» (needs a final photo).
 **Assess** a job without taking it: work items (roof, walls, floor…), materials, days, people, notes and photos;
 assessments are visible to all builders. Repairs are never public; their materials are totaled in the Resumen.
+Repair needs can come from any form (public, runners, Comando, admin); when the reporter picked materials, the card
+shows them under the title as «PIDEN hojas de zinc · varilla …».
 
 ---
 
 ## 10. Command (`command.html`, agents)
 
-List of points with filters (state, area, need, urgent/open/on the way), a map, and an "en ruta" monitor. Each card:
+**Buscar** is in the header (on phones, the 🔍 button), like Runners, and «+ Agregar punto» is always at the top right.
+The totals are shown with icons: 📍 points (or «4/54» while searching or filtering) and 🕓 «por revisar»; on phones they
+are inside the «Puntos» tab. List of points with filters (state, area, need, urgent/open/on the way), a map, and an
+"en ruta" monitor. Each card:
 point name, people, coordinator, counters «🚩 N por llevar» / «🏃 N en camino», needs, «Checkup» (log a call) and
 «Editar punto». Opening a point shows full data, contacts, changelog and its needs (update, report a new one, mark
 services done).
@@ -248,7 +326,10 @@ In «Actualizar necesidad», **«Ya no necesita nada»** asks **«¿Alguien la s
 - «No, ya no la necesitan» removes the need (`DELETED`) and counts as a checkup on the point.
 - «Sí, la suplió alguien» asks for the Runner (or Constructor for a repair), required, and saves the need as
   `COMPLETED` under that person with the original items, like a finished run. A new name creates the runner with
-  their phone. Works on phones (single column).
+  their phone.
+
+Point rows and need cards show the gold «Verificado por equipo» badge with the team name. Editing a repair need shows
+its materials, which can be changed. Works on phones (single column).
 
 ---
 
@@ -282,7 +363,8 @@ Access: Donations role or admin.
 ## 13. Admin (`admin.html`)
 
 - **Points**: cards with counters, filters, «Agregado por» (added by), map on the right, point editor with its needs
-  (list above the form) and services.
+  (list above the form) and services. Cards and needs show the gold «Verificado por equipo» badge with the team name;
+  editing a repair need shows its materials.
 - **Usuarios** (☰ menu): search, «Solo con código», «Ver desactivados». Click headers to sort (click again to
   reverse; ▲▼ shows direction): Usuario, Roles, Actividad, Creado (default: newest first). «Roles» filters with
   checkboxes (several at once; «Sin acceso» = no roles); «Equipo» filters by team. Empty fields are left blank.
@@ -293,7 +375,8 @@ Access: Donations role or admin.
 
 ## 14. Public summary (home)
 
-«📊 Resumen» is the home sidebar (on phones, the 📊 view):
+«📊 Resumen» is the home sidebar (on phones, the 📊 view, which is where the home page opens unless the link points to a
+specific point):
 
 - **Reach**: people (children, babies, elderly), points (how many mapped), zones.
 - **Estimated consumption\***: liters of water per day (babies 0.75 L, children 1.5 L, adults 3 L, elderly 2.5 L, for
@@ -308,7 +391,10 @@ Access: Donations role or admin.
 - **Public**: approved points (no phones, contacts, private notes or group members), needs (no runner, supply
   center, packing list or photos; «Despachada» yes, but not by whom), Resumen totals.
 - **Private**: contacts and phones, notes, ID numbers, who carries each run, supply centers, packing lists, photos,
-  donors, live locations (team / the run's supply center only), repairs.
+  donors, live locations (**own team only**, everywhere), repairs.
+- **«Verificado por equipo»**: public pages show only that a team verified it («Verificado por un equipo»); which team,
+  who and when are visible only in panels with a session (Comando, admin, Runners, Supply).
+- Repair needs and their materials are never public.
 - Code users see more (e.g. the runner's name on their team's needs).
 
 ---
@@ -322,10 +408,14 @@ Access: Donations role or admin.
   `/api/supplier/…`, `/api/desk/…` (donations), `/api/full/…` (code session: full view, Mi equipo, invites). Each has
   its own session (path-scoped cookie) and a CSRF token on writes.
 - Tests: `go test ./...`, `node --test feature_ui_test.mjs`, `python3 -m unittest ci_index_test.py`.
+- **Development marker**: when the site runs on localhost, a local-network address (10.x, 192.168.x, 172.16–31.x) or a
+  `*.local` / `*.test` name, every page shows a thin amber-and-navy stripe at the top, a small «DEV» tag in the
+  top-left corner (tooltip: the host) and «DEV ·» before the tab title. It never shows on the public domain.
+  (`nav.js`; `admin.html` has the same copy because it doesn't load `nav.js`.)
 
 ---
 
 ## Keeping this manual current
 
 Every new feature or behavior change is recorded here in the same task: what it does, who uses it, how it relates to
-the rest (states, roles, privacy). If something stops existing, remove it here.
+the rest (states, roles, privacy), plus a dated line in «What's new». If something stops existing, remove it here.

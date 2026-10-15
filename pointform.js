@@ -28,6 +28,12 @@
     fuel: svg('<path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M14 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3M7 7h4"/>'),
     locate: svg('<circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/>'),
     other: svg('<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'),
+    gas: svg('<path d="M9 3h6v3H9z"/><path d="M7 6h10a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M12 10c1.5 1.6 2 2.7 2 3.7a2 2 0 0 1-4 0c0-1 .5-2.1 2-3.7z"/>'),
+    glass: svg('<path d="M6 3h12l-1.5 17a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1z"/><path d="M6.5 9h11"/>'),
+    meal: svg('<path d="M3 13h18a9 9 0 0 1-18 0z"/><path d="M8 3c-1 1.5 1 2.5 0 4M12 3c-1 1.5 1 2.5 0 4M16 3c-1 1.5 1 2.5 0 4"/>'),
+    pan: svg('<circle cx="10" cy="13" r="6"/><path d="M16 13h6"/><path d="M8 11c.5-.6 1.5-1 2.5-.8"/>'),
+    edit: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>'),
+    sim: svg('<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M9 11h6v6H9z"/><path d="M12 11v6M9 14h6"/>'),
     // Lista de empaque.
     box: svg('<path d="M3 7l9-4 9 4v10l-9 4-9-4V7z"/><path d="M3 7l9 4 9-4M12 11v10"/>'),
     foodbag: svg('<path d="M5 8h14l-1 13H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><path d="M9 13h6M10 16.5h4"/>'),
@@ -68,11 +74,16 @@
 .pf .pf-gps:hover{background:#175d66}.pf .pf-gps:disabled{opacity:.6;cursor:wait}.pf-gpsthumb{height:140px;margin:8px 0 0;border-radius:10px;overflow:hidden;border:1px solid #cad9d9;cursor:pointer;background:#dfe8e8}.pf-gpsthumb[hidden]{display:none}.pf-gpsthumb .leaflet-control-attribution{font-size:9px}.pf-thumbpin{width:24px;height:24px;background:#c62828;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 7px #0006}.pf-gpsmsg{font-size:12px;color:#36505a;margin:6px 0 0}.pf-gpsmsg:empty{display:none}
 .pf-me-btns{display:inline-flex;gap:4px;margin-left:auto}.pf .pf-ico:has(.pf-me-btns){width:100%}.pf .pf-yo{margin:0;padding:2px 9px;border:1px solid #2d7f86;border-radius:12px;background:#eaf6f3;color:#1d6f7a;font:inherit;font-size:11px;font-weight:800;cursor:pointer}.pf .pf-clearcoord{display:inline-flex;margin:0;padding:3px;border:0;border-radius:6px;background:none;color:#8a9ca1;cursor:pointer}.pf .pf-clearcoord svg{width:14px;height:14px}.pf .pf-clearcoord:hover{background:#f2e7e3;color:#9a4536}.pf-members{margin-top:8px}.pf-member{display:grid;grid-template-columns:22px 2fr 1.4fr .7fr 1.3fr 26px;grid-template-areas:'num name phone age ced del';gap:6px;align-items:center;padding:4px 0}.pf-mnum{grid-area:num;font-size:13px;font-weight:800;color:#2d7f86;text-align:right}.pf-m-name{grid-area:name}.pf-m-phone{grid-area:phone}.pf-m-age{grid-area:age}.pf-m-cedula{grid-area:ced}.pf-member .pf-remove{grid-area:del}.pf-member:last-child .pf-remove{visibility:hidden}.pf .pf-member input{min-width:0;margin-top:0}
 .pf .pf-remove{display:inline-flex;margin:0;padding:3px;border:0;border-radius:6px;background:none;color:#8a9ca1}.pf .pf-remove:hover{background:#f2e7e3;color:#9a4536}
-.pf-needs{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.pf-needs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.pf-needgroup{grid-column:1/-1;margin:6px 0 -2px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#64808a}.pf-needgroup:first-child{margin-top:0}.pf-needitem{min-width:0}.pf-needitem.has-opts:has(input[data-need]:checked){grid-column:1/-1;border:1px solid #2d7f86;border-radius:11px;background:#f6fbfa}.pf-needitem.has-opts:has(input[data-need]:checked) .pf-need span{border:0;background:none}.pf-needitem .pf-datanet{margin:0;padding:0 10px 10px}
+.pf-datanet-label small{font-weight:600;color:#667982;margin-left:4px}.pf-pills{display:flex;flex-wrap:wrap;gap:6px}.pf-pill{display:inline-flex;flex-direction:row;align-items:center;gap:7px;min-height:42px;padding:8px 10px;border:1.5px solid #cad9d9;border-radius:10px;background:#fff;color:#173c46;text-align:left;cursor:pointer;font:inherit}.pf-pill b{font-size:14px}.pf-pill small{font-size:11px;color:#667982;font-weight:500}.pf-pill[aria-pressed="true"]{border-color:#19745f;background:#e3f4ec}.pf-pill svg{color:#2d7f86;flex:none}.pf-swatch{display:inline-block;width:12px;height:12px;border-radius:50%;background:#b7c7ca;flex:none}.pf-swatch.pf-net-mat{display:none}.pf-other-input[hidden]{display:none}.pf-pill-other{border-style:dashed}.pf-other-input{display:block;width:100%;max-width:260px;margin:8px 0 0;padding:8px 10px;border:1px solid #cad9d9;border-radius:8px;font-size:15px;background:#fff}.pf-pill[aria-pressed="true"] b:before{content:"✓ ";color:#19745f}
 .pf label.pf-need{position:relative;margin:0;font-weight:650}.pf .pf-need input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
 .pf-need span{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 10px;border:1px solid #d5e0e2;border-radius:10px;background:#fff;color:#36505a;font-size:13px;cursor:pointer}
 .pf-need span svg{color:#2d7f86;flex:none}.pf-need span:after{content:"";margin-left:auto;width:16px;height:16px;border:1.5px solid #b7c7ca;border-radius:4px;flex:none}
 .pf-need input:checked+span{border-color:#2d7f86;background:#eaf6f3;color:#173c46}.pf-need input:checked+span:after{background:#2d7f86 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/12px no-repeat;border-color:#2d7f86}
+.pf-chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}.pf-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #d5e0e2;border-radius:16px;padding:3px 9px;font-size:13px;font-weight:650;color:#1f3a46;background:#fff}.pf-chip svg{color:#2d7f86;flex:none}.pf-chip.text{border-style:dashed}
+.pf-verified{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;margin-left:5px;line-height:1}.pf-verified svg{flex:none;filter:drop-shadow(0 1px 1px #a8740055)}.pf-verified.text{padding:2px 8px 2px 4px;border:1px solid #e9c46a;border-radius:999px;background:#fff8e1;color:#7a5600;font-size:11px;font-weight:800}
+.pf-netbadge{display:inline-flex;align-items:center;margin-left:6px;padding:1px 7px;border-radius:999px;background:#e7eef0;color:#36505a;font:800 11px/1.5 system-ui,sans-serif;letter-spacing:.01em;white-space:nowrap;text-transform:none}.pf-net-tigo{background:#00377b;color:#fff;box-shadow:inset 0 -2px 0 #00c8ff}.pf-net-masmovil{background:#0153ba;color:#fff}.pf-net-beber{background:#d8ecfb;color:#134d7a}.pf-net-cocinar{background:#d9f2ea;color:#14594a}.pf-net-preparada{background:#fde3cf;color:#8a3a09}.pf-net-ingredientes{background:#e6f3d5;color:#3c5a14}.pf-net-gasolina{background:#f2a900;color:#2b1d00}.pf-net-diesel{background:#2f3a40;color:#fff}.pf-net-tropigas{background:#e35205;color:#fff}.pf-net-panagas{background:#272974;color:#fff;box-shadow:inset 0 -2px 0 #e11e26}
+.pf-datanet{margin-top:10px}.pf-datanet-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:750;color:#173c46;margin-bottom:5px}.pf-datanet-label svg{color:#2d7f86}
 .pf-need input:focus-visible+span{outline:2px solid #2d7f86}.pf-repair span svg{color:#1f63c6}.pf-repair input:checked+span{border-color:#1f63c6;background:#e9f1fc}.pf-repair input:checked+span:after{background-color:#1f63c6;border-color:#1f63c6}.pf-need em{font-style:normal}.pf-need em small{display:block;font-size:11px;font-weight:700;color:#ae4f32}.pf-need em small.pf-dup{color:#677c83}.pf-otros[hidden]{display:none}.pf label.pf-otros{margin-top:8px}
 .pf .pf-num{display:flex;margin-top:4px}.pf .pf-num input{flex:1;width:auto;min-width:0;margin:0;border-radius:0;text-align:center}
 .pf .pf-numbtn{flex:none;width:36px;margin:0;padding:0;border:1px solid #d5e0e2;background:#f1f6f6;color:#1d6f7a;font-size:18px;font-weight:800;line-height:1;cursor:pointer}.pf .pf-numbtn:hover{background:#e2efee}
@@ -99,7 +110,45 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   // Los tres pasos llevan número (1, 2, 3); la sección de administración lleva candado.
   const section = (icon, title, body, cls = '') => `<fieldset class="pf-section ${cls}"><legend>${typeof icon === 'number' ? `<span class="pf-step">${icon}</span>` : icons[icon]}${esc(title)}</legend>${body}</fieldset>`;
   // «Reparación de casa» es solo para administración: la atienden constructores y no se publica.
-  const NEEDS = [['Agua', 'drop'], ['Alimentos', 'food'], ['Refugio (carpa / lona / toldo)', 'tent'], ['Kit de cocina', 'pot'], ['Kit de bebé', 'bottle'], ['Gasolina para generador', 'fuel'], ['Diésel para generador', 'fuel'], ['Saneamiento / baño', 'toilet'], ['Reparación de casa', 'repair', 'pf-repair', 'admin']];
+  const NEEDS = [['Agua', 'drop'], ['Alimentos', 'food'], ['Refugio (carpa / lona / toldo)', 'tent'], ['Kit de cocina', 'pot'], ['Kit de bebé', 'bottle'], ['Combustible para generador', 'fuel'], ['Tarjeta de datos prepago', 'sim'], ['Gas de cocina', 'gas'], ['Reparación de casa', 'repair', 'pf-repair']];
+  // Necesidades con marca: la red o la empresa va entre paréntesis, p. ej. «Tarjeta de datos prepago (Tigo)» o
+  // «Gas de cocina (Panagas)». Se elige de la lista o se escribe otra. Insignia con el color de cada marca.
+  // Redes móviles activas en Panamá: Tigo y +Móvil (Claro pasó a +Móvil en 2023; Digicel salió en 2024).
+  // Grupos del formulario (dos columnas; al marcar una necesidad con opciones, ocupa toda la fila y las abre debajo).
+  const NEED_GROUPS = [['Agua y comida', ['Agua', 'Alimentos', 'Kit de cocina', 'Gas de cocina']], ['Refugio y cuidado', ['Refugio (carpa / lona / toldo)', 'Kit de bebé']], ['Energía y comunicación', ['Combustible para generador', 'Tarjeta de datos prepago']], ['Casa', ['Reparación de casa']]];
+  // Opciones de una necesidad: multi (se marcan una o varias: Agua para beber o para cocinar) o una sola con lista y
+  // «Otra…» para escribir (combustible, red, empresa del gas).
+  // [nombre, clase de color, texto de la insignia, alias, ícono]. other: botón «Otra…» con un campo corto para escribir.
+  const BRANDED = {
+    'Agua': {key: 'water', label: '¿Para qué?', brands: [['Para beber', 'beber', 'para beber', null, 'glass'], ['Para cocinar', 'cocinar', 'para cocinar', null, 'pot']]},
+    'Alimentos': {key: 'food', label: '¿Qué tipo?', brands: [['Comida preparada', 'preparada', 'comida preparada', null, 'meal'], ['Ingredientes para cocinar', 'ingredientes', 'ingredientes', null, 'pan']]},
+    'Combustible para generador': {key: 'fuel', label: 'Combustible', other: 'Otro', otherPh: 'Escribe cuál', def: 'Gasolina', brands: [['Gasolina', 'gasolina', 'Gasolina'], ['Diésel', 'diesel', 'Diésel']]},
+    'Tarjeta de datos prepago': {key: 'net', label: 'Red', other: 'Otra', otherPh: 'Escribe la red', brands: [['Tigo', 'tigo', 'tigo'], ['+Móvil', 'masmovil', '+móvil', /^(mas|\+) ?movil$|^claro$/]]},
+    'Gas de cocina': {key: 'gas', label: 'Empresa', other: 'Otra', otherPh: 'Escribe la empresa', brands: [['Tropigas', 'tropigas', 'Tropigas'], ['Panagas', 'panagas', 'Panagas']]},
+    'Reparación de casa': {key: 'repair', label: 'Materiales (opcional)', other: 'Otro', otherPh: 'Escribe el material', brands: [['Hojas de zinc', 'mat', 'hojas de zinc'], ['Carriola', 'mat', 'carriola'], ['Varilla', 'mat', 'varilla'], ['Tubo de hierro', 'mat', 'tubo de hierro'], ['Bolsas de cemento', 'mat', 'bolsas de cemento'], ['Bloques', 'mat', 'bloques'], ['Tornillos', 'mat', 'tornillos'], ['Clavos', 'mat', 'clavos'], ['Soldadura', 'mat', 'soldadura']]}
+  };
+  const DATA_NEED = 'Tarjeta de datos prepago';
+  const brandedRe = new RegExp(`^\\s*(${Object.keys(BRANDED).map(l => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\s*(?:\\(([^)]*)\\))?\\s*$`, 'i');
+  // {label, brand} si la parte es una necesidad con marca (brand puede ser ''); si no, null.
+  // Antes eran dos casillas: «Gasolina para generador» y «Diésel para generador»; se leen como combustible con su tipo.
+  const LEGACY = [[/^\s*gasolina para generador\s*$/i, 'Combustible para generador', 'Gasolina'], [/^\s*di[eé]sel para generador\s*$/i, 'Combustible para generador', 'Diésel']];
+  const brandOf = part => { const old = LEGACY.find(([re]) => re.test(String(part || ''))); if (old) return {label: old[1], brand: old[2]}; const m = brandedRe.exec(String(part || '')); if (!m) return null; const label = Object.keys(BRANDED).find(l => l.toLowerCase() === m[1].toLowerCase()); return {label, brand: (m[2] || '').trim()}; };
+  const findBrand = (label, b) => (BRANDED[label]?.brands || []).find(x => fold(x[0]) === fold(b) || fold(x[2]) === fold(b) || (x[3] && x[3].test(fold(b))));
+  const brandBadge = (label, b) => { if (!b) return ''; if (String(b).includes(' / ')) return String(b).split(' / ').map(v => brandBadge(label, v.trim())).join(''); const x = findBrand(label, b); return x ? `<span class="pf-netbadge pf-net-${x[1]}" title="${esc(x[0])}">${esc(x[2])}</span>` : `<span class="pf-netbadge" title="${esc(b)}">${esc(b)}</span>`; };
+  const dataNet = part => { const x = brandOf(part); return x && x.label === DATA_NEED ? x.brand : null; };
+  const netBadge = b => brandBadge(DATA_NEED, b);
+  const needBase = part => brandOf(part)?.label || String(part || '').trim();
+  const needIconOf = label => icons[(NEEDS.find(n => n[0] === label) || [, 'other'])[1]];
+  // Chip de una necesidad con marca (para las listas de cada página); '' si no lo es.
+  const needChip = (part, cls = 'chip') => { const x = brandOf(part); return x ? `<span class="${cls}">${needIconOf(x.label)}${esc(x.label)}${brandBadge(x.label, x.brand)}</span>` : ''; };
+  // «Verificado por equipo»: insignia dorada cuando alguien de un equipo creó o actualizó el punto o la necesidad (revisión
+  // más a fondo). Con acceso dice qué equipo y quién; en público, solo «Verificado por un equipo».
+  const AWARD = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6.5" fill="#f2b705" stroke="#a87400" stroke-width="1.5"/><path d="M8.2 14.2 6.5 22l5.5-3 5.5 3-1.7-7.8" fill="#f2b705" stroke="#a87400" stroke-width="1.5" stroke-linejoin="round"/><path d="m9.3 9 1.9 1.9 3.6-3.7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const verifiedTitle = x => { const d = new Date(x.verifiedAt), when = isNaN(d) ? '' : d.toLocaleDateString('es-PA', {day: 'numeric', month: 'short'}); return x.verifiedTeam ? `Verificado por el equipo ${x.verifiedTeam.replace(/^equipo\s+/i, '')}${x.verifiedBy ? ' · ' + x.verifiedBy : ''}${when ? ' · ' + when : ''}` : `Verificado por un equipo${when ? ' · ' + when : ''}`; };
+  const verifiedBadge = (x, {text = false} = {}) => x && x.verifiedAt ? `<span class="pf-verified${text ? ' text' : ''}" title="${esc(verifiedTitle(x))}" role="img" aria-label="${esc(verifiedTitle(x))}">${AWARD}${text ? `<span>${esc(x.verifiedTeam ? 'Equipo ' + x.verifiedTeam.replace(/^equipo\s+/i, '') : 'Verificado')}</span>` : ''}</span>` : '';
+  // Fichas de una lista de necesidades (texto «Agua (Para beber), Arroz»): ícono y opción de cada tipo; lo demás como
+  // texto. Para páginas sin su propia versión (ficha pública).
+  const needChipsHtml = text => `<div class="pf-chips">${String(text || '').split(/[,\n]+/).map(p => p.trim()).filter(Boolean).map(part => needChip(part, 'pf-chip') || (hit => hit ? `<span class="pf-chip">${icons[hit[1]]}${esc(hit[0])}</span>` : `<span class="pf-chip text">${esc(part)}</span>`)(NEEDS.find(([l]) => fold(l) === fold(part)))).join('')}</div>`;
   // Servicios del punto que se repiten: nombre, ícono y cada cuántos días se sugiere.
   const SERVICES = [['Recolección de basura', 'trash', 7], ['Cambio de baño portátil', 'toilet', 7], ['Fumigación de mosquitos', 'spray', 14], ['Ronda médica', 'medicine', 30]];
   const serviceIcon = name => icons[(SERVICES.find(s => s[0] === name) || [, 'other'])[1]] || '';
@@ -116,7 +165,11 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   const COUNTS = [['people', 'Personas', 'people'], ['adults', 'Adultos', 'adult'], ['children', 'Niños', 'child'], ['babies', 'Bebés', 'baby'], ['olderAdults', 'Mayores', 'elder'], ['disabled', 'Discapacitados', 'disabled']];
 
   // Casillas de necesidades con iconos y «Otros»; también las usa el formulario de necesidades del panel.
-  const needsHtml = ({admin = false} = {}) => `<div class="pf-needs">${NEEDS.filter(n => admin || n[3] !== 'admin').map(([l, i, c]) => `<label class="pf-need ${c || ''}"><input type="checkbox" data-need="${esc(l)}"><span>${icons[i]}${esc(l)}</span></label>`).join('')}<label class="pf-need"><input type="checkbox" class="pf-otros-check"><span>${icons.other}Otros</span></label></div><label class="pf-otros" hidden>Otros: ¿qué más necesitan?<textarea class="pf-otros-text" placeholder="Medicinas, ropa, colchones…"></textarea></label>`;
+  const pillMark = x => x[4] && icons[x[4]] ? icons[x[4]] : `<i class="pf-swatch pf-net-${esc(x[1])}"></i>`;
+  const optsHtml = l => { const b = BRANDED[l]; if (!b) return ''; return `<div class="pf-datanet" data-brandfor="${esc(l)}" hidden><span class="pf-datanet-label">${esc(b.label)} <small>toca una o varias</small></span><div class="pf-pills" role="group" aria-label="${esc(l)}: ${esc(b.label)}">${b.brands.map(x => `<button type="button" class="pf-pill" data-pill="${esc(x[0])}" aria-pressed="false">${pillMark(x)}<b>${esc(x[0])}</b></button>`).join('')}${b.other ? `<button type="button" class="pf-pill pf-pill-other" data-pill-other aria-pressed="false">${icons.edit || '✏️'}<b>${esc(b.other)}</b></button>` : ''}</div>${b.other ? `<input class="pf-other-input" maxlength="40" placeholder="${esc(b.otherPh)}" aria-label="${esc(l)}: ${esc(b.otherPh)}" hidden>` : ''}<input type="hidden" class="pf-net-input" data-brand="${esc(l)}"></div>`; };
+  const needItem = ([l, i, c]) => `<div class="pf-needitem${BRANDED[l] ? ' has-opts' : ''}"><label class="pf-need ${c || ''}"><input type="checkbox" data-need="${esc(l)}"><span>${icons[i]}${esc(l)}</span></label>${optsHtml(l)}</div>`;
+  // only: solo esas necesidades (p. ej. al editar una reparación: la casilla fija y sus materiales).
+  const needsHtml = ({admin = false, only = null} = {}) => { const shown = NEEDS.filter(n => admin || n[3] !== 'admin'); if (only) return `<div class="pf-needs">${shown.filter(n => only.includes(n[0])).map(needItem).join('')}<input type="checkbox" class="pf-otros-check" hidden></div><label class="pf-otros" hidden><textarea class="pf-otros-text"></textarea></label>`; return `<div class="pf-needs">${NEED_GROUPS.map(([g, ls]) => [g, shown.filter(n => ls.includes(n[0]))]).concat([['', shown.filter(n => !NEED_GROUPS.some(([, ls]) => ls.includes(n[0])))]]).filter(([, list]) => list.length).map(([g, list]) => `${g ? `<p class="pf-needgroup">${esc(g)}</p>` : ''}${list.map(needItem).join('')}`).join('')}<p class="pf-needgroup">¿Algo más?</p><div class="pf-needitem"><label class="pf-need"><input type="checkbox" class="pf-otros-check"><span>${icons.other}Otros</span></label></div></div><label class="pf-otros" hidden>Otros: ¿qué más necesitan?<textarea class="pf-otros-text" placeholder="Medicinas, ropa, colchones…"></textarea></label>`; };
   function html({admin = false, edit = false} = {}) {
     const where = section(1, '¿Dónde estás?', `<button type="button" class="pf-gps">${icons.pin}Enviar mi ubicación GPS</button><div class="pf-gpsthumb" hidden title="Toca para mover la ubicación" aria-label="Vista previa de la ubicación elegida"></div><p class="pf-gpsmsg" role="status"></p><div class="pf-grid" style="margin-top:12px">${input('gps', 'o pega un enlace de Google Maps', {wide: true, ph: 'https://maps.google.com/…'})}${input('area', 'Zona / área', {ph: 'Ej. Cañas'})}${input('place', 'Ubicación / referencia', {ph: 'Ej. Escuela de la comunidad'})}${input('directions', 'Indicaciones de llegada', {wide: true, area: true, ph: 'Cómo llegar, puntos de referencia…'})}</div>`);
     const who = section(2, '¿Con quién estás?', `<div class="pf-grid">${input('coordinator', 'Coordinador', {icon: 'coordinator'})}${input('coordinatorPhone', 'Teléfono del coordinador', {filter: 'phone', ph: 'Ej. 6000-0000'})}</div><p class="pf-sub">¿Cuántas personas?</p><div class="pf-grid">${COUNTS.map(([k, l, i]) => input(k, l, {icon: i, filter: 'count', ph: '0'})).join('')}</div><p class="pf-sub">Personas del grupo</p><p class="pf-hint"><b>Agrega al menos un teléfono</b> (del coordinador o de alguna persona). Nombre, cédula y edad son opcionales y solo los ve el equipo de curación.</p><div class="pf-members"></div>`);
@@ -237,12 +290,12 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   const mediaThumbs = (items, src, extra = () => '') => items.map(m => `<figure class="pf-thumb"><a href="${esc(src(m))}" target="_blank" rel="noopener noreferrer" title="${esc(m.name || '')}">${String(m.type).startsWith('image/') ? `<img src="${esc(src(m))}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pf-thumb-icon',textContent:'📷'}))">` : '<span class="pf-thumb-icon">▶</span>'}</a>${extra(m)}</figure>`).join('');
   const fold = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
   function parseNeeds(text) {
-    const checked = new Set(), other = [];
+    const checked = new Set(), other = [], brands = {};
     for (const part of String(text || '').split(',').map(s => s.trim()).filter(Boolean)) {
-      const hit = NEEDS.find(([l]) => fold(l) === fold(part));
-      if (hit) checked.add(hit[0]); else other.push(part);
+      const hit = NEEDS.find(([l]) => fold(l) === fold(part)), br = brandOf(part);
+      if (br) { checked.add(br.label); if (br.brand) brands[br.label] = [brands[br.label], br.brand].filter(Boolean).join(' / '); } else if (hit) checked.add(hit[0]); else other.push(part);
     }
-    return {checked: [...checked], other: other.join(', ')};
+    return {checked: [...checked], other: other.join(', '), brands, net: brands[DATA_NEED] || ''};
   }
   const needsText = (checked, other) => [...checked, String(other || '').trim()].filter(Boolean).join(', ');
   // Marca las casillas según el texto guardado. Una opción sin casilla aquí (p. ej. «Reparación de casa» fuera de
@@ -257,9 +310,30 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     sync();
     otrosCheck.onchange = () => { otros.hidden = !otrosCheck.checked; if (otrosCheck.checked) otrosText.focus(); else otrosText.value = ''; };
     otrosText.oninput = () => { if (otrosText.value.trim()) sync(); };
+    root.querySelectorAll('.pf-datanet').forEach(box => wireBrand(root, box, needs.brands[box.dataset.brandfor]));
+  }
+  // Opciones de una necesidad: botones que se marcan (una o varias); «Otra» abre un campo corto para escribir. El valor
+  // («Tigo / Digicel») va en un campo oculto que lee readNeeds. Combustible marca Gasolina al marcar la casilla.
+  function wireBrand(root, box, value) {
+    const label = box.dataset?.brandfor, b = BRANDED[label]; if (!b) return;
+    const check = root.querySelector(`[data-need="${label}"]`); if (!check) return;
+    const input = box.querySelector('.pf-net-input'), pills = [...box.querySelectorAll('[data-pill]')], otherPill = box.querySelector('[data-pill-other]'), otherIn = box.querySelector('.pf-other-input');
+    const on = (el, v) => el && el.setAttribute('aria-pressed', String(v)), isOn = el => el?.getAttribute('aria-pressed') === 'true';
+    const compose = () => { const other = otherIn && isOn(otherPill) ? otherIn.value.replace(/[(),/]/g, ' ').replace(/\s+/g, ' ').trim() : ''; input.value = [...pills.filter(isOn).map(p => p.dataset.pill), other].filter(Boolean).join(' / '); };
+    const parts = String(value || '').split('/').map(v => v.trim()).filter(Boolean), known = parts.map(v => findBrand(label, v)?.[0]).filter(Boolean), unknown = parts.filter(v => !findBrand(label, v));
+    pills.forEach(p => on(p, known.includes(p.dataset.pill)));
+    if (otherPill) { on(otherPill, unknown.length > 0); otherIn.value = unknown.join(' '); otherIn.hidden = !unknown.length; }
+    compose();
+    const sync = () => { box.hidden = !check.checked; };
+    sync();
+    if (box.dataset.wired) return; box.dataset.wired = '1';
+    check.addEventListener('change', () => { sync(); if (check.checked && b.def && !input.value) { on(pills.find(p => p.dataset.pill === b.def), true); compose(); } });
+    box.addEventListener('click', e => { const p = e.target.closest('[data-pill],[data-pill-other]'); if (!p) return; on(p, !isOn(p)); if (p === otherPill) { otherIn.hidden = !isOn(p); if (isOn(p)) otherIn.focus(); } compose(); });
+    otherIn?.addEventListener('input', compose);
   }
   function readNeeds(root) {
-    const checked = [...root.querySelectorAll('[data-need]:checked')].map(b => b.dataset.need);
+    const brandIn = l => { const v = (root.querySelector(`.pf-net-input[data-brand="${l}"]`)?.value || '').replace(/[(),]/g, ' ').replace(/\s+/g, ' ').trim(), known = v && findBrand(l, v); return known ? known[0] : v || BRANDED[l]?.def || ''; };
+    const checked = [...root.querySelectorAll('[data-need]:checked')].map(b => b.dataset.need).map(l => BRANDED[l] && brandIn(l) ? `${l} (${brandIn(l)})` : l);
     const otrosCheck = root.querySelector('.pf-otros-check'), otrosText = root.querySelector('.pf-otros-text');
     if (otrosText.value.trim()) otrosCheck.checked = true;
     return needsText(checked, otrosText.value);
@@ -766,5 +840,5 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flushQueue(); });
     setInterval(() => { if (qSend && qLoad().some(x => !x.error)) flushQueue(); }, 60000);
   }
-  window.PointForm = {render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
+  window.PointForm = {needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
 })();

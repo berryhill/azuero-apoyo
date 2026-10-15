@@ -24,8 +24,10 @@ html:has(dialog[open]),html:has(.modalbg.open){overflow:hidden}html:has(dialog[o
 html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1))}
 .mbar,.msheet{display:none}
 @media(max-width:760px){.top:has(>.mbar)>.appnav,.top:has(>.mbar) .textsize,.top:has(>.mbar)>.topright{display:none!important}.top:has(>.mbar) .brand{display:none!important}.top:has(>.mbar){gap:10px}
-.mbar{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.mlinks{flex:1;min-width:0;display:flex;gap:3px;overflow:hidden;background:#ffffff12;border-radius:11px;padding:3px}.mlinks a{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:9px;color:#c8d6db;text-decoration:none;font:800 14px Inter,system-ui,sans-serif;white-space:nowrap}.mlinks a[aria-current="page"]{background:#fff;color:#10263a}.mlinks .mi{display:inline-flex}.mbar .mtitle{display:none}.mbar.compact .mlinks a:not([aria-current]) .ml{display:none}.mbar.tight .mlinks{display:none}.mbar.tight .mtitle{display:block}.mtitle{flex:1;min-width:0;color:#fff;font:800 17px Inter,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.madd,.mmenu,.msearchbtn{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:12px;border:0;cursor:pointer;text-decoration:none}.madd{background:#ed7654;color:#fff}.madd[hidden]{display:none}.mmenu,.msearchbtn{background:#ffffff14;border:1px solid #47657a;color:#fff}.msearchbtn[aria-expanded="true"]{background:#fff;color:#10263a}.madd.text{width:auto;padding:0 14px;font:800 15px Inter,system-ui,sans-serif;white-space:nowrap}.top:has(>.mbar){flex-wrap:wrap;height:auto;min-height:62px;align-content:center}.top:has(>.mbar) .topsearch{display:none!important}.top.msearch .topsearch{display:block!important;flex:1 0 100%;order:9;max-width:none;margin:0 0 10px}body:has(.top>.mbar) .addbar{display:none!important}.msuser .msoft{color:#c8d6db}.mlogin{display:none}.mbar.public .mlinks,.mbar.public .mtitle,.mbar.public .msearchbtn{display:none!important}.mbar.public .madd{order:-1}.mbar.public .mlogin{display:inline-flex;align-items:center;height:42px;margin-left:auto;padding:0 14px;border:1px solid #ffffff55;border-radius:12px;background:none;color:#fff;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.top.msearch:has(.mbar.public) .topsearch{display:none!important}.msuser .mgo{background:#ed7654;border-color:#ed7654;color:#fff}.mmenu[aria-expanded="true"]{background:#fff;color:#10263a}
+.mbar{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.mlinks{flex:1;min-width:0;display:flex;gap:3px;overflow:hidden;background:#ffffff12;border-radius:11px;padding:3px}.mlinks a{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:9px;color:#c8d6db;text-decoration:none;font:800 14px Inter,system-ui,sans-serif;white-space:nowrap}.mlinks a[aria-current="page"]{background:#fff;color:#10263a}.mlinks .mi{display:inline-flex}.mbar .mtitle{display:none}.mbar.compact .mlinks a:not([aria-current]) .ml{display:none}.mbar.tight .mlinks{display:none}.mbar.tight .mtitle{display:flex}.mtitle{flex:1;min-width:0;align-items:center;gap:7px;margin:0;padding:8px 10px;border:0;border-radius:11px;background:none;color:#fff;font:800 17px Inter,system-ui,sans-serif;text-align:left;white-space:nowrap;overflow:hidden}.mtitle .mtl{min-width:0;overflow:hidden;text-overflow:ellipsis}.mtitle:not(:disabled){background:#ffffff12;cursor:pointer}.mtitle:disabled{opacity:1;cursor:default}.mtitle .chev{margin-left:auto;padding-left:4px;font-size:12px;opacity:.85}.mtitle[aria-expanded="true"]{background:#fff;color:#10263a}
+.mdrop{position:absolute;top:100%;left:8px;right:8px;z-index:3001;display:flex;flex-direction:column;gap:2px;padding:6px;background:#10263a;border-radius:0 0 14px 14px;box-shadow:0 16px 34px #0008}.mdrop[hidden]{display:none}.mdrop a{display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:10px;color:#e3ecef;text-decoration:none;font:800 16px Inter,system-ui,sans-serif}.mdrop a[aria-current="page"]{background:#fff;color:#10263a}.mdrop .ml{display:inline!important}
+.mmenu.me{border-radius:50%;background:#ffd166;border-color:#ffd166;color:#10263a;box-shadow:0 0 0 2px #10263a,0 0 0 3px #ffd16699}.minit{font:900 15px/1 Inter,system-ui,sans-serif;letter-spacing:.02em}.mmenu.me[aria-expanded="true"]{background:#fff;border-color:#fff}}
+.madd,.mmenu,.msearchbtn{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:12px;border:0;cursor:pointer;text-decoration:none}.madd{background:#ed7654;color:#fff}.madd[hidden]{display:none}.mmenu,.msearchbtn{background:#ffffff14;border:1px solid #47657a;color:#fff}.msearchbtn[aria-expanded="true"]{background:#fff;color:#10263a}.madd.text{width:auto;padding:0 14px;font:800 15px Inter,system-ui,sans-serif;white-space:nowrap}.top:has(>.mbar){flex-wrap:wrap;height:auto;min-height:62px;align-content:center}@media(max-width:760px){.top:has(>.mbar) .topsearch{display:none!important}}.top.msearch .topsearch{display:block!important;flex:1 0 100%;order:9;max-width:none;margin:0 0 10px}body:has(.top>.mbar) .addbar{display:none!important}.msuser .msoft{color:#c8d6db}.mlogin{display:none}.mbar.public .mlinks,.mbar.public .mtitle,.mbar.public .msearchbtn{display:none!important}.mbar.public .madd{order:-1}.mbar.public .mlogin{display:inline-flex;align-items:center;height:42px;margin-left:auto;padding:0 14px;border:1px solid #ffffff55;border-radius:12px;background:none;color:#fff;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.top.msearch:has(.mbar.public) .topsearch{display:none!important}.msuser .mgo{background:#ed7654;border-color:#ed7654;color:#fff}.mmenu[aria-expanded="true"]{background:#fff;color:#10263a}
 .msheet{position:absolute;top:100%;left:0;right:0;z-index:3000;background:#10263a;padding:6px 14px 16px;box-shadow:0 16px 34px #0008;border-radius:0 0 16px 16px;font-family:Inter,system-ui,sans-serif}.msheet:not([hidden]){display:block}
 .msuser{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid #ffffff1f;color:#fff}.msuser b{flex:1;min-width:0;font-size:15px;overflow-wrap:anywhere}.msuser button{border:1px solid #ffffff40;background:none;color:#ffd0c2;border-radius:9px;padding:8px 12px;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}
 .msroles{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.msrole{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:#ffffff1f;color:#d7e6ea}.mpages{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid #ffffff1f}.mpages a{display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:10px;color:#e3ecef;text-decoration:none;font-size:15px;font-weight:750}.mpages a[aria-current="page"]{background:#fff;color:#10263a}.mpages a:active{background:#ffffff26}
@@ -202,40 +204,81 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const bar = document.createElement('div');
     bar.id = 'mBar';
     bar.className = 'mbar';
-    bar.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"></nav><span class="mtitle" id="mTitle"></span>${top.querySelector('.topsearch') ? `<button type="button" class="msearchbtn" id="mSearch" aria-expanded="false" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}</button>` : ''}<button type="button" class="madd" id="mAdd" hidden></button>${document.getElementById('loginBtn') ? '<button type="button" class="mlogin" id="mLogin">Login</button>' : ''}<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button>`;
+    bar.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"></nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled></button>${top.querySelector('.topsearch') ? `<button type="button" class="msearchbtn" id="mSearch" aria-expanded="false" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}</button>` : ''}<button type="button" class="madd" id="mAdd" hidden></button>${document.getElementById('loginBtn') ? '<button type="button" class="mlogin" id="mLogin">Login</button>' : ''}<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button>`;
     top.appendChild(bar);
     const sheet = document.createElement('div');
     sheet.id = 'mSheet';
     sheet.className = 'msheet';
     sheet.hidden = true;
     top.appendChild(sheet);
+    const drop = document.createElement('nav');
+    drop.id = 'mDrop';
+    drop.className = 'mdrop';
+    drop.setAttribute('aria-label', 'Páginas');
+    drop.hidden = true;
+    top.appendChild(drop);
     drawMobileBar();
   }
   function drawMobileBar() {
     const title = document.getElementById('mTitle');
     if (!title) return;
-    const u = user() || {}, here = location.pathname, page = pages.find(([url]) => url === here);
-    title.textContent = page ? page[2](u) : document.title.split('·')[0].trim();
+    const u = user() || {}, here = location.pathname;
     // Páginas de poco uso (Mi equipo) van solo en el menú ☰, salvo que sea la página actual.
     const list = user() ? pages.filter(([url, , , ok, where]) => url === here || ok(u) && where !== 'menu') : [], links = document.getElementById('mLinks');
     links.innerHTML = list.length > 1 ? list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''} title="${esc(label(u))}"><span class="mi" aria-hidden="true">${icon}</span><span class="ml">${esc(label(u))}</span></a>`).join('') : '';
     // Público sin sesión: «¡Ayuda!» primero, luego Login; sin título ni búsqueda.
     document.getElementById('mBar').classList.toggle('public', !user() && !!document.getElementById('loginBtn'));
     fitMobileBar();
+    drawMenuButton();
     const add = document.querySelector('.top .topright .add'), madd = document.getElementById('mAdd');
     madd.hidden = !add;
     if (add) { const raw = add.textContent.trim(), plus = raw.startsWith('+'), label = raw.replace(/^\+\s*/, ''); madd.classList.toggle('text', !plus); madd.innerHTML = plus ? svg('<path d="M12 5v14M5 12h14"/>') : esc(raw); madd.title = label; madd.setAttribute('aria-label', label); }
   }
-  // Las páginas van en la barra si caben; si no, primero solo íconos (menos la actual) y, si aún no caben, al menú ☰.
+  // Las páginas van en la barra si caben; si no, primero solo íconos (menos la actual) y, si aún no caben, se pliegan en
+  // un botón con la página actual y ▾ que abre la lista (así ＋ y el menú siempre quedan a la vista a la derecha).
   function fitMobileBar() {
     const bar = document.getElementById('mBar'), links = document.getElementById('mLinks');
     if (!bar || !links) return;
     bar.classList.remove('compact', 'tight');
-    if (!links.children.length) { bar.classList.add('tight'); return; }
-    if (getComputedStyle(bar).display === 'none') return;
-    const over = () => links.scrollWidth > links.clientWidth + 1;
-    if (over()) bar.classList.add('compact');
-    if (over()) { bar.classList.remove('compact'); bar.classList.add('tight'); }
+    if (links.children.length && getComputedStyle(bar).display !== 'none') {
+      const over = () => links.scrollWidth > links.clientWidth + 1;
+      if (over()) bar.classList.add('compact');
+      if (over()) { bar.classList.remove('compact'); bar.classList.add('tight'); }
+    } else if (!links.children.length) bar.classList.add('tight');
+    drawTitle();
+  }
+  function drawTitle() {
+    const title = document.getElementById('mTitle'), drop = document.getElementById('mDrop'), links = document.getElementById('mLinks'), bar = document.getElementById('mBar');
+    if (!title || !drop || !links) return;
+    const u = user() || {}, here = location.pathname, page = pages.find(([url]) => url === here), label = page ? page[2](u) : document.title.replace(/^DEV · /, '').split('·')[0].trim();
+    const pick = bar.classList.contains('tight') && links.children.length > 1;
+    title.disabled = !pick;
+    title.innerHTML = `${page ? `<span class="mi" aria-hidden="true">${page[1]}</span>` : ''}<span class="mtl">${esc(label)}</span>${pick ? '<span class="chev" aria-hidden="true">▾</span>' : ''}`;
+    title.setAttribute('aria-label', pick ? `${label}: cambiar de página` : label);
+    drop.innerHTML = pick ? links.innerHTML : '';
+    if (!pick) showDrop(false);
+  }
+  function showDrop(open) {
+    const drop = document.getElementById('mDrop'), title = document.getElementById('mTitle');
+    if (!drop || !title) return;
+    drop.hidden = !open;
+    title.setAttribute('aria-expanded', String(open));
+  }
+  // Con sesión, el botón del menú muestra las iniciales de quien entró (MS, AO): sirve también para saber quién es.
+  const initialsOf = name => String(name || '').split(/\s+/).filter(w => /^\p{L}/u.test(w)).slice(0, 2).map(w => w[0].toLocaleUpperCase('es')).join('');
+  function signedName() {
+    const out = document.getElementById('logout') || document.getElementById('codeLogout');
+    if (!out || out.closest('[hidden]')) return '';
+    return document.getElementById('whoName')?.title || document.getElementById('whoName')?.textContent?.trim() || user()?.name || '';
+  }
+  function drawMenuButton() {
+    const btn = document.getElementById('mMenu');
+    if (!btn) return;
+    const name = signedName(), ini = initialsOf(name);
+    btn.classList.toggle('me', !!ini);
+    btn.innerHTML = ini ? `<span class="minit">${esc(ini)}</span>` : svg('<path d="M4 7h16M4 12h16M4 17h16"/>');
+    btn.setAttribute('aria-label', ini ? `Menú de ${name}` : 'Menú');
+    btn.title = ini ? name : 'Menú';
   }
   addEventListener('resize', () => fitMobileBar());
   function showSheet(open) {
@@ -261,6 +304,8 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   document.addEventListener('click', e => {
     const sheet = document.getElementById('mSheet');
     if (!sheet) return;
+    if (e.target.closest('#mTitle')) { const d = document.getElementById('mDrop'); showSheet(false); showDrop(d.hidden); return; }
+    if (!e.target.closest('#mDrop')) showDrop(false);
     if (e.target.closest('#mMenu')) { showSheet(sheet.hidden); return; }
     const size = e.target.closest('[data-msize]');
     if (size) { zoom = sizes[Math.min(sizes.length - 1, Math.max(0, sizes.indexOf(zoom) + Number(size.dataset.msize)))]; try { localStorage.setItem('textZoom', String(zoom)); } catch {} applySize(); showSheet(true); return; }
@@ -274,7 +319,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (sb) { const top = document.querySelector('header.top'), open = !top.classList.contains('msearch'); top.classList.toggle('msearch', open); sb.setAttribute('aria-expanded', String(open)); showSheet(false); if (open) top.querySelector('.topsearch')?.focus(); return; }
     if (!sheet.hidden && (!sheet.contains(e.target) || e.target.closest('a'))) showSheet(false);
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') showSheet(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { showSheet(false); showDrop(false); } });
 
   // Entradas (Login del mapa, Runners, Constructores, Comando): dos grupos siempre a la vista, sin ocultar campos.
   // «Ya tengo código» (accessCode + Recordar + Entrar) y «Crear cuenta nueva» (nombre, teléfono, correo). Los formularios
@@ -404,7 +449,11 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   // Nombre corto para encabezados: nombre + primeras letras del apellido («Arianne Ori…»).
   const shortName = n => { const w = String(n || '').trim().split(/\s+/).filter(Boolean); return w.length < 2 ? w.join('') : w[0] + ' ' + (w[1].length > 3 ? w[1].slice(0, 3) + '…' : w[1]); };
   const drawAll = () => { draw(); drawMobileBar(); };
+  // Entorno de desarrollo (localhost, red local, *.local): franja ámbar arriba, «DEV» en la esquina y «DEV ·» en el
+  // título de la pestaña, para no confundirlo con el sitio público. admin.html lleva la misma copia (no carga nav.js).
+  const DEV_HOST=/^(localhost|127\.|0\.0\.0\.0$|::1$|\[::1\]$|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|\.(local|localhost|test)$/;function devMark(){if(!DEV_HOST.test(location.hostname)||document.querySelector('.devstripe'))return;document.head.insertAdjacentHTML('beforeend','<style>.devstripe{position:fixed;top:0;left:0;right:0;height:4px;z-index:99990;pointer-events:none;background:repeating-linear-gradient(-45deg,#ffb300 0 8px,#10263a 8px 16px)}.devpill{position:fixed;top:4px;left:4px;z-index:99991;padding:1px 6px;border-radius:0 0 6px 6px;background:#ffb300;color:#10263a;font:900 10px/1.4 system-ui,sans-serif;letter-spacing:.08em;pointer-events:auto;cursor:help;box-shadow:0 1px 3px #0005}</style>');document.body.insertAdjacentHTML('afterbegin','<div class="devstripe" aria-hidden="true"></div><span class="devpill" title="Entorno de desarrollo: '+location.host+'. No es el sitio público.">DEV</span>');if(!document.title.startsWith('DEV · '))document.title='DEV · '+document.title}
   window.AppNav = {draw: drawAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); }); else { draw(); mountTextSize(); mountMobileBar(); }
   // Entrar o salir en otra pestaña actualiza esta.
   addEventListener('storage', e => { if (e.key === 'codeUser' || e.key === null) draw(); if (e.key === 'textZoom' || e.key === null) { zoom = sizes.includes(savedSize()) ? savedSize() : 1; applySize(); } });

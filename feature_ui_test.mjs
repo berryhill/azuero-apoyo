@@ -105,7 +105,7 @@ test('public cards: area then people count on top; no generated ID or «Sin nomb
   const autoCode = new Function(`${template.match(/const autoCode=[^\n]*/)[0]};return autoCode`)();
   assert.equal(autoCode('P-1a2b3c4d5e6f'), true);
   assert.equal(autoCode('AZ-12'), false);
-  assert.match(template, /<span class="code">\$\{autoCode\(r\.code\)\?'':clean\(r\.code\)\+' '\}<span class="area">\$\{clean\(r\.area\)\}<\/span>\$\{r\.people\?` <span class="ppl" title="\$\{clean\(r\.people\)\} personas">\$\{clean\(r\.people\)\} 👥<\/span>`:''\}<\/span>/);
+  assert.match(template, /<span class="code">\$\{autoCode\(r\.code\)\?'':clean\(r\.code\)\+' '\}<span class="area">\$\{clean\(r\.area\)\}<\/span>\$\{vb\(r\)\}\$\{r\.people\?` <span class="ppl" title="\$\{clean\(r\.people\)\} personas">\$\{clean\(r\.people\)\} 👥<\/span>`:''\}<\/span>/);
   assert.doesNotMatch(template, /Sin nombre/);
   assert.match(template, /\$\{r\.coordinator\?`<div class="meta">\$\{clean\(r\.coordinator\)\} sabe más<\/div>`:''\}/);
 });
@@ -196,7 +196,9 @@ test('runner name gate also requires a phone number and sends it with the sessio
 test('selected point offers Reportar necesidad with required requester name and phone', () => {
   assert.match(template, /\$\{r\.id\?'<button type="button" class="add reportneed" id="reportNeed">\+ Reportar necesidad<\/button>':''\}/);
   const form = template.slice(template.indexOf('id="needForm"'), template.indexOf('</form>', template.indexOf('id="needForm"')));
-  assert.match(form, /<textarea name="need" required/);
+  assert.match(form, /<span class="needpick-label">¿Qué necesitan\?<\/span><div class="pf" id="needPick"><\/div>/, 'same need checklist as everywhere else');
+  assert.match(template, /\$\('#needPick'\)\.innerHTML=PointForm\.needsHtml\(\);PointForm\.fillNeeds\(\$\('#needPick'\),''\)/);
+  assert.match(template, /const need=PointForm\.readNeeds\(\$\('#needPick'\)\);/);
   assert.match(form, /<input name="requesterName" required/);
   assert.match(form, /<input name="requesterPhone" type="tel"[^>]* required/);
   assert.match(template, /fetch\('\/api\/camps\/'\+encodeURIComponent\(needCamp\.id\)\+'\/needs'/);
@@ -337,16 +339,15 @@ test('public and admin point forms use the shared PointForm with GPS link and dy
 test('Qué necesitas checkboxes round-trip through the Necesidades text, with Otros free text', () => {
   const pub = PointForm.html();
   const what = pub.slice(pub.indexOf('¿Qué necesitas?'));
-  for (const label of ['Agua', 'Alimentos', 'Refugio (carpa / lona / toldo)', 'Kit de cocina', 'Kit de bebé', 'Gasolina para generador', 'Diésel para generador']) assert.ok(what.includes(`data-need="${label}"`), label);
-  // Reparación de casa es solo para administración (constructores), nunca en el formulario público.
-  assert.ok(!what.includes('Reparación de casa'));
-  assert.ok(PointForm.html({admin: true}).includes('data-need="Reparación de casa"'));
+  for (const label of ['Agua', 'Alimentos', 'Refugio (carpa / lona / toldo)', 'Kit de cocina', 'Kit de bebé', 'Combustible para generador', 'Tarjeta de datos prepago', 'Gas de cocina']) assert.ok(what.includes(`data-need="${label}"`), label);
+  // Reparación de casa sale en todos los formularios (con materiales); el servidor la separa para constructores y nunca es pública.
+  assert.ok(what.includes('data-need="Reparación de casa"'));
   assert.match(what, /class="pf-otros-check"><span><svg[^]*?Otros<\/span>/);
   assert.equal(PointForm.needsText(['Agua', 'Kit de bebé'], ' Medicinas, ropa '), 'Agua, Kit de bebé, Medicinas, ropa');
-  assert.deepEqual(PointForm.parseNeeds('agua, Kit de bebe, Medicinas, ropa'), {checked: ['Agua', 'Kit de bebé'], other: 'Medicinas, ropa'});
-  assert.deepEqual(PointForm.parseNeeds('Agua y comida para 20'), {checked: [], other: 'Agua y comida para 20'});
-  assert.deepEqual(PointForm.parseNeeds(''), {checked: [], other: ''});
-  assert.deepEqual(PointForm.parseNeeds('Reparacion de casa, Agua'), {checked: ['Reparación de casa', 'Agua'], other: ''});
+  assert.deepEqual(PointForm.parseNeeds('agua, Kit de bebe, Medicinas, ropa'), {checked: ['Agua', 'Kit de bebé'], other: 'Medicinas, ropa', brands: {}, net: ''});
+  assert.deepEqual(PointForm.parseNeeds('Agua y comida para 20'), {checked: [], other: 'Agua y comida para 20', brands: {}, net: ''});
+  assert.deepEqual(PointForm.parseNeeds(''), {checked: [], other: '', brands: {}, net: ''});
+  assert.deepEqual(PointForm.parseNeeds('Reparacion de casa, Agua'), {checked: ['Reparación de casa', 'Agua'], other: '', brands: {}, net: ''});
 });
 test('counts and edad accept only digits up to 999; teléfonos only digits and + - ( )', () => {
   assert.equal(PointForm.filters.count('12a3x4'), '123');
@@ -463,7 +464,7 @@ test('builder page: own login with full name, repairs API only, several jobs at 
   assert.doesNotMatch(builder, /href="\/#agregar"/);
   assert.match(builder, /data-complete="\$\{id\}">✓ Obra terminada<\/button>/);
   assert.match(admin, /name="roles" value="builder"> Constructor</, 'builders are managed as users with the Constructor role');
-  assert.match(admin, /await create\(\{need:repairNeedLabel,kind:'repair',/);
+  assert.match(admin, /await create\(\{need:parts\.find\(s=>PointForm\.needBase\(s\)===repairNeedLabel\)\|\|repairNeedLabel,kind:'repair',/, 'the repair need keeps its materials');
 });
 test('runner need cards show needs as icon chips, with free text as plain chips', () => {
   const grab = re => runner.match(re)[0];
@@ -534,14 +535,14 @@ test('admin need form uses the same icon checkboxes as Agregar punto and keeps o
   assert.doesNotMatch(editor, /name="need"/);
   assert.match(admin, /\$\('#needPicker'\)\.innerHTML=PointForm\.needsHtml\(\);/);
   assert.match(admin, /need:PointForm\.readNeeds\(\$\('#needPicker'\)\)/);
-  assert.equal(PointForm.needsHtml(), PointForm.html().match(/<div class="pf-needs">[\s\S]*?<\/textarea><\/label>/)[0]);
-  // Raíz falsa con las casillas públicas (sin «Reparación de casa»).
+  assert.ok(PointForm.html().includes(PointForm.needsHtml()), 'same needs block as Agregar punto');
+  // Raíz falsa con las casillas públicas; una opción sin casilla («Medicinas») queda en Otros.
   const boxes = PointForm.NEEDS.filter(n => n[3] !== 'admin').map(([l]) => ({dataset: {need: l}, checked: false}));
   const otros = {hidden: true}, otrosCheck = {checked: false}, otrosText = {value: ''};
   const root = {querySelectorAll: s => s === '[data-need]' ? boxes : boxes.filter(b => b.checked), querySelector: s => ({'.pf-otros': otros, '.pf-otros-check': otrosCheck, '.pf-otros-text': otrosText})[s]};
   PointForm.fillNeeds(root, 'Agua, Reparación de casa, Medicinas');
-  assert.deepEqual(boxes.filter(b => b.checked).map(b => b.dataset.need), ['Agua']);
-  assert.equal(otrosText.value, 'Reparación de casa, Medicinas');
+  assert.deepEqual(boxes.filter(b => b.checked).map(b => b.dataset.need), ['Agua', 'Reparación de casa']);
+  assert.equal(otrosText.value, 'Medicinas');
   assert.equal(otrosCheck.checked && !otros.hidden, true);
   assert.equal(PointForm.readNeeds(root), 'Agua, Reparación de casa, Medicinas');
   PointForm.fillNeeds(root, '');
@@ -565,7 +566,7 @@ test('admin need form: Necesidad first, then Urgencia/Estado/assignee on one lin
   assert.match(form, /<div><b class="needpick-label">Necesidad<\/b><div id="needPicker" class="pf"><\/div><\/div><div class="need-packing" id="needPacking">[\s\S]*?<\/div><div class="need-row"><label>Urgencia<select name="urgency">[\s\S]*?<\/select><\/label><label>Estado<select name="status">[\s\S]*?<\/select><\/label><label class="need-assignee"><span id="needAssignLabel">Corredor \(opcional\)<\/span><select name="assignee" id="needRunner"><\/select><\/label><\/div><p id="needMessage"/);
   assert.doesNotMatch(form, /name="kind"|Tipo/);
   assert.match(admin, /#campEditor\.need-mode #needTitle\{display:none\}/);
-  assert.match(admin, /if\(n\.kind==='repair'\)\$\('#needPicker'\)\.innerHTML=`<div class="pf-needs"><span class="pf-need pf-repair pf-fixed"><span>\$\{PointForm\.icons\.repair\}/);
+  assert.match(admin, /if\(n\.kind==='repair'\)\{\$\('#needPicker'\)\.innerHTML=PointForm\.needsHtml\(\{only:\[repairNeedLabel\]\}\);PointForm\.fillNeeds\(\$\('#needPicker'\),n\.need\|\|repairNeedLabel\);const box=\$\('#needPicker'\)\.querySelector\('\[data-need\]'\);box\.checked=true;box\.disabled=true;/, 'a repair need: the fixed box and its materials');
   assert.match(admin, /'Constructor \(opcional\)':'Corredor \(opcional\)'/);
   assert.match(admin, /function needKind\(\)\{if\(editingNeed\)return campNeeds\.find\(n=>n\.id===editingNeed\)\?\.kind\|\|'';/);
 });
@@ -796,11 +797,13 @@ test('public pages show priority only as an Urgente badge, never Normal, and not
     assert.equal(badge(''), '');
     assert.equal(badge('urgente'), '<span class="badge urgent">Urgente</span>');
   }
-  assert.match(template, /<b>\$\{clean\(n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada':needStatusEs\[n\.status\]\|\|n\.status\)\} \$\{urgentBadge\(n\.urgency\)\}<\/b>/);
+  assert.match(template, /<b>\$\{clean\(n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada':needStatusEs\[n\.status\]\|\|n\.status\)\} \$\{urgentBadge\(n\.urgency\)\}\$\{vb\(n\)\}<\/b>/);
   assert.match(camp, /\$\{urgentBadge\(p\.highestUrgency\)\}/);
   // A need without text (reserved for an access-code runner) shows only its status: no empty text or time line.
   assert.match(template, /\$\{n\.need\?needChips\(n\.need\):''\}/);
-  assert.match(camp, /\$\{n\.need\?`<p class="bodytext">\$\{clean\(n\.need\)\}<\/p>/);
+  assert.match(camp, /\$\{n\.need\?`\$\{needChips\(n\.need\)\}/, 'same need chips as the other pages');
+  assert.match(camp, /<script src="\.\/pointform\.js"><\/script>/);
+  assert.match(PointForm.needChipsHtml('Agua (Para beber), colchones'), /^<div class="pf-chips"><span class="pf-chip"><svg[^]*?<\/svg>Agua<span class="pf-netbadge pf-net-beber"[^>]*>para beber<\/span><\/span><span class="pf-chip text">colchones<\/span><\/div>$/);
 });
 test('public root page shows needs as icon chips, like the runner page', () => {
   const grab = re => template.match(re)[0];
@@ -893,7 +896,7 @@ test('after completing a run, the follow-up form uses the icon need picker inste
   assert.doesNotMatch(form, /<textarea name="need"/);
   assert.match(runner, /PointForm\.fillNeeds\(\$\('#followupNeeds'\),''\);renderMap\(\[followup\]\)/, 'Otros toggle is wired');
   assert.match(runner, /const need=PointForm\.readNeeds\(\$\('#followupNeeds'\)\);if\(!need\)throw Error\('Marca al menos una necesidad o escribe en «Otros»\.'\)/);
-  assert.doesNotMatch(PointForm.needsHtml(), /Reparación de casa/, 'runners do not get the admin-only repair option');
+  assert.match(PointForm.needsHtml(), /data-need="Reparación de casa"/, 'runners can report a house repair (goes to builders, never public)');
 });
 test('admin point card: needs use the full card width as a grid of tiles, stats stay top right', () => {
   assert.match(admin, /#items article\.with-needs\{display:grid;grid-template-columns:minmax\(0,1fr\) auto;grid-template-areas:'main stats' 'needs needs';/);
@@ -1082,7 +1085,7 @@ test('public header hides the «Registro ciudadano · corte…» note when signe
 test('runner header: ✕ to sign out (no «Cambiar nombre») and «Mapa público» link for code users', () => {
   assert.match(runner, /<button type="button" id="logout" title="Salir" aria-label="Salir">✕<\/button>/);
   assert.doesNotMatch(runner, /Cambiar nombre/);
-  assert.match(runner, /<\/div><nav class="appnav" id="appNav" hidden><\/nav><div class="topright">/, 'top navigation replaces «← Mapa público»');
+  assert.match(runner, /<\/div><input class="topsearch" id="search" type="search" placeholder="Buscar…" aria-label="Buscar puntos, zonas o necesidades" autocomplete="off"><nav class="appnav" id="appNav" hidden><\/nav><div class="topright">/, 'top navigation replaces «← Mapa público»');
   assert.match(runner, /function syncPublicNav\(\)\{window\.AppNav\?\.draw\(\);/);
   assert.equal((runner.match(/syncPublicNav\(\)/g) || []).length, 4, 'defined, after sign-in or session check, and after sign-out');
 });
@@ -1292,7 +1295,7 @@ test('«Solo Nuestro Equipo»: code users can limit the public list/map and runn
   assert.match(runner, /\.mobile-nav button\.active\{background:#173c46;border-color:#173c46;color:#fff;box-shadow:/, 'selected = dark pill');
   assert.match(runner, /b\.classList\.toggle\('active',on\);b\.setAttribute\('aria-pressed',on\)/);
   assert.doesNotMatch(runner, /en camino · \$\{shown\.length\} por llevar|Tus carreras <small>/, 'no 2/10 count line');
-  assert.match(runner, /const listed=\(\)=>\(teamOnly\?available\.filter\(n=>n\.camp\.team\):available\)\.filter\(n=>agentMode\|\|!n\.requestedAt\)/);
+  assert.match(runner, /const listed=\(\)=>\(teamOnly\?available\.filter\(n=>n\.camp\.team\):available\)\.filter\(n=>\(agentMode\|\|!n\.requestedAt\)&&matches\(n\)\)/);
   assert.match(runner, /renderMap\(\[\.\.\.mine,\.\.\.shown\]\)/, 'your own runs always stay');
   assert.match(runner, /if\(!localStorage\.getItem\('runnerCode'\)\)teamOnly=false;/);
 });
@@ -1580,7 +1583,7 @@ test('shared top navigation (nav.js): Inicio and the panels of the signed-in cod
 test('command center (/command.html): admin-style rows, corner map, en-ruta monitor, view mode inside the row', () => {
   // Headers: just the logo, no «AZUERO / …» titles, on every page.
   for (const page of [template, runner, agent, readFileSync(new URL('./builder.html', import.meta.url), 'utf8'), admin]) assert.doesNotMatch(page.match(/<header[^]*?<\/header>/)[0], /AZUERO|topsmall/);
-  assert.match(agent, /<header class="top"><div class="brand"><span class="logo" title="Azuero Apoyo">✚<\/span><\/div><nav class="appnav"/);
+  assert.match(agent, /<header class="top"><div class="brand"><span class="logo" title="Azuero Apoyo">✚<\/span><\/div><input class="topsearch" id="search"[^>]*><nav class="appnav"/);
   assert.match(agent, /<main class="board"><div class="boardmain">[^]*?<div class="feed" id="feed">[^]*?<aside class="mapcorner"><section class="mapwrap"><div id="map"/, 'rows first, small map in the top corner');
   assert.match(agent, /\.mapcorner\{position:sticky;top:84px\}/);
   assert.match(agent, /\.top\{position:sticky;top:0;z-index:1100\}/, 'header stays on top while scrolling (desktop)');
@@ -1826,7 +1829,7 @@ test('admin: points without GPS use the crossed-pin icon (card title, review «D
   const {noGpsTag} = new Function(`${src};return {noGpsTag}`)();
   assert.match(noGpsTag({}), /^<span class="nogpstag" title="Sin GPS: no aparece en el mapa" role="img" aria-label="Sin GPS"><svg[^]*M3 3l18 18/);
   assert.equal(noGpsTag({coords: [7.4, -80.4]}), '');
-  assert.match(admin, /\$\{clean\(p\.code\)\} · \$\{clean\(p\.area\)\} \$\{noGpsTag\(p\)\}<span class="status/);
+  assert.match(admin, /\$\{clean\(p\.code\)\} · \$\{clean\(p\.area\)\} \$\{PointForm\.verifiedBadge\(p,\{text:true\}\)\}\$\{noGpsTag\(p\)\}<span class="status/);
   assert.match(admin, /\$\{hasGps\(p\)\?icons\.pin\|\|'':noGpsIco\}Dónde\$\{hasGps\(p\)\?'':' · sin GPS'\}/);
   assert.match(admin, /<span class="nogpsline">\$\{noGpsIco\}Sin GPS: no aparece en el mapa<\/span>/);
 });
@@ -1855,7 +1858,7 @@ test('runner: «Mi recorrido» (only your runs and their route) and «Se necesit
   assert.equal(tabNow([{id: 'a'}], ''), 'mine', 'opens on your route when you have one');
   assert.equal(tabNow([], ''), 'needs');
   assert.equal(tabNow([{id: 'a'}], 'needs'), 'needs', 'keeps the tab you picked');
-  assert.match(runner, /if\(tab==='mine'\)\{feed\.innerHTML=mine\.length\?`<div id="runList">\$\{mine\.map\(runCard\)\.join\(''\)\}<\/div>`:'<p class="empty">No tienes carreras en camino\. En «Runs» puedes tomar una\.<\/p>';renderMap\(\[\.\.\.mine,\.\.\.shown\]\);return\}/, '«Yo» lists only your runs; the map still shows the other open runs around you');
+  assert.match(runner, /if\(tab==='mine'\)\{const hits=mine\.filter\(matches\);feed\.innerHTML=mine\.length\?`<div id="runList">\$\{mine\.map\(runCard\)\.join\(''\)\}<\/div>\$\{hits\.length\?'':noHits\(\)\}`:'<p class="empty">No tienes carreras en camino\. En «Runs» puedes tomar una\.<\/p>';[^\n]*?renderMap\(\[\.\.\.hits,\.\.\.shown\]\);return\}/, '«Yo» lists only your runs; the map still shows the other open runs around you');
   assert.match(runner, /renderMap\(\[\.\.\.mine,\.\.\.shown\]\)\}/, 'Se necesita keeps your stops on the map');
   assert.match(runner, /body\.tab-mine \.rfilter/, 'Todas \/ Mi equipo only in Se necesita');
   assert.match(runner, /function goToNeed\(id\)\{tabFor\(id\);/, 'links and map pins switch to the right tab');
@@ -1888,9 +1891,12 @@ test('runner «Se necesita» filter: a plain select Todas / Solo mi equipo', () 
 
 test('phone header (nav.js, panels): logo · page name · «+» page action · ☰ menu with name + Salir, pages and text size', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
-  assert.match(nav, /bar\.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"><\/nav><span class="mtitle" id="mTitle"><\/span>\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"[^`]*` : ''\}<button type="button" class="madd" id="mAdd" hidden><\/button>\$\{document\.getElementById\('loginBtn'\) \? '<button type="button" class="mlogin" id="mLogin">Login<\/button>' : ''\}<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">/, 'pages · 🔍 (public page) · action · ☰');
+  assert.match(nav, /bar\.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"><\/nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled><\/button>\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"[^`]*` : ''\}<button type="button" class="madd" id="mAdd" hidden><\/button>\$\{document\.getElementById\('loginBtn'\) \? '<button type="button" class="mlogin" id="mLogin">Login<\/button>' : ''\}<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">/, 'pages · 🔍 (public page) · action · ☰');
   assert.match(nav, /if \(!top \|\| !document\.getElementById\('appNav'\) \|\| document\.getElementById\('mBar'\)\) return;/, 'panels and the public map share the same phone header');
-  assert.match(nav, /if \(over\(\)\) bar\.classList\.add\('compact'\);\s*if \(over\(\)\) \{ bar\.classList\.remove\('compact'\); bar\.classList\.add\('tight'\); \}/, 'pages in the bar if they fit; icons only; then into ☰');
+  assert.match(nav, /if \(over\(\)\) bar\.classList\.add\('compact'\);\s*if \(over\(\)\) \{ bar\.classList\.remove\('compact'\); bar\.classList\.add\('tight'\); \}/, 'pages in the bar if they fit; icons only; then a dropdown');
+  assert.match(nav, /const pick = bar\.classList\.contains\('tight'\) && links\.children\.length > 1;/, 'when they do not fit: «current page ▾» opens the list');
+  assert.match(nav, /drop\.innerHTML = pick \? links\.innerHTML : '';/);
+  assert.match(nav, /\.mbar\.tight \.mtitle\{display:flex\}/);
   assert.doesNotMatch(nav, /¿Tienes cuenta\?/, 'Login lives in the bar only, not repeated in the menu');
   assert.match(nav, /body:has\(\.top>\.mbar\) \.addbar\{display:none!important\}/, 'the public page drops its second row');
   assert.match(nav, /\.top:has\(>\.mbar\)>\.appnav,\.top:has\(>\.mbar\) \.textsize,\.top:has\(>\.mbar\)>\.topright\{display:none!important\}/, 'on a phone the separate pieces fold into the menu');
@@ -2045,10 +2051,10 @@ test('command center: focusing a point with the map hidden does not animate it (
   assert.match(command, /if\(mapFocus\)\{map\.setView\(mapFocus,/, 'centered when the map tab is shown');
 });
 
-test('recurring camp services: admin section with countdown, done/edit/remove; same status helper everywhere; sanitation need type', () => {
+test('recurring camp services: admin section with countdown, done/edit/remove; same status helper everywhere; no bathroom need box', () => {
   const pf = readFileSync(new URL('./pointform.js', import.meta.url), 'utf8');
   const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
-  assert.match(pf, /\['Saneamiento \/ baño', 'toilet'\]/, 'sanitation / bathroom is a need type');
+  assert.doesNotMatch(pf.match(/const NEEDS = [^\n]*/)[0], /Saneamiento|baño/, 'no bathroom need box (the portable toilet is a service)');
   assert.match(pf, /const SERVICES = \[\['Recolección de basura', 'trash', 7\], \['Cambio de baño portátil', 'toilet', 7\], \['Fumigación de mosquitos', 'spray', 14\], \['Ronda médica', 'medicine', 30\]\];/);
   const status = new Function(`${pf.match(/  function serviceStatus\(n, now = Date\.now\(\)\) \{[^]*?\n  \}/)[0]};return serviceStatus`)();
   const now = Date.parse('2026-10-15T12:00:00Z'), day = 864e5;
@@ -2241,8 +2247,8 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
   assert.match(page, /<title>Acopio · Azuero<\/title>/);
-  assert.match(page, /<button type="button" role="tab" data-main="todo"[^>]*><span aria-hidden="true">📦<\/span> Por despachar <b id="cntTodo"><\/b><\/button><button type="button" role="tab" data-main="done"[^>]*><span aria-hidden="true">🚚<\/span> Despachadas <b id="cntDone"><\/b><\/button>/);
-  assert.match(page, /placeholder="Buscar runner, punto o teléfono…"/, 'find the runner who just arrived');
+  assert.match(page, /<button type="button" role="tab" data-main="todo"[^>]*><span aria-hidden="true">📦<\/span> ¡A empacar! <b id="cntTodo"><\/b><\/button><button type="button" role="tab" data-main="done"[^>]*><span aria-hidden="true">🚚<\/span> Despachadas <b id="cntDone"><\/b><\/button>/);
+  assert.match(page, /<input class="topsearch" id="find" type="search" placeholder="Buscar…" aria-label="Buscar runner, punto o teléfono"/, 'find the runner who just arrived (header search, like other pages)');
   assert.match(page, /<form id="gateForm" novalidate data-signin><h1>Entrar a Supply<\/h1><fieldset class="sg sg-code">/);
   assert.doesNotMatch(page.match(/<form id="gateForm"[^]*?<\/form>/)[0], /sg-new/, 'admin gives the role; no self sign-up here');
   for (const api of ['/api/supplier/runs', '/api/supplier/packing-items', "/api/supplier/needs/'+encodeURIComponent(n.id)+'/packing", "/api/supplier/needs/'+encodeURIComponent(id)+'/media?stage=pickup", "/dispatch','POST',{undo:true}"]) assert.ok(page.includes(api), api);
@@ -2268,16 +2274,17 @@ test('Supply ↔ Runners: Supply asks for a runner («📣 Pedidos» for runners
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
   const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
   // Runners: requests are their own tab, not in Runs; accepting is «¡Yo lo llevo!»; «Yo» shows where to pick up.
-  assert.match(runner, /requests=\(\)=>available\.filter\(n=>n\.requestedAt&&n\.status==='OPEN'\)/);
+  assert.match(runner, /requests=\(\)=>available\.filter\(n=>n\.requestedAt&&n\.status==='OPEN'&&matches\(n\)\)/);
   assert.match(runner, /if\(tab==='req'\)\{const req=requests\(\);feed\.innerHTML=req\.length\?req\.map\(n=>`<article class="card reqcard[^`]*\$\{supplierLine\(n,true\)\}[^`]*data-take=/);
   assert.match(runner, /function supplierLine\(n,asking\)\{const x=n\.supplier;[^\n]*\$\{asking\?'Pide':'Recoger en acopio'\}: <b>\$\{clean\(x\.center\|\|'Centro de acopio'\)\}<\/b> · \$\{clean\(x\.name\)\}/);
   assert.match(runner, /\$\{supplierLine\(n,false\)\}\$\{alsoLine\(n\)\}\$\{supplyAskBox\(n\)\}\$\{n\.dispatchedAt\?/, 'pickup line on the «Yo» card');
   const tabNow = new Function('mine', 'mainTab', `return (${runner.match(/const tabNow=([^\n;]*);/)[1]})()`);
   assert.equal(tabNow([], 'req'), 'req');
   // Supply: three tabs, center name, request/cancel, in-person assign with a runner picker.
-  assert.match(page, /data-main="req"[^>]*><span aria-hidden="true">📣<\/span> Pedir runner <b id="cntReq"><\/b>/);
-  assert.match(page, /<label for="centerInput"[^>]*>📍 Centro<\/label><input id="centerInput" list="centerList"[^>]*><datalist id="centerList"><\/datalist>/, 'typeahead with the shared list of centers');
-  assert.match(page, /\$\('#centerInput'\)\.addEventListener\('change',saveCenter\)/, 'saves when picked or when leaving the field');
+  assert.match(page, /data-main="req"[^>]*><span aria-hidden="true">🙌<\/span> Por surtir <b id="cntReq"><\/b>/);
+  assert.match(page, /<button type="button" class="cbtn" id="centerBtn" aria-haspopup="listbox"[^>]*><\/button><div class="cpop" id="centerPop" hidden><input id="centerInput"[^>]*role="combobox"[^>]*><div class="clist" id="centerList" role="listbox"><\/div><\/div>/, 'center is a button («📍 Villa Marina ▾»); the typeahead list opens only to change it');
+  assert.match(page, /\(q&&!exact\?`<button type="button" role="option" class="cnew" data-center="\$\{clean\(typed\)\}">＋ Usar «\$\{clean\(typed\)\}» \(centro nuevo\)<\/button>`/, 'type a new center');
+  assert.match(page, /\$\('#centerList'\)\.onclick=e=>\{const b=e\.target\.closest\('\[data-center\]'\);if\(b\)saveCenter\(b\.dataset\.center\)\};/);
   assert.doesNotMatch(page, /id="heading"|id="sub"/, 'no heading or intro text taking space');
   for (const api of ["/request','POST',{})", "/request','POST',{cancel:true})", "(assignAnother?'/another':'/assign'),'POST',{runnerId:r.id})", "/api/supplier/center','POST'"]) assert.ok(page.includes(api), api);
   assert.match(page, /<dialog id="assignDlg"[^>]*>[^]*?<input class="sfind" id="assignFind"[^>]*>[^]*?<div class="runnerpick" id="assignList"/);
@@ -2317,7 +2324,7 @@ test('Runners ask supply centers; Supply answers «Puedo surtirla» / «No puedo
   assert.match(box, /data-choose="\$\{id\}" data-supplier="\$\{clean\(o\.supplierId\)\}">Elegir<\/button>/);
   assert.match(box, /data-supplycancel="\$\{id\}">Cancelar pedido<\/button>/);
   for (const api of ["/supply-ask','POST',{})", "/supply-ask','POST',{cancel:true})", "/supply-choose','POST',{supplierId:o.supplierId})"]) assert.ok(runner.includes(api), api);
-  assert.match(page, /data-main="asks"[^>]*><span aria-hidden="true">🏃<\/span> Runners piden <b id="cntAsk"><\/b>/);
+  assert.match(page, /data-main="asks"[^>]*><span aria-hidden="true">🏃<\/span> ¡Abastéceme! <b id="cntAsk"><\/b>/);
   const card = page.match(/function askCard\(n\)\{[^\n]*/)[0];
   assert.match(card, /\$\{runnerSection\(n\)\}\$\{destSection\(n\)\}/);
   assert.match(card, /data-offer="\$\{id\}">✓ Puedo surtirlo<\/button><button class="btn assign" type="button" data-decline="\$\{id\}">✗ No puedo<\/button>/);
@@ -2359,7 +2366,7 @@ test('several runners on the same need: Supply sends «otro runner» (request or
   assert.match(page, /<h3 class="listhead">🚚 Ya en camino · si hace falta, manda otro runner<\/h3>\$\{way\.map\(enrouteCard\)\.join\(''\)\}/);
   assert.match(page, /data-another="\$\{id\}">📣 Pedir otro runner<\/button><button class="btn assign" type="button" data-anotherassign="\$\{id\}">🏃 Otro en persona<\/button>/);
   assert.match(page, /\(assignAnother\?'\/another':'\/assign'\),'POST',\{runnerId:r\.id\}\)/);
-  assert.match(page, /<select id="teamOnly" class="rselect" aria-label="Filtro de equipo"><option value="0">Todas<\/option><option value="1">Solo mi equipo<\/option><\/select>/);
+  assert.match(page, /<label class="tswitch" title="Solo puntos y runners de mi equipo"><input type="checkbox" id="teamOnly"><span class="sw" aria-hidden="true"><\/span><span>Solo mi equipo<\/span><\/label>/, 'a switch on the same line as the center');
   assert.match(page, /const teamOk=n=>!teamOnly\|\|\(mainTab==='req'\?!!n\.camp\.team:!!\(n\.camp\.team\|\|n\.runnerTeam\)\);/, 'my team points (and my team runners on runs)');
   assert.match(page, /list=runners\.filter\(r=>\(!teamOnly\|\|r\.team\)&&/, 'only my team runners in the picker');
 });
@@ -2368,7 +2375,7 @@ test('command center on phones: opened point stacks full width; title is the poi
   const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
   assert.match(cmd, /\.row\{grid-template-columns:1fr;grid-template-areas:'main' 'stats' 'needs' 'report' 'detail';padding:12px 14px\}/, 'the opened detail is part of the one-column phone layout');
   assert.match(cmd, /\.row\.editing\{padding:0;border:0;background:none;box-shadow:none\}/);
-  assert.match(cmd, /\$\{clean\(pointName\(p\)\)\}\$\{p\.code&&!autoCode\(p\.code\)\?` <small class="pcode">/);
+  assert.match(cmd, /\$\{clean\(pointName\(p\)\)\}\$\{vb\(p,\{text:true\}\)\}\$\{p\.code&&!autoCode\(p\.code\)\?` <small class="pcode">/);
   const {autoCode, pointName} = new Function(cmd.match(/const autoCode=[^\n]*/)[0] + ';return {autoCode, pointName}')();
   assert.equal(pointName({area: 'la Colorada', code: 'P-f1bc49236515'}), 'la Colorada');
   assert.equal(pointName({area: 'Sin ubicación', place: 'Escuela'}), 'Escuela');
@@ -2427,4 +2434,143 @@ test('«Mi equipo» (team.html): invite links (one use, expiring), members with 
   assert.match(page, /\$\{ms\.length\} de \$\{all\.length\}/, 'count shows matches of total');
   const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
   assert.match(admin, /<input type="checkbox" name="roles" value="teammanager"> Team manager <small>\(necesita equipo\)<\/small><\/label>/);
+});
+
+test('Runners: header «Buscar» like the home page (🔍 pop-up on phones) filters the open tab and the map', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  assert.match(nav, /\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"/, 'nav.js adds the 🔍 button wherever the header has .topsearch');
+  assert.match(runner, /<input class="topsearch" id="search" type="search"/);
+  assert.match(runner, /foldNeed\(\[c\.code,c\.area,c\.place,c\.coordinator,n\.need,x\.center,x\.name,n\.runnerName,/, 'code, zone, place, need, coordinator, supply center, runner');
+  assert.match(runner, /el\.hidden=!hits\.some\(n=>n\.id===el\.dataset\.run\)/, '«Yo» hides non-matching runs without renumbering stops');
+  assert.match(runner, /\$\('#search'\)\.addEventListener\('input',render\);/);
+  assert.equal((runner.match(/searchQ\(\)\?noHits\(\)/g) || []).length, 3, '«Nada coincide» on Runs, Pedidos and agent lists');
+});
+
+test('needs with a brand: «Tarjeta de datos prepago» (Tigo / +Móvil) and «Gas de cocina» (Tropigas / Panagas), pick or type another', () => {
+  for (const label of ['Tarjeta de datos prepago', 'Gas de cocina']) assert.ok(PointForm.needsHtml().includes(`data-need="${label}"`), label);
+  assert.deepEqual(PointForm.BRANDED['Tarjeta de datos prepago'].brands.map(b => b[0]), ['Tigo', '+Móvil'], 'active networks in Panamá');
+  assert.deepEqual(PointForm.BRANDED['Gas de cocina'].brands.map(b => b[0]), ['Tropigas', 'Panagas']);
+  assert.match(PointForm.needsHtml(), /<div class="pf-datanet" data-brandfor="Gas de cocina" hidden><span class="pf-datanet-label">Empresa <small>toca una o varias<\/small><\/span><div class="pf-pills"[^>]*><button type="button" class="pf-pill" data-pill="Tropigas" aria-pressed="false"><i class="pf-swatch pf-net-tropigas"><\/i><b>Tropigas<\/b><\/button>[^]*?<button type="button" class="pf-pill pf-pill-other" data-pill-other aria-pressed="false"><svg[^]*?<\/svg><b>Otra<\/b><\/button><\/div><input class="pf-other-input" maxlength="40" placeholder="Escribe la empresa"[^>]*hidden><input type="hidden" class="pf-net-input" data-brand="Gas de cocina">/, 'pills like Agua, plus «Otra» with a short field');
+  const p = PointForm.parseNeeds('Agua, Tarjeta de datos prepago (Tigo), Gas de cocina (Otra Gas), tarjeta de datos prepago');
+  assert.deepEqual([...p.checked], ['Agua', 'Tarjeta de datos prepago', 'Gas de cocina']);
+  assert.deepEqual({...p.brands}, {'Tarjeta de datos prepago': 'Tigo', 'Gas de cocina': 'Otra Gas'});
+  assert.match(PointForm.needChip('Tarjeta de datos prepago (claro)'), /pf-net-masmovil" title="\+Móvil">\+móvil</, 'Claro is now +Móvil');
+  assert.match(PointForm.needChip('Gas de cocina (panagas)'), /<span class="chip"><svg[^]*?<\/svg>Gas de cocina<span class="pf-netbadge pf-net-panagas" title="Panagas">Panagas<\/span><\/span>/);
+  assert.match(PointForm.needChip('Gas de cocina (Gas Sur)'), /<span class="pf-netbadge" title="Gas Sur">Gas Sur<\/span>/, 'a typed company keeps its name');
+  assert.equal(PointForm.needChip('Arroz'), '');
+  // Agua and Alimentos: tap one or both options (no typing): «Agua (Para beber / Para cocinar)».
+  assert.deepEqual(PointForm.BRANDED.Agua.brands.map(b => b[0]), ['Para beber', 'Para cocinar']);
+  assert.deepEqual(PointForm.BRANDED.Alimentos.brands.map(b => b[0]), ['Comida preparada', 'Ingredientes para cocinar']);
+  assert.match(PointForm.needsHtml(), /<div class="pf-datanet" data-brandfor="Agua" hidden>[^]*?<button type="button" class="pf-pill" data-pill="Para beber" aria-pressed="false"><svg[^]*?<\/svg><b>Para beber<\/b>/, 'option icons instead of descriptions');
+  assert.deepEqual(PointForm.BRANDED.Alimentos.brands.map(b => b[4]), ['meal', 'pan'], 'hot meal and pan icons');
+  assert.deepEqual(PointForm.BRANDED['Reparación de casa'].brands.map(b => b[0]), ['Hojas de zinc', 'Carriola', 'Varilla', 'Tubo de hierro', 'Bolsas de cemento', 'Bloques', 'Tornillos', 'Clavos', 'Soldadura']);
+  assert.ok(PointForm.needsHtml().includes('data-brandfor="Reparación de casa"'), 'repair materials in every form');
+  assert.match(PointForm.needChip('Agua (Para beber / Para cocinar)'), /Agua<span class="pf-netbadge pf-net-beber" title="Para beber">para beber<\/span><span class="pf-netbadge pf-net-cocinar" title="Para cocinar">para cocinar<\/span>/);
+  assert.deepEqual({...PointForm.parseNeeds('Alimentos (Comida preparada), Agua').brands}, {Alimentos: 'Comida preparada'});
+  // Grouped list, two columns; a checked need with options opens them right under it, full width.
+  const groups = [...PointForm.needsHtml({admin: true}).matchAll(/<p class="pf-needgroup">([^<]+)<\/p>/g)].map(m => m[1]);
+  assert.deepEqual(groups, ['Agua y comida', 'Refugio y cuidado', 'Energía y comunicación', 'Casa', '¿Algo más?']);
+  assert.match(pointformSrc, /\.pf-needitem\.has-opts:has\(input\[data-need\]:checked\)\{grid-column:1\/-1/);
+  assert.equal(PointForm.needBase('Gas de cocina (Tropigas)'), 'Gas de cocina');
+  // Generator fuel: one need, Gasolina by default, Diésel in the list, or type another; old two-box texts still read.
+  assert.deepEqual(PointForm.BRANDED['Combustible para generador'].brands.map(b => b[0]), ['Gasolina', 'Diésel']);
+  assert.equal(PointForm.BRANDED['Combustible para generador'].def, 'Gasolina');
+  assert.ok(!PointForm.NEEDS.some(n => /Gasolina para generador|Diésel para generador/.test(n[0])), 'no separate boxes');
+  assert.deepEqual({...PointForm.parseNeeds('Gasolina para generador, Diesel para generador').brands}, {'Combustible para generador': 'Gasolina / Diésel'});
+  assert.match(PointForm.needChip('Diésel para generador'), /Combustible para generador<span class="pf-netbadge pf-net-diesel" title="Diésel">Diésel</);
+  assert.match(pointformSrc, /if \(check\.checked && b\.def && !input\.value\) \{ on\(pills\.find\(p => p\.dataset\.pill === b\.def\), true\)/, 'checking fuel picks Gasolina');
+  assert.match(pointformSrc, /if \(p === otherPill\) \{ otherIn\.hidden = !isOn\(p\); if \(isOn\(p\)\) otherIn\.focus\(\); \}/, '«Otra» opens the short field');
+  assert.equal(PointForm.BRANDED['Gas de cocina'].other, 'Otra');
+  assert.match(pointformSrc, /\.pf-other-input\[hidden\]\{display:none\}/, 'the short field stays hidden until «Otra»');
+  assert.equal(PointForm.BRANDED['Tarjeta de datos prepago'].other, 'Otra');
+  // readNeeds writes the brand in parentheses, normalized to the listed name.
+  const box = (l, c) => ({dataset: {need: l}, checked: c});
+  const boxes = [box('Agua', true), box('Tarjeta de datos prepago', true), box('Gas de cocina', true)];
+  const inputs = {'Tarjeta de datos prepago': {value: 'tigo'}, 'Gas de cocina': {value: '  Gas (Sur), Norte '}};
+  const root = {querySelectorAll: () => boxes.filter(b => b.checked), querySelector: s => { const m = /data-brand="([^"]+)"/.exec(s); return m ? inputs[m[1]] : s === '.pf-otros-check' ? {checked: false} : s === '.pf-otros-text' ? {value: ''} : null; }};
+  assert.equal(PointForm.readNeeds(root), 'Agua, Tarjeta de datos prepago (Tigo), Gas de cocina (Gas Sur Norte)');
+  for (const page of ['runner.html', 'supplier.html', 'command.html', 'index.html']) assert.match(readFileSync(new URL('./' + page, import.meta.url), 'utf8'), /\.map\(part=>\{const dc=pf\.needChip\?pf\.needChip\(part\):'';if\(dc\)return dc;/, page + ' shows the brand on need chips');
+  assert.match(admin, /PointForm\.BRANDED\[l\]\?PointForm\.brandBadge\(l,brands\[l\]\):''/);
+});
+
+test('home on phones opens on «📊 Resumen» (a link to a point still opens that point)', () => {
+  assert.match(template, /if\(window\.matchMedia\('\(max-width:760px\)'\)\.matches&&!new URLSearchParams\(location\.search\)\.get\('punto'\)\)mobileView\('stats'\);/);
+});
+
+test('«Verificado por equipo»: gold badge on points and needs across pages; public pages without names', () => {
+  const ctx = PointForm;
+  assert.equal(ctx.verifiedBadge({}), '');
+  assert.match(ctx.verifiedBadge({verifiedAt: '2026-10-15T12:00:00Z'}), /^<span class="pf-verified" title="Verificado por un equipo · [^"]+" role="img"/);
+  assert.match(ctx.verifiedBadge({verifiedAt: '2026-10-15T12:00:00Z', verifiedTeam: 'Equipo Norte', verifiedBy: 'Ana'}, {text: true}), /title="Verificado por el equipo Norte · Ana · [^"]+"[^>]*><svg[^]*<\/svg><span>Equipo Norte<\/span><\/span>$/);
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8'), supplier = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8'), cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8'), camp = readFileSync(new URL('./camp.html', import.meta.url), 'utf8');
+  for (const page of [runner, supplier]) assert.match(page, /v=\(n\.verifiedAt\|\|''\)>\(c\.verifiedAt\|\|''\)\?n:c;[^\n]*PointForm\.verifiedBadge\(v,\{text:true\}\)/);
+  assert.match(cmd, /\$\{vb\(n,\{text:true\}\)\}\$\{needChips\(n\.need\)\}/);
+  assert.match(admin, /\$\{PointForm\.verifiedBadge\(n,\{text:true\}\)\}`;/);
+  assert.match(template, /\$\{urgentBadge\(n\.urgency\)\}\$\{vb\(n\)\}\$\{when\}/);
+  assert.match(camp, /<h1>\$\{clean\(p\.code\)\}\$\{verified\(p\)\}<\/h1>/);
+  assert.match(camp, /<span>Verificado por un equipo<\/span>/);
+});
+
+test('builders see the materials requested with a house repair', () => {
+  const builder = readFileSync(new URL('./builder.html', import.meta.url), 'utf8');
+  assert.match(builder, /\$\{cardMeta\(n\)\}<\/div>\$\{reqMaterials\(n\)\}\$\{whereGroup\(n\)\}/);
+  const b = PointForm.brandOf('Reparación de casa (Varilla / Otro tubo)');
+  assert.match(PointForm.brandBadge(b.label, b.brand), /title="Varilla">varilla<\/span><span class="pf-netbadge" title="Otro tubo">Otro tubo<\/span>$/);
+});
+
+test('development environment (localhost / local network) is marked on every page: amber stripe, «DEV» pill, tab title', () => {
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  const fn = src => src.match(/const DEV_HOST=[^\n]*/)[0];
+  assert.equal(fn(nav), fn(admin), 'admin.html (no nav.js) has the same copy');
+  const DEV = new Function(`${fn(nav)};return DEV_HOST`)();
+  for (const h of ['localhost', '127.0.0.1', '192.168.1.20', '10.0.0.5', '172.20.1.1', '::1', 'mi-pc.local']) assert.ok(DEV.test(h), h);
+  for (const h of ['azueroapoyo.org', 'apoyo.example.com', '172.32.0.1', '8.8.8.8']) assert.ok(!DEV.test(h), h);
+  assert.match(nav, /<div class=\\?"devstripe\\?" aria-hidden=\\?"true\\?"><\/div><span class=\\?"devpill\\?"/);
+  assert.match(nav, /document\.title='DEV · '\+document\.title/);
+  assert.match(nav, /if \(document\.readyState === 'loading'\) document\.addEventListener\('DOMContentLoaded', devMark\); else devMark\(\);/);
+  assert.match(admin, /devMark\(\);\n<\/script>/);
+});
+
+test('phone menu button shows the signed-in person\'s initials; Comando always has «+ Agregar punto» at the top right', () => {
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8'), cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  const initialsOf = new Function(`${nav.match(/const initialsOf = [^\n]*/)[0]};return initialsOf`)();
+  assert.equal(initialsOf('Marco Silva'), 'MS');
+  assert.equal(initialsOf('ana ortega ruiz'), 'AO');
+  assert.equal(initialsOf('Juan Pérez 2'), 'JP', 'duplicate-name number is not an initial');
+  assert.equal(initialsOf('Ñandú'), 'Ñ');
+  assert.equal(initialsOf(''), '');
+  assert.match(nav, /btn\.innerHTML = ini \? `<span class="minit">\$\{esc\(ini\)\}<\/span>` : svg\(/);
+  assert.match(nav, /btn\.setAttribute\('aria-label', ini \? `Menú de \$\{name\}` : 'Menú'\);/);
+  assert.match(cmd, /<\/div><a class="add" href="\/#agregar">\+ Agregar punto<\/a><\/div><\/header>/);
+  const nav2 = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  assert.match(nav2, /@media\(max-width:760px\)\{\.top:has\(>\.mbar\) \.topsearch\{display:none!important\}\}/, 'the header search box hides only on phones (🔍 opens it); desktop keeps it');
+});
+
+test('Comando: Buscar in the header (🔍 on phones, like Runners); totals with icons in the «Puntos» tab', () => {
+  const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  assert.match(cmd, /<header class="top"><div class="brand">[^]*?<\/div><input class="topsearch" id="search" type="search" placeholder="Buscar…"/);
+  assert.doesNotMatch(cmd, /<input class="search" id="search"/, 'no second search box in the list');
+  assert.match(cmd, /const counts=`<span class="tcnt" title="[^\n]*?">\$\{icoPinS\}/);
+  assert.match(cmd, /\$\{pending\?`<span class="tcnt pend" title="\$\{pending\} por revisar">\$\{icoReviewS\}\$\{pending\}<\/span>`:''\}/);
+  assert.match(cmd, /if\(ptab\)ptab\.innerHTML=`<span>Puntos<\/span>\$\{counts\}`;/);
+  assert.match(cmd, /@media\(max-width:760px\)\{\.board \.sidehead \.sub\{display:none\}/, 'on phones the totals live in the tab');
+});
+
+test('Supply tabs: ¡A empacar!, Despachadas, ¡Abastéceme!, Por surtir (last); 🕓 history next to Lista/Mapa on phones', () => {
+  const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  const order = [...page.match(/<nav class="maintabs" id="mainTabs"[^]*?<\/nav>/)[0].matchAll(/data-main="(\w+)"/g)].map(m => m[1]);
+  assert.deepEqual(order, ['todo', 'done', 'asks', 'req', 'hist']);
+  assert.match(page, /<button type="button" data-view="hist" class="mhist" aria-pressed="false" title="Historial" aria-label="Historial"><svg[^>]*><path d="M3 12a9 9 0 1 0 3-6\.7"\/>/, 'clock turning back');
+  assert.match(page, /function mobileView\(view\)\{if\(view==='hist'\)\{mainTab='hist';highlightNeed=null;view='list'\}else if\(view==='list'&&mainTab==='hist'\)mainTab='todo';/);
+  assert.match(page, /if\(mainTab==='hist'\)\{const list=history\.filter\(match\);[^\n]*list\.map\(histCard\)/);
+  assert.match(page, /<span class="hdone" title="[^"]*">✓ Entregada \$\{clean\(agoEs\(n\.completedAt\)\)\}<\/span>/);
+  assert.match(page, /@media\(max-width:760px\)\{\.maintabs \.histtab\{display:none\}\}/, 'on phones history lives next to Lista/Mapa');
+});
+
+test('Supply map: team runners in live (only my team, strict rule) even without a run of this center', () => {
+  const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  assert.match(page, /teamLive=data\.live\|\|\[\];/);
+  assert.match(page, /for\(const r of teamLive\.filter\(r=>!shown\.has\(r\.id\)\)\)/, 'no duplicate truck for a runner already on a run');
+  assert.match(page, /const fit=campPins\.length\?campPins:teamPins/, 'with no points, the map centers on the team');
 });

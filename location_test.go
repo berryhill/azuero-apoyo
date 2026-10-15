@@ -11,9 +11,15 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+// Strict rule: a runner's live location is only visible to their own team (signed in with a code). Runners without a
+// code (no team) share for the record, but nobody sees them; other teams never see each other.
 func TestRunnerLiveLocationVisibleToCodeUsersOnly(t *testing.T) {
 	s := newServiceHarness(t)
-	s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)
+	fufo := s.expect("POST", "/api/admin/users", `{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`, 201)["id"].(string)
+	lia := s.expect("POST", "/api/admin/users", `{"name":"Lia","telephone":"6999-2222","roles":["runner"],"accessCode":"LIA123"}`, 201)["id"].(string)
+	otto := s.expect("POST", "/api/admin/users", `{"name":"Otto","telephone":"6999-3333","roles":["runner"],"accessCode":"OTTO12"}`, 201)["id"].(string)
+	s.team("Norte", fufo, lia)
+	s.team("Sur", otto)
 	rosaCookie, rosaCSRF := s.crewLogin("/api/runner", "Rosa")
 	if w := s.crewCall("POST", "/api/runner/location", `{"lat":7.43,"lon":-80.19,"accuracy":12}`, rosaCookie, "wrong"); w.Code != 403 {
 		t.Fatalf("location needs CSRF: %d", w.Code)
@@ -25,22 +31,28 @@ func TestRunnerLiveLocationVisibleToCodeUsersOnly(t *testing.T) {
 	if w := s.crewCall("POST", "/api/runner/location", `{"lat":7.43,"lon":-80.19,"accuracy":12}`, rosaCookie, rosaCSRF); w.Code != 200 {
 		t.Fatalf("share location: %d %s", w.Code, w.Body.String())
 	}
-	// Fufo signs in with his code (full view) and also shares from his runner panel.
-	login := s.call("POST", "/api/session/code", `{"accessCode":"FUFO12"}`, false)
-	var viewer, fufoRunner *http.Cookie
-	for _, c := range login.Result().Cookies() {
-		switch c.Name {
-		case "viewer_session":
-			viewer = c
-		case "runner_session":
-			fufoRunner = c
+	// Code users sign in (full view + runner panel) and share from the runner panel.
+	codeLogin := func(code string) (viewer, runner *http.Cookie, csrf string) {
+		for _, c := range s.call("POST", "/api/session/code", `{"accessCode":"`+code+`"}`, false).Result().Cookies() {
+			switch c.Name {
+			case "viewer_session":
+				viewer = c
+			case "runner_session":
+				runner = c
+			}
 		}
+		var sess map[string]any
+		json.Unmarshal(s.crewCall("GET", "/api/runner/session", "", runner, "").Body.Bytes(), &sess)
+		csrf, _ = sess["csrf"].(string)
+		s.crewCall("POST", "/api/runner/location/consent", `{"accept":true}`, runner, csrf)
+		return
 	}
-	var sess map[string]any
-	json.Unmarshal(s.crewCall("GET", "/api/runner/session", "", fufoRunner, "").Body.Bytes(), &sess)
-	fufoCSRF, _ := sess["csrf"].(string)
-	s.crewCall("POST", "/api/runner/location/consent", `{"accept":true}`, fufoRunner, fufoCSRF)
+	viewer, fufoRunner, fufoCSRF := codeLogin("FUFO12")
+	_, liaRunner, liaCSRF := codeLogin("LIA123")
+	_, ottoRunner, ottoCSRF := codeLogin("OTTO12")
 	s.crewCall("POST", "/api/runner/location", `{"lat":7.5,"lon":-80.3}`, fufoRunner, fufoCSRF)
+	s.crewCall("POST", "/api/runner/location", `{"lat":7.44,"lon":-80.2}`, liaRunner, liaCSRF)
+	s.crewCall("POST", "/api/runner/location", `{"lat":7.6,"lon":-80.5}`, ottoRunner, ottoCSRF)
 	runners := func(c *http.Cookie) *httptest.ResponseRecorder {
 		r := httptest.NewRequest("GET", "/api/full/runners", nil)
 		if c != nil {
@@ -54,12 +66,15 @@ func TestRunnerLiveLocationVisibleToCodeUsersOnly(t *testing.T) {
 		t.Fatalf("public can't see runners: %d", w.Code)
 	}
 	body := runners(viewer).Body.String()
-	if !strings.Contains(body, `"name":"Rosa"`) || !strings.Contains(body, `"lat":7.43`) || strings.Contains(body, "Fufo") {
-		t.Fatalf("code user sees other runners but not himself: %s", body)
+	if !strings.Contains(body, `"name":"Lia"`) || !strings.Contains(body, `"lat":7.44`) || strings.Contains(body, "Fufo") || strings.Contains(body, "Rosa") || strings.Contains(body, "Otto") {
+		t.Fatalf("only team mates (not himself, not code-less runners, not other teams): %s", body)
 	}
-	// On the runner panel, a code user sees the team too; a name-and-phone runner doesn't.
-	if w := s.crewCall("GET", "/api/runner/team", "", fufoRunner, ""); w.Code != 200 || !strings.Contains(w.Body.String(), `"name":"Rosa"`) || strings.Contains(w.Body.String(), "Fufo") {
-		t.Fatalf("code runner sees the others on the runner map: %d %s", w.Code, w.Body.String())
+	// Same on the runner panel; a name-and-phone runner doesn't get the team map.
+	if w := s.crewCall("GET", "/api/runner/team", "", fufoRunner, ""); w.Code != 200 || !strings.Contains(w.Body.String(), `"name":"Lia"`) || strings.Contains(w.Body.String(), "Otto") || strings.Contains(w.Body.String(), "Rosa") {
+		t.Fatalf("code runner sees the team on the runner map: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.crewCall("GET", "/api/runner/team", "", ottoRunner, ""); !strings.Contains(w.Body.String(), "[]") {
+		t.Fatalf("other team sees nobody from Norte: %s", w.Body.String())
 	}
 	if w := s.crewCall("GET", "/api/runner/team", "", rosaCookie, ""); w.Code != 403 {
 		t.Fatalf("runner without a code can't see the team: %d", w.Code)
@@ -68,23 +83,25 @@ func TestRunnerLiveLocationVisibleToCodeUsersOnly(t *testing.T) {
 		t.Fatalf("team needs a session: %d", w.Code)
 	}
 	// Stopping, or an old position, removes the runner from the map.
-	rosa := rosaIDFrom(t, s, rosaCookie)
 	s.app.mu.Lock()
-	loc := s.app.locations[rosa]
+	loc := s.app.locations[lia]
 	loc.At = time.Now().Add(-3 * time.Minute)
-	s.app.locations[rosa] = loc
+	s.app.locations[lia] = loc
 	s.app.mu.Unlock()
-	if body := runners(viewer).Body.String(); strings.Contains(body, "Rosa") {
+	if body := runners(viewer).Body.String(); strings.Contains(body, "Lia") {
 		t.Fatalf("stale position must disappear: %s", body)
 	}
-	s.crewCall("POST", "/api/runner/location", `{"lat":7.43,"lon":-80.19}`, rosaCookie, rosaCSRF)
-	s.crewCall("POST", "/api/runner/location/stop", `{}`, rosaCookie, rosaCSRF)
-	if body := runners(viewer).Body.String(); strings.Contains(body, "Rosa") {
+	s.crewCall("POST", "/api/runner/location", `{"lat":7.43,"lon":-80.19}`, liaRunner, liaCSRF)
+	s.crewCall("POST", "/api/runner/location/stop", `{}`, liaRunner, liaCSRF)
+	if body := runners(viewer).Body.String(); strings.Contains(body, "Lia") {
 		t.Fatalf("stop must remove the position: %s", body)
 	}
-	s.crewCall("POST", "/api/runner/location", `{"lat":7.43,"lon":-80.19}`, rosaCookie, rosaCSRF)
-	s.crewCall("POST", "/api/runner/logout", `{}`, rosaCookie, rosaCSRF)
-	if body := runners(viewer).Body.String(); strings.Contains(body, "Rosa") {
+	s.crewCall("POST", "/api/runner/location", `{"lat":7.43,"lon":-80.19}`, liaRunner, liaCSRF)
+	if body := runners(viewer).Body.String(); !strings.Contains(body, "Lia") {
+		t.Fatalf("sharing again shows her: %s", body)
+	}
+	s.crewCall("POST", "/api/runner/logout", `{}`, liaRunner, liaCSRF)
+	if body := runners(viewer).Body.String(); strings.Contains(body, "Lia") {
 		t.Fatalf("logout must remove the position: %s", body)
 	}
 }

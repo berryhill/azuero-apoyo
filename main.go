@@ -79,6 +79,11 @@ type Point struct {
 	AddedByName string `json:"addedByName,omitempty"`
 	// Identificador que pone el navegador al crear el punto (cola sin conexión): reenviar el mismo no crea un duplicado.
 	ClientRef string `json:"clientRef,omitempty"`
+	// «Verificado por equipo»: la última vez que alguien de un equipo creó o actualizó esto (revisión más a fondo). Equipo
+	// y persona solo los ve quien tiene acceso; en público solo queda la hora (insignia sin nombres). Lo pone el servidor.
+	VerifiedTeam string `json:"verifiedTeam,omitempty"`
+	VerifiedBy   string `json:"verifiedBy,omitempty"`
+	VerifiedAt   string `json:"verifiedAt,omitempty"`
 	// «Solo Nuestro Equipo»: lo agregó alguien del equipo de quien mira o alguna necesidad la lleva alguien de su equipo.
 	// Solo sale en la vista completa (/api/full/points); nunca se guarda.
 	Team bool `json:"team,omitempty"`
@@ -221,6 +226,11 @@ type CampNeed struct {
 	ReleasedBy string `json:"releasedBy,omitempty"`
 	// Última escritura de la necesidad (crear, tomar, soltar, editar, completar); ordena la actividad reciente en el panel.
 	UpdatedAt string `json:"updatedAt,omitempty"`
+	// «Verificado por equipo»: la última vez que alguien de un equipo creó o actualizó esto (revisión más a fondo). Equipo
+	// y persona solo los ve quien tiene acceso; en público solo queda la hora (insignia sin nombres). Lo pone el servidor.
+	VerifiedTeam string `json:"verifiedTeam,omitempty"`
+	VerifiedBy   string `json:"verifiedBy,omitempty"`
+	VerifiedAt   string `json:"verifiedAt,omitempty"`
 	// Cuándo cambió el pedido (texto) después de crearse, por ejemplo al fusionar un duplicado; se muestra como «Actualizado».
 	RevisedAt string `json:"revisedAt,omitempty"`
 	// Lista de empaque: lo que corredores y agentes preparan para cumplir la necesidad. Privada (no sale en público).
@@ -359,6 +369,7 @@ func publicPoint(p Point) Point {
 	p.ClientRef = ""
 	p.Needs, _ = splitRepair(p.Needs)
 	p.AddedBy, p.AddedByName = "", ""
+	p.VerifiedTeam, p.VerifiedBy = "", ""
 	p.Members = nil
 	p.History = nil
 	p.Checkups = nil
@@ -687,7 +698,7 @@ func needFromPoint(tx *bolt.Tx, p Point) error {
 		}
 	}
 	if repair {
-		n := CampNeed{ID: randomToken(), CampID: p.ID, Need: repairLabel, Kind: "repair", Status: "OPEN", Urgency: urgencyNormal, CreatedAt: nowStamp()}
+		n := CampNeed{ID: randomToken(), CampID: p.ID, Need: repairText(p.Needs), Kind: "repair", Status: "OPEN", Urgency: urgencyNormal, CreatedAt: nowStamp()}
 		return putNeed(tx.Bucket(needsBucket), &n)
 	}
 	return nil
@@ -710,7 +721,7 @@ func splitRepair(text string) (string, bool) {
 		if part == "" {
 			continue
 		}
-		if foldText(part) == foldText(repairLabel) {
+		if isRepairPart(part) {
 			repair = true
 		} else {
 			rest = append(rest, part)
@@ -722,6 +733,42 @@ func splitRepair(text string) (string, bool) {
 	return strings.Join(rest, ", "), true
 }
 func isRepair(n CampNeed) bool { return n.Kind == "repair" }
+
+// isRepairPart: «Reparación de casa» sola o con materiales: «Reparación de casa (Varilla / Hojas de zinc)».
+func isRepairPart(part string) bool {
+	f := foldText(part)
+	return f == foldText(repairLabel) || strings.HasPrefix(f, foldText(repairLabel)+" (")
+}
+
+// repairText: la parte de reparación del texto (con sus materiales), o «Reparación de casa» si no la hay.
+func repairText(text string) string {
+	for _, part := range strings.Split(text, ",") {
+		if part = strings.TrimSpace(part); isRepairPart(part) {
+			return part
+		}
+	}
+	return repairLabel
+}
+
+// putNeedSplit guarda una necesidad nueva de suministros; si el texto pide «Reparación de casa», esa parte va en una
+// necesidad de reparación aparte (constructores, nunca pública). Devuelve la de suministros, o la de reparación si no
+// quedaba otra cosa.
+func putNeedSplit(tx *bolt.Tx, n CampNeed) (CampNeed, error) {
+	rest, repair := splitRepair(n.Need)
+	if !repair || n.Kind != "" {
+		return n, putNeed(tx.Bucket(needsBucket), &n)
+	}
+	fix := n
+	fix.ID, fix.Kind, fix.Need, fix.RunnerID = randomToken(), "repair", repairText(n.Need), ""
+	if e := putNeed(tx.Bucket(needsBucket), &fix); e != nil {
+		return n, e
+	}
+	if rest == "" {
+		return fix, nil
+	}
+	n.Need = rest
+	return n, putNeed(tx.Bucket(needsBucket), &n)
+}
 
 // splitLegacyRepairs separa «Reparación de casa» de necesidades de suministros creadas antes de que las reparaciones
 // fueran aparte: se quita del texto y pasa a una necesidad de reparación abierta (o la necesidad entera se vuelve
@@ -748,7 +795,7 @@ func splitLegacyRepairs(tx *bolt.Tx) error {
 		rest, _ := splitRepair(n.Need)
 		if rest == "" {
 			// Solo pedía la reparación: la necesidad entera pasa a constructores, sin el corredor que tuviera.
-			n.Kind, n.Need, n.RunnerID = "repair", repairLabel, ""
+			n.Kind, n.Need, n.RunnerID = "repair", repairText(n.Need), ""
 			if n.Status == "IN_PROGRESS" {
 				n.Status, n.EnRouteAt = "OPEN", ""
 			}
@@ -1013,6 +1060,7 @@ func (a *App) routes() http.Handler {
 		// Importación de administración: «addedBy» con el ID de un usuario existente deja anotado quién reportó el punto.
 		askedBy := strings.TrimSpace(p.AddedBy)
 		p.AddedBy, p.AddedByName = "", ""
+		p.VerifiedTeam, p.VerifiedBy, p.VerifiedAt = "", "", ""
 		if by != nil {
 			p.AddedBy, p.AddedByName = by.ID, by.Name
 		}
@@ -1080,6 +1128,7 @@ func (a *App) routes() http.Handler {
 				}
 				p.AddedBy, p.AddedByName = u.ID, u.Name
 			}
+			verifyStamp(tx, by, &p.VerifiedTeam, &p.VerifiedBy, &p.VerifiedAt)
 			data, _ := json.Marshal(p)
 			if reviewed {
 				errDuplicate := errors.New("duplicate code")
@@ -1558,6 +1607,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		n := CampNeed{ID: randomToken(), CampID: r.PathValue("id"), Need: fieldText(f, "need"), Status: "OPEN", Urgency: fieldText(f, "urgency"), CreatedAt: nowStamp(),
 			RequesterName: strings.Join(strings.Fields(fieldText(f, "requesterName")), " "), RequesterPhone: strings.Join(strings.Fields(fieldText(f, "requesterPhone")), " ")}
 		n.Urgency = normalizeUrgency(n.Urgency)
+		// «Reparación de casa» va aparte, para constructores (putNeedSplit).
 		switch {
 		case n.Need == "":
 			failField(w, 400, "need", "Describe la necesidad.")
@@ -1576,7 +1626,9 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			if !a.campExists(tx, n.CampID) {
 				return errMissing
 			}
-			return putNeed(tx.Bucket(needsBucket), &n)
+			var e error
+			n, e = putNeedSplit(tx, n)
+			return e
 		})
 		if serviceError(w, err) {
 			return
@@ -1622,6 +1674,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 				return errInvalid
 			}
 			enRouteOnAssign(&n, "")
+			verifyStamp(tx, agentBy(r), &n.VerifiedTeam, &n.VerifiedBy, &n.VerifiedAt)
 			return putNeed(tx.Bucket(needsBucket), &n)
 		})
 		if serviceError(w, err) {
@@ -1702,6 +1755,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 					return e
 				}
 			}
+			verifyStamp(tx, agentBy(r), &n.VerifiedTeam, &n.VerifiedBy, &n.VerifiedAt)
 			return putNeed(b, &n)
 		})
 		if serviceError(w, err) {
@@ -1742,6 +1796,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			if p.Status == "approved" {
 				p.LastCheckup = nowStamp()
 			}
+			verifyStamp(tx, agentBy(r), &p.VerifiedTeam, &p.VerifiedBy, &p.VerifiedAt)
 			return putJSON(b, id, p)
 		})
 		if serviceError(w, err) {
@@ -2036,6 +2091,10 @@ type runnerCamp struct {
 	Contacts []runnerContact `json:"contacts,omitempty"`
 	// team: lo agregó alguien del equipo de quien mira o una carrera la lleva alguien de su equipo (filtro «Solo Nuestro Equipo»).
 	Team bool `json:"team,omitempty"`
+	// «Verificado por equipo» del punto (privado: solo paneles con sesión).
+	VerifiedTeam string `json:"verifiedTeam,omitempty"`
+	VerifiedBy   string `json:"verifiedBy,omitempty"`
+	VerifiedAt   string `json:"verifiedAt,omitempty"`
 }
 type runnerContact struct {
 	Name  string `json:"name,omitempty"`
@@ -2098,6 +2157,10 @@ type runnerNeed struct {
 	// assigned: la necesidad está asignada a quien consulta (puede armar su lista de empaque).
 	Assigned bool       `json:"assigned,omitempty"`
 	Camp     runnerCamp `json:"camp"`
+	// «Verificado por equipo» de la necesidad (paneles con sesión).
+	VerifiedTeam string `json:"verifiedTeam,omitempty"`
+	VerifiedBy   string `json:"verifiedBy,omitempty"`
+	VerifiedAt   string `json:"verifiedAt,omitempty"`
 }
 
 var errBusy = errors.New("Ya tienes 10 carreras en camino. Completa o deja alguna antes de tomar otra.")
@@ -2321,7 +2384,8 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.trackRoutes(mux)
 	a.agentRoutes(mux)
 	mux.HandleFunc("POST /api/runner/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := a.crewSession(runners, w, r); !ok {
+		sess, ok := a.crewSession(runners, w, r)
+		if !ok {
 			return
 		}
 		f, ok := decodeFields(w, r, map[string]int{"need": 8192, "urgency": 32})
@@ -2338,7 +2402,12 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			if !a.campExists(tx, n.CampID) {
 				return errMissing
 			}
-			return putNeed(tx.Bucket(needsBucket), &n)
+			if u, found := getUser(tx, sess.runnerID); found {
+				verifyStamp(tx, &u, &n.VerifiedTeam, &n.VerifiedBy, &n.VerifiedAt)
+			}
+			var e error
+			n, e = putNeedSplit(tx, n)
+			return e
 		})
 		if serviceError(w, err) {
 			return
@@ -2499,7 +2568,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 				if p.Status == "approved" {
 					contacts := campContacts(p)
 					p = publicPoint(p)
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID]}
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt}
 				}
 				return nil
 			}); e != nil {
@@ -2524,7 +2593,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					}
 				}
 				who := *c.assignee(&n)
-				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), Supplier: supplierOf(tx, n.SupplierID), SupplyAskedAt: n.SupplyAskedAt, SupplyOffers: offersFor(tx, n), Also: alsoFor(tx, groups, n), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
+				item := runnerNeed{VerifiedTeam: n.VerifiedTeam, VerifiedBy: n.VerifiedBy, VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), Supplier: supplierOf(tx, n.SupplierID), SupplyAskedAt: n.SupplyAskedAt, SupplyOffers: offersFor(tx, n), Also: alsoFor(tx, groups, n), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
 				if item.Assigned {
 					item.Media = n.Media
 				} else if c.repair {
@@ -2924,6 +2993,7 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 					}
 					n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName, n.SupplierID, n.SupplierRequestedAt = "", "", "", "", "", ""
 					n.SupplyAskedAt, n.SupplyOffers = "", nil
+					n.VerifiedTeam, n.VerifiedBy = "", ""
 					if !reveal {
 						n.Packing, n.Media = nil, nil
 					} else {

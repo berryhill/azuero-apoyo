@@ -77,12 +77,17 @@ func supplierOf(tx *bolt.Tx, id string) *supplierInfo {
 }
 
 // supplierRun: la carrera como la ve acopio, con quién la lleva y si ya salió del acopio.
+// Historial del acopio: runs completados en los últimos historyDays días, hasta historyMax.
+const historyDays, historyMax = 30, 60
+
 type supplierRun struct {
 	runnerNeed
 	RunnerName       string `json:"runnerName,omitempty"`
 	RunnerPhone      string `json:"runnerPhone,omitempty"`
 	DispatchedAt     string `json:"dispatchedAt,omitempty"`
 	DispatchedByName string `json:"dispatchedByName,omitempty"`
+	// Historial: cuándo la entregó el runner (runs completados de este acopio).
+	CompletedAt string `json:"completedAt,omitempty"`
 	// El runner es de mi equipo (para «Solo mi equipo»; el punto lo dice camp.team).
 	RunnerTeam bool `json:"runnerTeam,omitempty"`
 	// Dónde va el corredor, si comparte su ubicación en vivo (reciente); solo en las carreras de este acopio.
@@ -213,8 +218,9 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if !ok {
 			return
 		}
-		runs, open, runners, asks, enroute := []supplierRun{}, []supplierRun{}, []supplierRunner{}, []supplierRun{}, []supplierRun{}
+		runs, open, runners, asks, enroute, history := []supplierRun{}, []supplierRun{}, []supplierRunner{}, []supplierRun{}, []supplierRun{}, []supplierRun{}
 		now := time.Now()
+		since := now.AddDate(0, 0, -historyDays).UTC().Format(time.RFC3339)
 		live := map[string]liveLocation{}
 		a.mu.Lock()
 		for id, loc := range a.locations {
@@ -243,7 +249,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				if p.Status == "approved" {
 					contacts := campContacts(p)
 					p = publicPoint(p)
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID]}
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt}
 				}
 				return nil
 			}); e != nil {
@@ -259,6 +265,15 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 					active[n.RunnerID]++
 				}
 				camp, ok := camps[n.CampID]
+				// Historial: runs de este acopio ya entregados (últimos días), con su carga, fotos y runner.
+				if ok && !isRepair(n) && n.Status == "COMPLETED" && n.SupplierID == me.ID && n.CompletedAt >= since {
+					run := supplierRun{runnerNeed: runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, CreatedAt: n.CreatedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName, CompletedAt: n.CompletedAt, RunnerTeam: tv.mate(n.RunnerID)}
+					if u, found := getUser(tx, n.RunnerID); found {
+						run.RunnerName, run.RunnerPhone = u.Name, u.Telephone
+					}
+					history = append(history, run)
+					return nil
+				}
 				asking := supplyAskOpen(n)
 				// En camino con otro acopio (o sin acopio): se puede mandar otro runner a lo mismo.
 				other := !isRepair(n) && n.Status == "IN_PROGRESS" && n.RunnerID != "" && n.SupplierID != me.ID && !asking
@@ -268,7 +283,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				if n.Need, _ = splitRepair(n.Need); n.Need == "" {
 					return nil
 				}
-				run := supplierRun{runnerNeed: runnerNeed{Also: alsoFor(tx, groups, n), ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName}
+				run := supplierRun{runnerNeed: runnerNeed{Also: alsoFor(tx, groups, n), VerifiedTeam: n.VerifiedTeam, VerifiedBy: n.VerifiedBy, VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName}
 				if n.Status == "OPEN" {
 					run.Media, run.Packing = nil, nil
 					if n.SupplierRequestedAt != "" {
@@ -299,7 +314,8 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				run.RunnerTeam = tv.mate(n.RunnerID)
 				if u, found := getUser(tx, n.RunnerID); found {
 					run.RunnerName, run.RunnerPhone = u.Name, u.Telephone
-					if loc, ok := live[n.RunnerID]; ok {
+					// Ubicación en vivo solo si el runner es de mi equipo (regla estricta: el GPS solo lo ve el equipo).
+					if loc, ok := live[n.RunnerID]; ok && run.RunnerTeam {
 						run.RunnerLive = &runnerOnMap{ID: u.ID, Name: u.Name, Lat: loc.Lat, Lon: loc.Lon, Accuracy: loc.Accuracy, At: loc.At.UTC().Format(time.RFC3339), Seconds: int(now.Sub(loc.At).Seconds())}
 					}
 				}
@@ -345,11 +361,16 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return open[i].CreatedAt < open[j].CreatedAt
 		})
 		sort.SliceStable(runners, func(i, j int) bool { return runnerNameKey(runners[i].Name) < runnerNameKey(runners[j].Name) })
+		// Historial: lo último entregado primero.
+		sort.SliceStable(history, func(i, j int) bool { return history[i].CompletedAt > history[j].CompletedAt })
+		if len(history) > historyMax {
+			history = history[:historyMax]
+		}
 		var centers []string
 		if e := a.db.View(func(tx *bolt.Tx) (e error) { centers, e = supplyCenters(tx); return e }); serviceError(w, e) {
 			return
 		}
-		response(w, 200, map[string]any{"runs": runs, "open": open, "asks": asks, "enroute": enroute, "runners": runners, "center": me.SupplyCenter, "centers": centers})
+		response(w, 200, map[string]any{"runs": runs, "open": open, "asks": asks, "enroute": enroute, "history": history, "live": a.liveRunners(me.ID), "runners": runners, "center": me.SupplyCenter, "centers": centers})
 	})
 	// «Corredores piden»: este acopio puede surtir la carrera (can), no puede (can:false) o retira su oferta (withdraw).
 	mux.HandleFunc("POST /api/supplier/needs/{id}/offer", func(w http.ResponseWriter, r *http.Request) {
