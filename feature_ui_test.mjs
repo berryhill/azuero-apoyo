@@ -913,7 +913,7 @@ test('admin point card: the Completadas box toggles completed needs for that poi
 });
 test('runner confirms completing or leaving a run in a Sí / No modal, not a browser popup', () => {
   assert.match(runner, /<dialog id="confirmDialog" class="confirmdlg"[^>]*><form method="dialog" class="confirmbox"><h2 id="confirmText"><\/h2><div id="confirmNeed"><\/div><p id="confirmDetail"[^>]*><\/p><div id="confirmMedia"[^]*?<div class="confirmactions"><button class="btn plain" value="no" id="confirmNo">No<\/button><button class="btn" value="yes" id="confirmYes">Sí<\/button>/);
-  assert.match(runner, /askConfirm\('¿Estás seguro de que quieres completar esta carrera\?',\{yes:'Sí, completar',need:done,media:mediaOn\}\)/);
+  assert.match(runner, /askConfirm\('¿Estás seguro de que quieres completar esta carrera\?',\{yes:'Sí, completar',need:done,media:mediaOn,packing:true\}\)/);
   assert.match(runner, /askConfirm\('¿Estás seguro de que no puedes continuar esta carrera\?',\{yes:'Sí, dejarla',danger:true,/);
   assert.match(runner, /resolve\(d\.returnValue==='yes'\)/, 'Esc or No means no');
   assert.doesNotMatch(runner, /[^a-zA-Z]confirm\('¿Dejar esta carrera/);
@@ -944,7 +944,7 @@ test('runner documents runs: Foto de partida on each run, delivery media when co
   assert.match(runner, /data-pick="pickPhoto">📷 Tomar foto<\/button><button type="button" class="btn plain" data-pick="pickVideo">🎥 Grabar video<\/button><button type="button" class="btn plain" data-pick="pickGallery">🖼️ Galería<\/button>/);
   assert.match(runner, /files\.then\(f=>\{confirmFiles\.push\(\.\.\.f\);drawConfirmFiles\(\)\}\)/, 'each pick adds to the list');
   assert.match(runner, /URL\.createObjectURL\(f\)/, 'thumbnails preview before upload');
-  assert.match(runner, /askConfirm\('¿Estás seguro de que quieres completar esta carrera\?',\{yes:'Sí, completar',need:done,media:mediaOn\}\)/);
+  assert.match(runner, /askConfirm\('¿Estás seguro de que quieres completar esta carrera\?',\{yes:'Sí, completar',need:done,media:mediaOn,packing:true\}\)/);
   assert.match(runner, /if\(confirmFiles\.length&&!await uploadRunMedia\(done\.id,'delivery',confirmFiles\)\)\{complete\.disabled=false;return\}/, 'delivery media uploads before the run is completed');
   assert.match(runner, /PointForm\.uploadMedia\('\/api\/runner\/needs\/'\+encodeURIComponent\(id\)\+'\/media\?stage='\+stage,file,\{csrf,/);
   assert.match(runner, /\.btn\.quit\{display:block;width:auto;margin:12px auto 0;padding:6px 12px;font-size:12px;/);
@@ -2252,8 +2252,14 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   assert.doesNotMatch(page, /data-complete|data-take|data-release|\/api\/runner\//, 'no Completé, no taking or leaving runs, no runner endpoints');
   assert.match(page, /AppNav\.choose\('¿Sale del acopio esta carrera\?'/, 'confirm before dispatching');
   assert.match(page, /<button class="btn dispatch" type="button" data-dispatch="\$\{id\}">🚚 Despachada<\/button>/);
-  assert.match(page, /<div class="runnerline">🏃 <span class="rn">\$\{clean\(n\.runnerName\|\|'Corredor'\)\}<\/span>/, 'who carries it');
-  assert.match(page, /\$\{needDetails\(n,true,true\)\}/, 'same card as Runners');
+  // Card in three parts: runner (who, phone, when, live position) · destination (point, contacts, needs, map) · what to load (packing, photos, dispatch).
+  assert.match(page, /function runCard\(n\)\{return `<article class="scard split[^`]*\$\{runnerSection\(n\)\}\$\{destSection\(n\)\}\$\{loadSection\(n\)\}<\/article>`\}/);
+  assert.match(page, /secHead\('h-runner','🏃','Corredor'/);
+  assert.match(page, /<b class="rn">\$\{clean\(n\.runnerName\|\|'Corredor'\)\}<\/b>\$\{n\.runnerPhone\?/, 'who carries it, with call buttons');
+  assert.match(page, /La tomó \$\{clean\(agoEs\(n\.enRouteAt\)\)\}/);
+  assert.match(page, /data-runnerlive="\$\{clean\(n\.id\)\}">📍 Ver corredor en el mapa<\/button>/, 'live position on the map when shared');
+  assert.match(page, /secHead\('h-dest','📍','Destino'[^\n]*\$\{needDetails\(\{\.\.\.n,packing:null\},true,false\)\}<div class="actrow">\$\{needButtons\(n\)\}/, 'point, contacts and needs (no packing here), see on map');
+  assert.match(page, /secHead\('h-load','📦','Para cargar'[^\n]*PointForm\.packingHtml\(n\.packing\)[^\n]*\$\{mediaStrip\(n\)\}/, 'packing and departure photos together');
   assert.match(admin, /<input type="checkbox" name="roles" value="supplier"> Acopio<\/label>/);
   assert.match(admin, /n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada · en camino'/);
   assert.match(nav, /\['\/supplier\.html', '📦', \(\) => 'Supply', u => has\(u, 'supplier'\)\]/);
@@ -2273,8 +2279,33 @@ test('Supply ↔ Runners: Supply asks for a runner («📣 Pedidos» for runners
   assert.equal(tabNow([], 'req'), 'req');
   // Supply: three tabs, center name, request/cancel, in-person assign with a runner picker.
   assert.match(page, /data-main="req"[^>]*><span aria-hidden="true">📣<\/span> Pedir corredor <b id="cntReq"><\/b>/);
-  assert.match(page, /<label for="centerInput" title="Centro de acopio">📍 Centro<\/label><input id="centerInput"/);
+  assert.match(page, /<label for="centerInput"[^>]*>📍 Centro<\/label><input id="centerInput" list="centerList"[^>]*><datalist id="centerList"><\/datalist>/, 'typeahead with the shared list of centers');
+  assert.match(page, /\$\('#centerInput'\)\.addEventListener\('change',saveCenter\)/, 'saves when picked or when leaving the field');
+  assert.doesNotMatch(page, /id="heading"|id="sub"/, 'no heading or intro text taking space');
   for (const api of ["/request','POST',{})", "/request','POST',{cancel:true})", "/assign','POST',{runnerId:r.id})", "/api/supplier/center','POST'"]) assert.ok(page.includes(api), api);
   assert.match(page, /<dialog id="assignDlg"[^>]*>[^]*?<input class="sfind" id="assignFind"[^>]*>[^]*?<div class="runnerpick" id="assignList"/);
   assert.match(page, /other\?'':`<div class="reqacts">/, 'a need another Supply asked for: no buttons');
+});
+
+test('runners: the «Completé» confirmation shows the packing list being delivered', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  assert.match(runner, /\$\{packing\?`<div class="confirmpack"><b>📦 Lo que entregas<\/b>\$\{\(need\.packing\|\|\[\]\)\.length\?PointForm\.packingHtml\(need\.packing\):'<p class="muted">Sin lista de empaque\.<\/p>'\}<\/div>`:''\}/);
+  assert.match(runner, /askConfirm\('¿Estás seguro de que quieres completar esta carrera\?',\{yes:'Sí, completar',need:done,media:mediaOn,packing:true\}/);
+  assert.match(runner, /askConfirm\('¿Completaste esta carrera\?',\{yes:'Sí, completar',need:n,media:mediaOn,packing:true,/, 'offline too');
+  assert.doesNotMatch(runner.match(/askConfirm\('¿Estás seguro de que no puedes continuar[^)]*\)/)[0], /packing/, 'not when leaving the run');
+});
+
+test('runner cards: «Necesita» (what the point needs) apart from «📦 Lo que llevas» (the runner packing list)', () => {
+  for (const f of ['runner.html', 'supplier.html']) {
+    const page = readFileSync(new URL('./' + f, import.meta.url), 'utf8');
+    assert.match(page, /<div class="grp g-what"><span class="needlbl">Necesita<\/span>\$\{needChips\(n\.need\)\}<\/div>\$\{\(n\.packing\|\|\[\]\)\.length&&typeof PointForm!=='undefined'\?`<div class="grp g-carry"><span class="needlbl">📦 Lo que llevas<\/span>\$\{PointForm\.packingHtml\(n\.packing\)\}<\/div>`:''\}/, f);
+  }
+});
+
+test('runners: «Carrera completada» offers «📝 Actualizar necesidad» (opens the form) or «✓ No necesitan nada más»', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  assert.match(runner, /<div class="fuchoice" id="fuChoice"><button class="btn update" type="button" id="openFollowup">📝 Actualizar necesidad<\/button><button class="btn ok" type="button" id="skipFollowup">✓ No necesitan nada más<\/button><\/div><div id="fuForm" hidden>/);
+  assert.match(runner, /<button class="btn" type="submit">Guardar necesidad<\/button><button class="btn plain" type="button" id="backFollowup">Volver<\/button><\/div>/);
+  assert.match(runner, /if\(e\.target\.id==='openFollowup'\)\{\$\('#fuChoice'\)\.hidden=true;\$\('#fuForm'\)\.hidden=false;/);
+  assert.match(runner, /if\(e\.target\.id==='skipFollowup'\)\{followup=null;await refresh\(\)\}/);
 });

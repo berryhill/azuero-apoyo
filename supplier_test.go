@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 func (s *serviceHarness) supplierLogin(code string) (*http.Cookie, string) {
@@ -29,6 +30,7 @@ type supplierView struct {
 	Open    []supplierRun
 	Runners []supplierRunner
 	Center  string
+	Centers []string
 }
 
 func (s *serviceHarness) supplierView(cookie *http.Cookie) supplierView {
@@ -80,6 +82,14 @@ func TestSupplyRequestsRunnersAndDispatchesItsOwnRuns(t *testing.T) {
 	other, ocsrf := s.supplierLogin("OTRO777")
 	if w := s.agentCall("POST", "/api/supplier/center", `{"center":"  Villa   Marina "}`, julie, jcsrf); w.Code != 200 || !strings.Contains(w.Body.String(), `"Villa Marina"`) {
 		t.Fatalf("center: %d %s", w.Code, w.Body.String())
+	}
+	// The center joins the shared list; the other Supply picks it with different case/accents and gets the same name.
+	if w := s.agentCall("POST", "/api/supplier/center", `{"center":"villa marína"}`, other, ocsrf); w.Code != 200 || !strings.Contains(w.Body.String(), `"Villa Marina"`) {
+		t.Fatalf("reuse center: %d %s", w.Code, w.Body.String())
+	}
+	s.agentCall("POST", "/api/supplier/center", `{"center":"Las Tablas"}`, other, ocsrf)
+	if c := s.supplierView(julie).Centers; strings.Join(c, "|") != "Las Tablas|Villa Marina" {
+		t.Fatalf("shared centers: %q", c)
 	}
 	v := s.supplierView(julie)
 	if len(v.Runs) != 0 || len(v.Open) != 3 || v.Center != "Villa Marina" {
@@ -145,6 +155,22 @@ func TestSupplyRequestsRunnersAndDispatchesItsOwnRuns(t *testing.T) {
 	}
 	if len(s.supplierView(julie).Runs) != 2 {
 		t.Fatalf("both linked runs in Por despachar")
+	}
+	// The runner shares live location: Supply sees where they are on its runs.
+	if r := findRun(s.supplierView(julie).Runs, water); r == nil || r.RunnerLive != nil {
+		t.Fatalf("no live position yet: %+v", r)
+	}
+	s.app.mu.Lock()
+	s.app.locations[runnerID] = liveLocation{Lat: 7.45, Lon: -80.3, Accuracy: 12, At: time.Now()}
+	s.app.mu.Unlock()
+	if r := findRun(s.supplierView(julie).Runs, water); r == nil || r.RunnerLive == nil || r.RunnerLive.Lat != 7.45 {
+		t.Fatalf("live position: %+v", r)
+	}
+	s.app.mu.Lock()
+	s.app.locations[runnerID] = liveLocation{Lat: 7.45, Lon: -80.3, At: time.Now().Add(-10 * time.Minute)}
+	s.app.mu.Unlock()
+	if r := findRun(s.supplierView(julie).Runs, water); r.RunnerLive != nil {
+		t.Fatalf("stale position is not shown")
 	}
 	// Pack and dispatch: still IN_PROGRESS; the runner sees it; public hides who.
 	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/packing", `{"items":[{"item":"Agua","quantity":4,"unit":"galones"}]}`, julie, jcsrf); w.Code != 200 {

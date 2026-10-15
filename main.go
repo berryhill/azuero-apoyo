@@ -421,6 +421,9 @@ func openApp(path, static string) (*App, error) {
 		if _, e := tx.CreateBucketIfNotExists(donationsBucket); e != nil {
 			return e
 		}
+		if e := ensureSupplyCenters(tx); e != nil {
+			return e
+		}
 		b, e := tx.CreateBucketIfNotExists(meta)
 		if e != nil {
 			return e
@@ -452,7 +455,7 @@ func openApp(path, static string) (*App, error) {
 
 // migrate pone al día los datos guardados (al arrancar y después de importar un respaldo, que puede ser más viejo).
 func (a *App) migrate() error {
-	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateNeedUrgency, ensureDonations} {
+	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateNeedUrgency, ensureDonations, ensureSupplyCenters} {
 		if err := a.db.Update(step); err != nil {
 			return err
 		}

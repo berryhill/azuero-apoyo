@@ -21,6 +21,41 @@ import (
 // Cada acopio ve y despacha solo sus carreras ligadas. Entra con su código (rol «Acopio»; sesión supplier_session).
 const roleSupplier = "supplier"
 
+// Centros de acopio guardados: la lista compartida para elegir el nombre del centro (clave: nombre sin tildes ni
+// mayúsculas, valor: el nombre como se escribió la primera vez).
+var supplyCentersBucket = []byte("supply_centers")
+
+func ensureSupplyCenters(tx *bolt.Tx) error {
+	_, err := tx.CreateBucketIfNotExists(supplyCentersBucket)
+	return err
+}
+
+// supplyCenters: los centros guardados más los que ya tienen las personas de Supply, sin repetir, en orden alfabético.
+func supplyCenters(tx *bolt.Tx) ([]string, error) {
+	seen := map[string]string{}
+	if b := tx.Bucket(supplyCentersBucket); b != nil {
+		if e := b.ForEach(func(k, v []byte) error { seen[string(k)] = string(v); return nil }); e != nil {
+			return nil, e
+		}
+	}
+	if e := eachUser(tx, func(u User) error {
+		if c := strings.TrimSpace(u.SupplyCenter); c != "" {
+			if _, ok := seen[foldText(c)]; !ok {
+				seen[foldText(c)] = c
+			}
+		}
+		return nil
+	}); e != nil {
+		return nil, e
+	}
+	list := make([]string, 0, len(seen))
+	for _, v := range seen {
+		list = append(list, v)
+	}
+	sort.Slice(list, func(i, j int) bool { return foldText(list[i]) < foldText(list[j]) })
+	return list, nil
+}
+
 var errNotARun = errors.New("Esta carrera ya no está en camino.")
 
 // supplierInfo: el acopio de una carrera, como lo ven los corredores (para llamar y saber dónde recoger).
@@ -48,6 +83,8 @@ type supplierRun struct {
 	RunnerPhone      string `json:"runnerPhone,omitempty"`
 	DispatchedAt     string `json:"dispatchedAt,omitempty"`
 	DispatchedByName string `json:"dispatchedByName,omitempty"`
+	// Dónde va el corredor, si comparte su ubicación en vivo (reciente); solo en las carreras de este acopio.
+	RunnerLive *runnerOnMap `json:"runnerLive,omitempty"`
 	// Pedir corredor: el pedido es de este acopio (mine) o de otro (Supplier).
 	RequestedAt string `json:"requestedAt,omitempty"`
 	RequestMine bool   `json:"requestMine,omitempty"`
@@ -170,6 +207,15 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return
 		}
 		runs, open, runners := []supplierRun{}, []supplierRun{}, []supplierRunner{}
+		now := time.Now()
+		live := map[string]liveLocation{}
+		a.mu.Lock()
+		for id, loc := range a.locations {
+			if now.Sub(loc.At) <= locationTTL {
+				live[id] = loc
+			}
+		}
+		a.mu.Unlock()
 		err := a.db.View(func(tx *bolt.Tx) error {
 			camps := map[string]runnerCamp{}
 			if e := tx.Bucket(submissions).ForEach(func(_, v []byte) error {
@@ -216,6 +262,9 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				}
 				if u, found := getUser(tx, n.RunnerID); found {
 					run.RunnerName, run.RunnerPhone = u.Name, u.Telephone
+					if loc, ok := live[n.RunnerID]; ok {
+						run.RunnerLive = &runnerOnMap{ID: u.ID, Name: u.Name, Lat: loc.Lat, Lon: loc.Lon, Accuracy: loc.Accuracy, At: loc.At.UTC().Format(time.RFC3339), Seconds: int(now.Sub(loc.At).Seconds())}
+					}
 				}
 				runs = append(runs, run)
 				return nil
@@ -250,7 +299,11 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return open[i].CreatedAt < open[j].CreatedAt
 		})
 		sort.SliceStable(runners, func(i, j int) bool { return runnerNameKey(runners[i].Name) < runnerNameKey(runners[j].Name) })
-		response(w, 200, map[string]any{"runs": runs, "open": open, "runners": runners, "center": me.SupplyCenter})
+		var centers []string
+		if e := a.db.View(func(tx *bolt.Tx) (e error) { centers, e = supplyCenters(tx); return e }); serviceError(w, e) {
+			return
+		}
+		response(w, 200, map[string]any{"runs": runs, "open": open, "runners": runners, "center": me.SupplyCenter, "centers": centers})
 	})
 	// Nombre del centro de acopio de esta persona (texto; los corredores lo ven en los pedidos y en su carrera).
 	mux.HandleFunc("POST /api/supplier/center", func(w http.ResponseWriter, r *http.Request) {
@@ -267,6 +320,15 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			u, found := getUser(tx, me.ID)
 			if !found {
 				return errMissing
+			}
+			// Un centro nuevo queda en la lista compartida; si ya existe con otras tildes o mayúsculas, se usa ese nombre.
+			if center != "" {
+				b := tx.Bucket(supplyCentersBucket)
+				if v := b.Get([]byte(foldText(center))); v != nil {
+					center = string(v)
+				} else if e := b.Put([]byte(foldText(center)), []byte(center)); e != nil {
+					return e
+				}
 			}
 			u.SupplyCenter, u.UpdatedAt = center, nowStamp()
 			return putJSON(tx.Bucket(usersBucket), u.ID, u)
