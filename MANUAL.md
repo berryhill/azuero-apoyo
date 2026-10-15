@@ -241,7 +241,14 @@ assessments are visible to all builders. Repairs are never public; their materia
 List of points with filters (state, area, need, urgent/open/on the way), a map, and an "en ruta" monitor. Each card:
 point name, people, coordinator, counters «🚩 N por llevar» / «🏃 N en camino», needs, «Checkup» (log a call) and
 «Editar punto». Opening a point shows full data, contacts, changelog and its needs (update, report a new one, mark
-services done). Works on phones (single column).
+services done).
+
+In «Actualizar necesidad», **«Ya no necesita nada»** asks **«¿Alguien la suplió?»**:
+
+- «No, ya no la necesitan» removes the need (`DELETED`) and counts as a checkup on the point.
+- «Sí, la suplió alguien» asks for the Runner (or Constructor for a repair), required, and saves the need as
+  `COMPLETED` under that person with the original items, like a finished run. A new name creates the runner with
+  their phone. Works on phones (single column).
 
 ---
 
