@@ -285,15 +285,16 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     name.spellcheck = false;
   }
 
-  // «Recordar mi código» (en modo código de cualquier entrada): marcado, el código queda guardado en este teléfono para
-  // todas las páginas (Runners, Constructores, Comando, el mapa) y cada una entra sola; sin marcar, no se guarda.
+  // «Recordar mi código de acceso»: aparece en cuanto lo escrito empieza con «!». Marcado, el código queda guardado en este
+  // teléfono (rememberedCode, que «Salir» no borra) y cada página entra sola; al volver a escribir «!» se completa con él.
+  // Sin marcar, se olvida.
   const codeKeys = ['runnerCode', 'builderCode', 'agentCode'];
   function rememberBox(form) {
     if (form.querySelector('.remember')) return;
     const btn = form.querySelector('[type=submit]');
     if (!btn) return;
     let on = true; try { on = localStorage.getItem('rememberCode') !== '0'; } catch {}
-    btn.insertAdjacentHTML('beforebegin', `<label class="remember" hidden><input type="checkbox" name="remember"${on ? ' checked' : ''}> Recordar mi código en este teléfono (todas las páginas)</label>`);
+    btn.insertAdjacentHTML('beforebegin', `<label class="remember" hidden><input type="checkbox" name="remember"${on ? ' checked' : ''}> Recordar mi código de acceso</label>`);
   }
   function showRemember(form, code) { const box = form.querySelector('.remember'); if (box) box.hidden = !code; }
   document.addEventListener('submit', e => {
@@ -302,14 +303,26 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const code = name.value.trim().slice(1).trim();
     try {
       localStorage.setItem('rememberCode', box.checked ? '1' : '0');
-      if (box.checked) codeKeys.forEach(k => localStorage.setItem(k, code));
-      // Sin recordar: la página guarda el código al entrar; se borra en cuanto termina de entrar.
-      else setTimeout(() => codeKeys.forEach(k => localStorage.removeItem(k)), 4000);
+      if (box.checked) { localStorage.setItem('rememberedCode', code); codeKeys.forEach(k => localStorage.setItem(k, code)); }
+      // Sin recordar: se olvida; la página guarda el código al entrar y se borra en cuanto termina de entrar.
+      else { localStorage.removeItem('rememberedCode'); setTimeout(() => codeKeys.forEach(k => localStorage.removeItem(k)), 4000); }
     } catch {}
   }, true);
   // Con el código recordado, cada página lo encuentra con su propio nombre para entrar sola.
   try { const saved = codeKeys.map(k => localStorage.getItem(k)).find(Boolean); if (saved && localStorage.getItem('rememberCode') === '1') codeKeys.forEach(k => { if (!localStorage.getItem(k)) localStorage.setItem(k, saved); }); } catch {}
-  document.addEventListener('input', e => { const f = e.target.closest?.('form[data-codelogin],form#loginForm'); if (f && e.target.name === 'name') { if (f.matches('[data-codelogin]')) syncCodeLogin(f); rememberBox(f); showRemember(f, /^!./.test(e.target.value.trimStart())); } });
+  const rememberedCode = () => { try { return localStorage.getItem('rememberCode') === '1' && localStorage.getItem('rememberedCode') || ''; } catch { return ''; } };
+  document.addEventListener('input', e => {
+    const f = e.target.closest?.('form[data-codelogin],form#loginForm');
+    if (!f || e.target.name !== 'name') return;
+    // Escribir solo «!» completa el código recordado (una vez por intento: si lo borran, pueden escribir otro). Se vuelve a
+    // avisar del cambio para que cada página (también el «Login» del mapa) pase a modo código: oculta el teléfono y cambia los textos.
+    const saved = rememberedCode();
+    if (e.target.value.trim() === '!' && saved && !f.dataset.filled && e.inputType !== 'deleteContentBackward') { f.dataset.filled = '1'; e.target.value = '!' + saved; e.target.setSelectionRange?.(e.target.value.length, e.target.value.length); e.target.dispatchEvent(new Event('input', {bubbles: true})); return; }
+    if (!e.target.value.trim()) delete f.dataset.filled;
+    if (f.matches('[data-codelogin]')) syncCodeLogin(f);
+    rememberBox(f);
+    showRemember(f, /^!/.test(e.target.value.trimStart()));
+  });
   // Nombre corto para encabezados: nombre + primeras letras del apellido («Arianne Ori…»).
   const shortName = n => { const w = String(n || '').trim().split(/\s+/).filter(Boolean); return w.length < 2 ? w.join('') : w[0] + ' ' + (w[1].length > 3 ? w[1].slice(0, 3) + '…' : w[1]); };
   const drawAll = () => { draw(); drawMobileBar(); };

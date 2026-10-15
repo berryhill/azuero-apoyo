@@ -1062,7 +1062,7 @@ test('Usuarios: tapping the phone copies it on a computer and opens WhatsApp on 
   assert.match(admin, /const phone=e\.target\.closest\('\[data-phone\]'\);if\(phone\)\{phoneClick\(phone\);return\}/);
 });
 test('admin header: Usuarios and Generar boletín live in a ☰ menu that opens and closes', () => {
-  assert.match(admin, /<button type="button" class="menubtn" id="menuToggle" aria-expanded="false" aria-controls="adminMenu"[^>]*>☰<\/button><div class="adminmenu" id="adminMenu" role="menu" hidden><button type="button" role="menuitem" id="usersToggle">Usuarios<\/button><a role="menuitem" href="\/donations\.html">🎁 Donaciones<\/a><button type="button" role="menuitem" id="boletinToggle">Generar boletín<\/button><a role="menuitem" class="boletinlink" href="\/report\/boletin_general\.html"[^>]*>Ver último boletín ↗<\/a><button type="button" role="menuitemcheckbox" id="reviewToggle"[^>]*>[^\n]*?<\/button><button type="button" role="menuitem" id="passwordToggle">Cambiar contraseña maestra<\/button><a role="menuitem" id="backupDownload"[^\n]*?<\/div>/);
+  assert.match(admin, /<button type="button" class="menubtn" id="menuToggle" aria-expanded="false" aria-controls="adminMenu"[^>]*>☰<\/button><div class="adminmenu" id="adminMenu" role="menu" hidden><button type="button" role="menuitem" id="usersToggle">Usuarios<\/button><a role="menuitem" href="\/donations\.html">🎁 Donaciones<\/a><button type="button" role="menuitem" id="importPendingToggle">Importar reportes \(por revisar\)…<\/button><button type="button" role="menuitem" id="boletinToggle">Generar boletín<\/button><a role="menuitem" class="boletinlink" href="\/report\/boletin_general\.html"[^>]*>Ver último boletín ↗<\/a><button type="button" role="menuitemcheckbox" id="reviewToggle"[^>]*>[^\n]*?<\/button><button type="button" role="menuitem" id="passwordToggle">Cambiar contraseña maestra<\/button><a role="menuitem" id="backupDownload"[^\n]*?<\/div>/);
   assert.match(admin, /\$\('#menuToggle'\)\.onclick=e=>\{e\.stopPropagation\(\);setMenu\(\$\('#adminMenu'\)\.hidden\)\};/);
   assert.match(admin, /\$\('#adminMenu'\)\.addEventListener\('click',\(\)=>setMenu\(false\)\);/, 'choosing an option closes it');
   assert.match(admin, /if\(!e\.target\.closest\('\.menuwrap'\)\)setMenu\(false\)/, 'clicking outside closes it');
@@ -1271,7 +1271,7 @@ test('signed-in headers show just the name, without «Hola,»', () => {
   for (const page of [template, runner, builder]) assert.doesNotMatch(page, /Hola, /);
 });
 test('admin list: filter by Agregado por, sort by recent/código/área/coordinador, and Archivar on approved cards', () => {
-  assert.match(admin, /<div class="listtools"><p id="count" class="muted"><\/p><label>Agregado por<select id="addedByFilter"><\/select><\/label><label>Ordenar<select id="sortBy"><option value="recent">Más recientes<\/option><option value="code">Código<\/option><option value="area">Área<\/option><option value="coord">Coordinador<\/option><\/select><\/label><\/div>/);
+  assert.match(admin, /<div class="listtools"><p id="count" class="muted"><\/p><label>Agregado por<select id="addedByFilter"><\/select><\/label><label>Ordenar<select id="sortBy"><option value="recent">Más recientes<\/option><option value="code">Código<\/option><option value="area">Área<\/option><option value="coord">Coordinador<\/option><\/select><\/label><div class="pendbulk" id="pendBulk" hidden><\/div><\/div>/);
   assert.match(admin, /&&\(!addedByFilter\|\|\(addedByFilter==='__none__'\?!p\.addedBy:p\.addedBy===addedByFilter\)\)&&/);
   const src = ['byText', 'newest', 'pointSort'].map(k => admin.match(new RegExp(`const ${k}=[^\\n]*`))[0]).join('\n') + '\n' + admin.match(/function pointOrder\(\)[^\n]*/)[0];
   const order = (sortBy, view, rows) => rows.slice().sort(new Function('sortBy', 'view', `${src};return pointOrder()`)(sortBy, view)).map(p => p.code);
@@ -2102,9 +2102,11 @@ test('recurring camp services: admin section with countdown, done/edit/remove; s
 
 test('«Recordar mi código» on every sign-in (code mode): checked keeps it for all pages; unchecked does not keep it', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
-  assert.match(nav, /<label class="remember" hidden><input type="checkbox" name="remember"\$\{on \? ' checked' : ''\}> Recordar mi código en este teléfono \(todas las páginas\)<\/label>/);
-  assert.match(nav, /if \(box\.checked\) codeKeys\.forEach\(k => localStorage\.setItem\(k, code\)\);/, 'one code for runners, builders and the command center');
-  assert.match(nav, /else setTimeout\(\(\) => codeKeys\.forEach\(k => localStorage\.removeItem\(k\)\), 4000\);/);
+  assert.match(nav, /<label class="remember" hidden><input type="checkbox" name="remember"\$\{on \? ' checked' : ''\}> Recordar mi código de acceso<\/label>/);
+  assert.match(nav, /showRemember\(f, \/\^!\/\.test\(e\.target\.value\.trimStart\(\)\)\)/, 'shows as soon as the field starts with «!»');
+  assert.match(nav, /if \(box\.checked\) \{ localStorage\.setItem\('rememberedCode', code\); codeKeys\.forEach\(k => localStorage\.setItem\(k, code\)\); \}/, 'one code for every page, plus a copy that «Salir» does not clear');
+  assert.match(nav, /if \(e\.target\.value\.trim\(\) === '!' && saved && !f\.dataset\.filled && e\.inputType !== 'deleteContentBackward'\) \{ f\.dataset\.filled = '1'; e\.target\.value = '!' \+ saved;[^\n]*e\.target\.dispatchEvent\(new Event\('input', \{bubbles: true\}\)\); return; \}/, 'typing «!» fills the remembered code and re-announces it, so every page switches to code mode');
+  assert.match(nav, /else \{ localStorage\.removeItem\('rememberedCode'\); setTimeout\(\(\) => codeKeys\.forEach\(k => localStorage\.removeItem\(k\)\), 4000\); \}/, 'unchecked forgets it');
   assert.match(nav, /form\[data-codelogin\],form#loginForm/, 'the public Login too');
 });
 
@@ -2139,4 +2141,56 @@ test('Donaciones page: only admin or the «Donaciones» role (code); tickets wit
   for (const f of ['dropPlace', 'dropAt', 'transporter', 'transporterPhone', 'campId', 'dispatchAt', 'destination']) assert.match(page, new RegExp(`name="${f}"`), f);
   assert.match(page, /https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=/, 'device-appropriate Maps link, no embedded map');
   assert.match(page, /const left=Math\.max\(0,a\.need-a\.committed\)|left=Math\.max\(0,a\.need-a\.committed\)/, 'only committed subtracts');
+});
+
+test('admin «Por revisar»: check reports (one by one or all in view) and export them to CSV with every field', () => {
+  const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
+  assert.match(admin, /<option value="coord">Coordinador<\/option><\/select><\/label><div class="pendbulk" id="pendBulk" hidden><\/div><\/div>/);
+  assert.match(admin, /<input type="checkbox" class="pendcheck" data-pendsel="\$\{clean\(p\.id\)\}"/, 'a checkbox on each pending card');
+  assert.match(admin, /bar\.hidden=view!=='pending'\|\|!pendVisible\.length/, 'only in «Por revisar»');
+  assert.match(admin, /for\(const id of pendVisible\)e\.target\.checked\?pendSel\.add\(id\):pendSel\.delete\(id\)/, '«Seleccionar» = the reports in the current view (after search and filters)');
+  assert.match(admin, /if\(!points\.some\(p=>p\.id===id&&p\.status==='pending'\)\)pendSel\.delete\(id\)/, 'approved or rejected reports drop out of the selection');
+  const src = admin.match(/const PEND_COLS=[^\n]*/)[0] + '\n' + admin.match(/function pendingCsv\(list\)[^\n]*/)[0];
+  const csv = new Function(`${src};return pendingCsv`)()([{id: 'x1', code: 'P-1', area: 'Tonosí', place: 'Escuela, "la vieja"', coords: [7.4, -80.4], phone: '6000-0000', needs: 'Agua, Alimentos', extra: 'línea 1\nlínea 2', members: [{name: 'Ana', age: '7', cedula: '8-1-1'}]}]);
+  assert.ok(csv.startsWith('﻿ID,Código,Recibido'), 'BOM so Excel reads the accents');
+  const head = csv.slice(1).split('\r\n')[0], row = csv.slice(1).split('\r\n').slice(1).join('\r\n');
+  assert.equal(head.split(',').length, 28);
+  assert.ok(row.startsWith('x1,P-1,,,Tonosí,"Escuela, ""la vieja""",,,7.4,-80.4,'), row);
+  assert.ok(row.includes('"Agua, Alimentos"') && row.includes('"línea 1\nlínea 2"') && row.includes('Ana, 7 años, cédula 8-1-1'), row);
+  assert.match(admin, /a\.download=`por-revisar-\$\{new Date\(\)\.toISOString\(\)\.slice\(0,10\)\}-\$\{list\.length\}\.csv`/);
+});
+
+test('admin «Importar reportes (por revisar)»: CSV from the export or a JSON list; always ?pending=1, never published', () => {
+  const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
+  assert.match(admin, /<button type="button" role="menuitem" id="importPendingToggle">Importar reportes \(por revisar\)…<\/button>/);
+  assert.match(admin, /adminRequest\('\/api\/admin\/points\?pending=1','POST',p\)/, 'the pending route only');
+  const imp = admin.slice(admin.indexOf('// Importar reportes:'), admin.indexOf('function render(){'));
+  assert.doesNotMatch(imp, /'\/api\/admin\/points','POST'|\/api\/admin\/points'?,'POST'/, 'never the publishing route');
+  assert.match(admin, /clientRef:await rowRef\(r\.p\)/, 're-importing the same rows does not duplicate');
+  const grab = re => admin.match(re)[0];
+  const src = [/const fold=[^;]*;/, /const PEND_COLS=[^\n]*/, /function pendingCsv\(list\)[^\n]*/, /const IMPORT_FIELDS=[^\n]*/, /function parseCsv\(text\)[^\n]*/].map(grab).join('\n') + '\n' + admin.slice(admin.indexOf('function importRows('), admin.indexOf('let importList=[];'));
+  const {pendingCsv, importRows} = new Function('points', `${src};return {pendingCsv, importRows}`)([{id: 'old', code: 'P-taken'}]);
+  const src1 = {id: 'x1', code: 'P-taken', created: '2026-10-15', status: 'pending', area: 'Tonosí', place: 'Escuela, "la vieja"', coords: [7.4, -80.4], phone: '6000-0000', people: '12', needs: 'Agua, Alimentos', extra: 'línea 1\nlínea 2', note: 'privada', addedByName: 'Arianne', members: [{name: 'Ana', age: '7'}]};
+  const [row] = importRows('x.csv', pendingCsv([src1]));
+  assert.equal(row.id, 'x1');
+  assert.deepEqual(row.p.coords, [7.4, -80.4]);
+  assert.equal(row.p.place, 'Escuela, "la vieja"');
+  assert.equal(row.p.extra, 'línea 1\nlínea 2');
+  assert.equal(row.p.needs, 'Agua, Alimentos');
+  assert.equal(row.p.code, undefined, 'a code already in use is dropped');
+  assert.ok(!('status' in row.p) && !('created' in row.p) && !('id' in row.p), 'no status, dates or id sent');
+  assert.match(row.p.note, /^privada\nPersonas del grupo \(del archivo\): Ana, 7 años\nAgregado por \(según el archivo\): Arianne$/);
+  const [j] = importRows('c.json', JSON.stringify([{area: 'Flores', gps: 'https://maps.app.goo.gl/x', coords: [7, -80], members: [{name: 'B'}], status: 'approved', addedBy: 'u1'}]));
+  assert.deepEqual(j.p, {area: 'Flores', gps: 'https://maps.app.goo.gl/x', members: [{name: 'B'}], addedBy: 'u1'}, 'JSON: link wins over coords; status ignored');
+});
+
+test('«Salir» on any page forgets every page copy of the code (no silent sign-in again); the remembered code stays for «!»', () => {
+  for (const f of ['runner.html', 'builder.html']) {
+    const page = readFileSync(new URL('./' + f, import.meta.url), 'utf8');
+    const out = page.slice(page.indexOf("$('#logout').onclick"), page.indexOf("$('#logout').onclick") + 900);
+    assert.match(out, /\['runnerCode','builderCode','agentCode'\]\.forEach\(k=>localStorage\.removeItem\(k\)\);/, f);
+    assert.doesNotMatch(out, /rememberedCode/, f + ' keeps the remembered code');
+  }
+  const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  assert.match(cmd, /\['agentCode','codeUser','runnerCode','runnerName','builderCode','builderName'\]/);
 });
