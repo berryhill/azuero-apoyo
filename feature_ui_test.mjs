@@ -105,7 +105,7 @@ test('public cards: area then people count on top; no generated ID or «Sin nomb
   const autoCode = new Function(`${template.match(/const autoCode=[^\n]*/)[0]};return autoCode`)();
   assert.equal(autoCode('P-1a2b3c4d5e6f'), true);
   assert.equal(autoCode('AZ-12'), false);
-  assert.match(template, /<span class="code">\$\{autoCode\(r\.code\)\?'':clean\(r\.code\)\+' '\}<span class="area">\$\{clean\(r\.area\)\}<\/span>\$\{vb\(r\)\}\$\{r\.people\?` <span class="ppl" title="\$\{clean\(r\.people\)\} personas">\$\{clean\(r\.people\)\} 👥<\/span>`:''\}<\/span>/);
+  assert.match(template, /<span class="code">\$\{autoCode\(r\.code\)\?'':clean\(r\.code\)\+' '\}<span class="area">\$\{clean\(r\.area\)\}<\/span>\$\{vb\(r\)\}\$\{r\.heldUntil[^]*?\}\$\{r\.people\?` <span class="ppl" title="\$\{clean\(r\.people\)\} personas">\$\{clean\(r\.people\)\} 👥<\/span>`:''\}<\/span>/);
   assert.doesNotMatch(template, /Sin nombre/);
   assert.match(template, /\$\{r\.coordinator\?`<div class="meta">\$\{clean\(r\.coordinator\)\} sabe más<\/div>`:''\}/);
 });
@@ -205,7 +205,7 @@ test('selected point offers Reportar necesidad with required requester name and 
   assert.match(template, /!validPhone\(v\('requesterPhone'\)\)/);
   assert.match(camp, /Reportado por \$\{clean\(n\.requesterName\)\}/);
   assert.match(admin, /Reportado por \$\{clean\(n\.requesterName\)\}/);
-  assert.match(runner, /<small class="role">Reportó<\/small> \$\{clean\(n\.requesterName\)\}/);
+  assert.match(runner, /<small class="role">Pidió<\/small> \$\{clean\(n\.requesterName\)\}/);
 });
 test('admin stats bar: need counters filter approved points; Puntos por revisar and Archivados toggle the view', () => {
   const dash = admin.slice(admin.indexOf('id="dashboard"'));
@@ -224,10 +224,10 @@ test('admin stats bar: need counters filter approved points; Puntos por revisar 
   assert.match(admin, /id="mergeNoCopy">Marcar duplicado sin copiar datos<\/button>/);
   assert.match(admin, /\$\{p\.status==='rejected'\?'duplicado':p\.status==='pending'\?'Esperando aprobación':clean\(p\.status\)\}<\/span>/);
   assert.match(html, /<button type="button" class="all " data-view="approved" aria-pressed="false"><b>1<\/b><span>Aprobados/);
-  assert.match(html, /class="coord " data-coord-open aria-haspopup="listbox" aria-expanded="false"><span>Coordinador<\/span><b>Todos<\/b><span>▾<\/span>/);
+  assert.match(html, /class="coord " data-coord-open aria-haspopup="listbox" aria-expanded="false"><span>Reportado por<\/span><b>Todos<\/b><span>▾<\/span>/);
   html = draw('', 'archived', 'marta');
   assert.match(html, /class="archived active" data-view="archived" aria-pressed="true"/);
-  assert.match(html, /class="coord active"[^>]*><span>Coordinador<\/span><b>Marta<\/b>/);
+  assert.match(html, /class="coord active"[^>]*><span>Reportado por<\/span><b>Marta<\/b>/);
   assert.match(draw('', 'approved'), /class="all active" data-view="approved" aria-pressed="true"/);
   assert.match(admin, /view='approved',needFilter=''/);
   const click = admin.match(/if\(b\.dataset\.view\)\{(.*?)\}else/)[1];
@@ -267,7 +267,7 @@ test('runner need card lists the camp contact phones with copy / call / WhatsApp
   // The coordinator is not repeated: the contact marked «(coordinador)» gets the Coord. tag and the separate line goes away.
   const co = needDetails({id: 'n', need: 'Agua', urgency: 'urgente', camp: {id: 'c', code: 'C-1', coordinator: 'Sarah Spalding', contacts: [{name: 'Sarah Spalding (coordinador)', phone: '6629-6224'}]}});
   assert.equal(co.match(/Sarah Spalding/g).length, 1);
-  assert.match(co, /Sarah Spalding <small class="role">Coord\.<\/small> \[6629-6224\]/);
+  assert.match(co, /Sarah Spalding <small class="role">Reportado por<\/small> \[6629-6224\]/);
   // Same phone as a contact: the reporter is named once, without repeating the number.
   assert.equal(needDetails({id: 'n', need: 'Agua', requesterName: 'Javier', requesterPhone: '6895-5161', camp: {id: 'c', code: 'C-1', contacts: [{name: 'Javier', phone: '6895 5161'}]}}).match(/6895/g).length, 1);
 });
@@ -980,7 +980,7 @@ test('public list shows reserved run details to a code-signed-in user, and falls
   assert.match(template, /'\/api\/full\/logout'/);
 });
 test('public coordinator filter only appears when signed in with an access code', () => {
-  assert.match(template, /<span class="needlabel coordlabel">Coordinador<\/span><div class="coordwrap">/);
+  assert.match(template, /<span class="needlabel coordlabel">Reportado por<\/span><div class="coordwrap">/);
   assert.match(template, /body:not\(\.signed-in\) \.coordlabel,body:not\(\.signed-in\) \.coordwrap,[^{]*\{display:none!important\}/);
   assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\);[^\n]*?if\(!u&&\(selectedCoordinator\|\|teamOnly\)\)\{selectedCoordinator='';/);
 });
@@ -998,7 +998,7 @@ test('team members are the coordinator by default (a card with «Cambiar», no f
   const fn = pointformSrc.match(/function setMe\(root, me\) \{[^]*?\n  \}/)[0];
   assert.match(fn, /if \(!me \|\| !me\.name \|\| !me\.team\) return;/, 'only for a signed-in team member');
   assert.doesNotMatch(pointformSrc, /class="pf-yo"/);
-  assert.match(fn, /<div class="pf-coordme"><span class="pf-cm-ico">\$\{icons\.coordinator\}<\/span><div class="pf-cm-txt"><small>Coordinador<\/small><b>\$\{esc\(me\.name\)\}<\/b><span class="pf-cm-sub">Tú · \$\{esc\(me\.team\)\}/);
+  assert.match(fn, /<div class="pf-coordme"><span class="pf-cm-ico">\$\{icons\.megaphone\}<\/span><div class="pf-cm-txt"><small>Reportado por<\/small><b>\$\{esc\(me\.name\)\}<\/b><span class="pf-cm-sub">Tú · \$\{esc\(me\.team\)\}/);
   assert.match(fn, /set\(me\.name, me\.telephone \|\| ''\);\s*labels\.forEach\(l => \{ l\.hidden = true; \}\);/, 'fields filled and hidden');
   assert.match(fn, /<button type="button" class="pf-cm-change">Cambiar<\/button>/);
   assert.match(fn, /set\('', ''\); backLink\(\); coordEl\.focus\(\);/, '«Cambiar»: empty fields and «↺ Soy yo»');
@@ -1247,7 +1247,7 @@ test('signed-in headers show just the name, without «Hola,»', () => {
   for (const page of [template, runner, builder]) assert.doesNotMatch(page, /Hola, /);
 });
 test('admin list: filter by Agregado por, sort by recent/código/área/coordinador, and Archivar on approved cards', () => {
-  assert.match(admin, /<div class="listtools"><p id="count" class="muted"><\/p><label>Agregado por<select id="addedByFilter"><\/select><\/label><label>Ordenar<select id="sortBy"><option value="recent">Más recientes<\/option><option value="code">Código<\/option><option value="area">Área<\/option><option value="coord">Coordinador<\/option><\/select><\/label><div class="pendbulk" id="pendBulk" hidden><\/div><\/div>/);
+  assert.match(admin, /<div class="listtools"><p id="count" class="muted"><\/p><label>Agregado por<select id="addedByFilter"><\/select><\/label><label>Ordenar<select id="sortBy"><option value="recent">Más recientes<\/option><option value="code">Código<\/option><option value="area">Área<\/option><option value="coord">Reportado por<\/option><\/select><\/label><div class="pendbulk" id="pendBulk" hidden><\/div><\/div>/);
   assert.match(admin, /&&\(!addedByFilter\|\|\(addedByFilter==='__none__'\?!p\.addedBy:p\.addedBy===addedByFilter\)\)&&/);
   const src = ['byText', 'newest', 'pointSort'].map(k => admin.match(new RegExp(`const ${k}=[^\\n]*`))[0]).join('\n') + '\n' + admin.match(/function pointOrder\(\)[^\n]*/)[0];
   const order = (sortBy, view, rows) => rows.slice().sort(new Function('sortBy', 'view', `${src};return pointOrder()`)(sortBy, view)).map(p => p.code);
@@ -1263,7 +1263,7 @@ test('admin list: filter by Agregado por, sort by recent/código/área/coordinad
   assert.match(admin, /\$\('#archiveCamp'\)\.onclick=async e=>\{if\(!activeCamp\|\|!confirm\(archiveQuestion\)\)return;/);
 });
 test('public list: Ordenar by Más recientes (default), Más antiguos, Área or Coordinador, for everyone', () => {
-  assert.match(template, /<label class="sortrow"><span class="needlabel">Orden<\/span><select id="sortList" autocomplete="off"><option value="attention">Atención<\/option><option value="recent">Más recientes<\/option><option value="oldest">Más antiguos<\/option><option value="area">Área<\/option><option value="coord">Coordinador<\/option><\/select><\/label>/);
+  assert.match(template, /<label class="sortrow"><span class="needlabel">Orden<\/span><select id="sortList" autocomplete="off"><option value="attention">Atención<\/option><option value="recent">Más recientes<\/option><option value="oldest">Más antiguos<\/option><option value="area">Área<\/option><option value="coord">Reportado por<\/option><\/select><\/label>/);
   assert.doesNotMatch(template, /body:not\(\.signed-in\) [^{]*\.sortrow/, 'not limited to signed-in users');
   assert.match(template, /\.filterpanel \.sortrow\{display:none!important\}/, 'hidden for now; the list stays newest first');
   assert.match(template, /<button type="button" class="filterdone" id="filterDone">Listo<\/button><\/div><p id="gpsMessage"/, '«Listo» at the bottom of the panel closes it');
@@ -1369,7 +1369,7 @@ test('public detail: Maps, Compartir and Reportar are small footer buttons; code
 });
 
 test('Usuarios › Equipos: create/rename teams; a two-column table assigns each user with a team type-ahead, select all, and batch actions', () => {
-  assert.match(admin, /<details id="teamsBox" class="teams-box"><summary>👥 Equipos <small id="teamsCount"><\/small><\/summary>/);
+  assert.match(admin, /<details id="teamsBox" class="teams-box" open><summary>👥 Equipos <small id="teamsCount"><\/small><\/summary>/, 'shown as the «👥 Equipos» tab');
   assert.match(admin, /<form id="teamNewForm" class="team-new"><input name="name" maxlength="80" required/);
   assert.match(admin, /#operations\.user-form-mode #teamsBox,#operations\.user-view-mode #teamsBox,#operations\.user-form-mode #userBatch,#operations\.user-view-mode #userBatch\{display:none!important\}/, 'only on the list');
   assert.match(admin, /<label>Equipo<select name="teamId"><option value="">Sin equipo<\/option><\/select><\/label>/);
@@ -1379,11 +1379,11 @@ test('Usuarios › Equipos: create/rename teams; a two-column table assigns each
   assert.match(admin, /!\$\('#teamsBox'\)\.contains\(document\.activeElement\)/, 'the 30 s refresh never interrupts typing a team');
   const fold = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const clean = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-  const src = ['drawTeams', 'drawTeamUsers', 'syncTeamSel'].map(f => admin.match(new RegExp(`function ${f}\\(\\)?[^\\n]*`))[0]).concat([admin.match(/const teamSel=[^\n]*/)[0], admin.match(/const teamRows=[^\n]*/)[0], admin.match(/const teamByName=[^\n]*/)[0]]).join('\n');
+  const src = ['drawTeams', 'drawTeamUsers', 'syncTeamSel'].map(f => admin.match(new RegExp(`function ${f}\\(\\)?[^\\n]*`))[0]).concat([admin.match(/const tcAdd=[^\n]*/)[0], admin.match(/function teamCard\(t\)\{[^]*?\n(?=function drawTeams)/)[0], admin.match(/const teamSel=[^\n]*/)[0], admin.match(/const teamRows=[^\n]*/)[0], admin.match(/const teamByName=[^\n]*/)[0]]).join('\n');
   const els = {}; const el = k => els[k] ??= {value: ''};
   const teams = [{id: 't1', name: 'Norte <b>'}, {id: 't2', name: 'Peñas'}];
   const users = [{id: 'u1', name: 'Fufo', teamId: 't1', hasAccessCode: true, roles: ['runner']}, {id: 'u2', name: 'Bea', hasAccessCode: true, roles: ['agent']}, {id: 'u3', name: 'Ana', hasAccessCode: false, roles: ['runner']}];
-  const api = new Function('$', 'teams', 'users', 'renamingTeam', 'clean', 'fold', 'teamName', 'roleNames', `${src};return {drawTeams, teamSel, teamByName}`)(el, teams, users, null, clean, fold, id => teams.find(t => t.id === id)?.name || '', {runner: 'Corredor', agent: 'Agente'});
+  const api = new Function('$', 'teams', 'users', 'renamingTeam', 'clean', 'fold', 'teamName', 'roleNames', 'document', `${src};return {drawTeams, teamSel, teamByName}`)(el, teams, users, null, clean, fold, id => teams.find(t => t.id === id)?.name || '', {runner: 'Runner', agent: 'Agente'}, {activeElement: null});
   api.drawTeams();
   const body = el('#teamUsers tbody').innerHTML;
   assert.match(el('#teamNames').innerHTML, /<option value="Norte &lt;b&gt;"><\/option><option value="Peñas">/, 'type-ahead list of teams');
@@ -1485,7 +1485,7 @@ test('Usuarios: every user is a row with the same columns (Usuario, Accesos, Equ
   assert.match(head(true), /^<div class="user-head with-filters">[^]*<span><select id="userTeam" class="head-filter on" aria-label="Filtrar por equipo"><option value="">Equipo: todos<\/option><option value="t1" selected>👥 Norte<\/option><option value="__none__">Sin equipo<\/option><\/select><\/span><span><button type="button" class="sorth" data-usort="activity"/, 'Resultados: team filter in the Equipo column, highlighted when on');
   assert.doesNotMatch(admin, /<div class="userbar">[^]*?id="userTeam"[^]*?<div id="userList">/, 'no longer in the top filter bar');
   assert.match(admin, /\.user-head\.with-filters\{display:flex!important;flex-wrap:wrap;gap:6px 12px;padding:4px 0\}/, 'phones keep the sort buttons and filters');
-  assert.match(head(true), /<button type="button" class="head-filter rolefilter" data-rolefilter aria-expanded="false" aria-label="Filtrar por rol">▾<\/button><div class="rolepop" id="rolePop" hidden><label class="check"><input type="checkbox" data-rolecheck="runner"> Corredor<\/label>/, 'Roles: checkbox filter, several at once');
+  assert.match(head(true), /<button type="button" class="head-filter rolefilter" data-rolefilter aria-expanded="false" aria-label="Filtrar por rol">▾<\/button><div class="rolepop" id="rolePop" hidden><label class="check"><input type="checkbox" data-rolecheck="runner"> Runner<\/label>/, 'Roles: checkbox filter, several at once');
   assert.doesNotMatch(admin, /id="userRole"|id="userSort"/, 'no more top filters that repeat the headers');
   assert.match(admin, /\.user-card,\.user-head\{display:grid;grid-template-columns:22px minmax\(190px,2\.2fr\)[^}]*\}/, 'rows and header share one column grid');
   assert.match(admin, /@media\(max-width:720px\)\{\.user-head\{display:none\}[^}]*\}[^@]*\.uc-col:before\{content:attr\(data-label\)/, 'phones: one labeled line per column');
@@ -1624,7 +1624,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.equal(stats([{status: 'COMPLETED'}]), '<small class="minorstats">1 completada</small>');
   assert.doesNotMatch(stats([{status: 'OPEN'}, {status: 'OPEN'}]), /class="route"|minorstats/, 'only what there is');
   assert.match(stats([{status: 'OPEN'}, {status: 'OPEN'}, {status: 'IN_PROGRESS'}]), /title="Por llevar"[^>]*>F<b>2<\/b><span>por llevar<\/span><\/div><div class="route" title="En camino"[^>]*>W<b>1<\/b><span>en camino<\/span>/);
-  assert.match(agent, /`<p class="summary">\$\{\[p\.place&&`<span class="si" title="Lugar">\$\{icoPinS\}\$\{clean\(p\.place\)\}<\/span>`,p\.people&&`<span class="si" title="\$\{clean\(p\.people\)\} personas">\$\{icoTeamS\}\$\{clean\(p\.people\)\}<\/span>`,p\.coordinator&&`<span class="si" title="Coordinador">\$\{icoCoordS\}/, 'summary: place · people · coordinator, with small icons');
+  assert.match(agent, /`<p class="summary">\$\{\[p\.place&&`<span class="si" title="Lugar">\$\{icoPinS\}\$\{clean\(p\.place\)\}<\/span>`,p\.people&&`<span class="si" title="\$\{clean\(p\.people\)\} personas">\$\{icoTeamS\}\$\{clean\(p\.people\)\}<\/span>`,p\.coordinator&&`<span class="si" title="Reportado por">\$\{icoCoordS\}/, 'summary: place · people · coordinator, with small icons');
   assert.match(agent, /\(people\.find\(m=>m\.phone\)\|\|people\[0\]\)/, 'one contact with phone, «y N más»');
   assert.match(agent, /role=n\.kind==='repair'\?'Constructor':'Runner'/, '«Runner», the term used in the operation');
   // Runner box on each need: name, phone opens WhatsApp, call button, time en route.
@@ -2113,7 +2113,7 @@ test('Donaciones page: only admin or the «Donaciones» role (code); tickets wit
 
 test('admin «Por revisar»: check reports (one by one or all in view) and export them to CSV with every field', () => {
   const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
-  assert.match(admin, /<option value="coord">Coordinador<\/option><\/select><\/label><div class="pendbulk" id="pendBulk" hidden><\/div><\/div>/);
+  assert.match(admin, /<option value="coord">Reportado por<\/option><\/select><\/label><div class="pendbulk" id="pendBulk" hidden><\/div><\/div>/);
   assert.match(admin, /<input type="checkbox" class="pendcheck" data-pendsel="\$\{clean\(p\.id\)\}"/, 'a checkbox on each pending card');
   assert.match(admin, /bar\.hidden=view!=='pending'\|\|!pendVisible\.length/, 'only in «Por revisar»');
   assert.match(admin, /for\(const id of pendVisible\)e\.target\.checked\?pendSel\.add\(id\):pendSel\.delete\(id\)/, '«Seleccionar» = the reports in the current view (after search and filters)');
@@ -2274,7 +2274,7 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   assert.match(page, /data-runnerlive="\$\{clean\(n\.id\)\}">📍 Ver runner en el mapa<\/button>/, 'live position on the map when shared');
   assert.match(page, /secHead\('h-dest','📍','Destino'[^\n]*\$\{needDetails\(\{\.\.\.n,packing:null\},true,false\)\}<div class="actrow">\$\{needButtons\(n\)\}/, 'point, contacts and needs (no packing here), see on map');
   assert.match(page, /secHead\('h-load','📦','Para cargar'[^\n]*PointForm\.packingHtml\(n\.packing\)[^\n]*\$\{mediaStrip\(n\)\}/, 'packing and departure photos together');
-  assert.match(admin, /<input type="checkbox" name="roles" value="supplier"> Acopio<\/label>/);
+  assert.match(admin, /<input type="checkbox" name="roles" value="supplier"> Supply<\/label>/);
   assert.match(admin, /n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada · en camino'/);
   assert.match(nav, /\['\/supplier\.html', '📦', \(\) => 'Supply', u => has\(u, 'supplier'\)\]/);
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
@@ -2580,7 +2580,8 @@ test('Supply tabs: ¡A empacar!, Despachadas, ¡Abastéceme!, Por surtir (last);
   assert.match(page, /function mobileView\(view\)\{if\(view==='hist'\)\{mainTab='hist';highlightNeed=null;view='list'\}else if\(view==='list'&&mainTab==='hist'\)mainTab='todo';/);
   assert.match(page, /if\(mainTab==='hist'\)\{const way=done\(\)\.filter\(match\),list=history\.filter\(match\);[^\n]*list\.map\(histCard\)/);
   assert.match(page, /<span class="hdone" title="[^"]*">✓ Entregada \$\{clean\(agoEs\(n\.completedAt\)\)\}<\/span>/);
-  assert.match(page, /@media\(max-width:760px\)\{\.maintabs \.histtab\{display:none\}\}/, 'on phones history lives next to Lista/Mapa');
+  assert.match(page, /@media\(max-width:760px\)\{\.maintabs \.histtab\{display:none\}body\.in-hist #mainTabs\{display:none\}\}/, 'on phones history lives next to Lista/Mapa and shows only the history, no other tabs');
+  assert.match(page, /markNav\(\);document\.body\.classList\.toggle\('in-hist',mainTab==='hist'\);/);
 });
 
 test('Supply map: team runners in live (only my team, strict rule) even without a run of this center', () => {
@@ -2620,4 +2621,48 @@ test('Supply: «⚙ Administrar centros…» renames or archives (nothing is del
   assert.match(page, /data-crestore="\$\{clean\(c\)\}">↺ Recuperar<\/button>/);
   assert.match(page, /api\('\/api\/supplier\/centers\/manage','POST',body\)/);
   assert.match(page, /\.tswitch\{margin-left:auto;/);
+});
+
+test('«Reportado por» (megaphone) replaces «Coordinador» in labels; the stored field stays coordinator', () => {
+  const pub = PointForm.html();
+  assert.match(pub, /<input name="coordinator"[^>]*placeholder="Quien más sabe de este punto"/);
+  assert.match(pointformSrc, /input\('coordinator', 'Reportado por', \{icon: 'megaphone'/);
+  assert.match(pointformSrc, /input\('coordinatorPhone', 'Teléfono de quien reporta'/);
+  assert.doesNotMatch(pub, /Personas del grupo/, 'no redundant title');
+  assert.match(pub, /<p class="pf-hint"><b>Al menos un contacto con teléfono es obligatorio\.<\/b><\/p><div class="pf-members"><\/div><button type="button" class="pf-addmember">＋ Agregar otro contacto<\/button>/);
+  for (const page of ['runner.html', 'supplier.html', 'builder.html']) assert.match(readFileSync(new URL('./' + page, import.meta.url), 'utf8'), /<small class="role">Reportado por<\/small>/, page);
+  assert.match(runner, /<small class="role">Pidió<\/small> \$\{clean\(n\.requesterName\)\}/, 'whoever asked for a need');
+  assert.doesNotMatch(admin, /coordinator:'Coordinador'/);
+  assert.match(admin, /\['Coordinador','coordinator'\]/, 'the CSV column keeps its name, so old exports still import');
+});
+
+test('«Nuestro equipo lo abastece»: team members can hold a new point from the public for 3 hours; Comando can publish it now', () => {
+  const fn = pointformSrc.match(/function setMe\(root, me\) \{[^]*?\n  \}/)[0];
+  assert.match(fn, /if \(me && me\.team\) root\.insertAdjacentHTML\('beforeend', `<label class="pf-hold"><input type="checkbox" name="holdTeam">/);
+  assert.match(pointformSrc, /const HOLD_HOURS = 3;/);
+  assert.match(pointformSrc, /data\[el\.name\] = el\.type === 'checkbox' \? el\.checked : el\.value\.trim\(\);/, 'sent as true/false');
+  const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  assert.match(cmd, /const heldLine=p=>p\.heldBy&&p\.heldUntil&&Date\.parse\(p\.heldUntil\)>Date\.now\(\)\?`<p class="heldline">🔒 Solo equipo/);
+  assert.match(cmd, /send\('\/api\/agent\/camps\/'\+encodeURIComponent\(p\.id\)\+'\/publish','POST',\{\}\)/);
+  assert.match(template, /r\.heldUntil&&Date\.parse\(r\.heldUntil\)>Date\.now\(\)\?`<span class="heldtag"/, 'the team sees it marked in the list');
+});
+
+test('admin Usuarios: tabs Usuarios / Equipos, live refresh every 10 s, and «🆕 Recién registrados» to assign team and roles in one step', () => {
+  assert.match(admin, /<nav class="utabs" id="userTabs" role="tablist"[^>]*><button type="button" role="tab" data-utab="users" aria-selected="true">👤 Usuarios<\/button><button type="button" role="tab" data-utab="teams" aria-selected="false">👥 Equipos/);
+  assert.match(admin, /<span class="livetag" id="liveTag"[^>]*>● En vivo/);
+  assert.match(admin, /\},10000\);/, 'refresh every 10 s');
+  assert.match(admin, /const newcomers=\(\)=>\{const now=Date\.now\(\);return users\.filter\(u=>!u\.disabled&&u\.hasAccessCode&&\(!u\.teamId\|\|justAssigned\.has\(u\.id\)\)&&now-Date\.parse\(u\.createdAt\|\|0\)<NEW_WINDOW\)/, 'last 3 days, no team yet');
+  assert.match(admin, /const failed=await patchUsers\(\[u\.id\],\{teamId:team,roles\}\);/, 'team and roles in one save');
+  assert.match(admin, /localStorage\.setItem\('adminLastTeam',team\)/, 'remembers the last team');
+  assert.match(admin, /<span class="nc-id">ID <code>\$\{clean\(u\.id\.slice\(0,8\)\)\}<\/code><button type="button" class="linkbtn" data-copy-id=/, 'ID to confirm who it is');
+  assert.match(admin, /if\(seenUsers\)for\(const u of users\)if\(!seenUsers\.has\(u\.id\)\)freshIds\.set\(u\.id,now\)/, 'newcomers since the page opened are highlighted');
+  assert.match(admin, /const roleNames=\{runner:'Runner',builder:'Constructor',agent:'Agente',donations:'Donaciones',supplier:'Supply',teammanager:'Team manager'\};/);
+});
+
+test('admin Equipos tab: a card per team with its Team managers, members (☆ Hacer team manager / Quitar) and an add-member search', () => {
+  assert.match(admin, /<p class="tc-mgr\$\{mgrs\.length\?'':' none'\}"><span class="tc-lbl">★ Team manager<\/span>/);
+  assert.match(admin, /data-tm-toggle="\$\{clean\(u\.id\)\}" aria-pressed="\$\{mgr\}">\$\{mgr\?'★ Team manager':'☆ Hacer team manager'\}<\/button>/);
+  assert.match(admin, /const failed=await patchUsers\(\[u\.id\],\{teamId:'',roles:u\.roles\.filter\(r=>r!=='teammanager'\)\}\);/, 'removing from the team also removes Team manager');
+  assert.match(admin, /placeholder="＋ Agregar miembro: nombre, teléfono o ID…"/);
+  assert.match(admin, /userTab\(q\.get\('tab'\)==='equipos'\?'teams':'users',false\)/, 'the tab is in the link');
 });

@@ -377,7 +377,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				if e := json.Unmarshal(v, &p); e != nil {
 					return e
 				}
-				if p.Status == "approved" {
+				if p.Status == "approved" && !heldFrom(p, tv.team) {
 					contacts := campContacts(p)
 					// Paneles con sesión: el equipo y quién verificó sí se muestran (publicPoint los quita).
 					vTeam, vBy := p.VerifiedTeam, p.VerifiedBy

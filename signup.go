@@ -58,7 +58,6 @@ func signupCode(name string) string {
 	return word + string(rune('0'+randomBelow(10))) + string(rune('0'+randomBelow(10))) + signupNamePart(name) + string(rune('0'+randomBelow(10)))
 }
 
-var errSignupPhoneTaken = userFieldError{"telephone", "Ya hay una cuenta con ese teléfono. Entra con tu código; si lo perdiste, pídelo a administración."}
 
 const signupNote = "Se registró solo (página pública o entrada de un panel), sin aprobación manual. Cambia su acceso o desactívalo si hace falta."
 
@@ -106,12 +105,10 @@ func (a *App) signupRoutes(mux *http.ServeMux) {
 		u.UpdatedAt = u.CreatedAt
 		var code string
 		err := a.db.Update(func(tx *bolt.Tx) error {
-			digits := phoneDigits(phone)
+			// Un teléfono repetido se acepta: puede ser la misma persona que perdió su código. Al ponerla en un equipo, se
+			// le pide su ID de usuario («Copiar mi ID») para saber cuál cuenta es cuál.
 			names := map[string]bool{}
 			if e := eachUser(tx, func(other User) error {
-				if phoneDigits(other.Telephone) == digits {
-					return errSignupPhoneTaken
-				}
 				names[foldText(other.Name)] = true
 				return nil
 			}); e != nil {

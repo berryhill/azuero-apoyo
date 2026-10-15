@@ -9,6 +9,14 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-15**
+- Admin Usuarios: tabs «👤 Usuarios» / «👥 Equipos», live refresh every 10 s, «🆕 Recién registrados sin equipo» to
+  assign team and roles in one step, team cards with Team manager and add-member search (§13).
+- «Coordinador» is now **«Reportado por»** (megaphone) on every screen; the data field is unchanged. Need requesters on
+  cards show as «Pidió» (§5).
+- Add point: no «Personas del grupo» title, shorter required message, **«＋ Agregar otro contacto»**, and for teams
+  **«Nuestro equipo lo abastece»**: hidden from the public and other teams for 3 hours, then published (§5, §10, §15).
+- Sign-up accepts a phone already used (same person who lost their code); teams confirm by user ID (§4).
+- Supply: on phones the 🕓 history shows only the history, without the other tabs (§8).
 - Supply: «🙋 ¡Yo abastezco!» replaces «Pedir runner»: several centers can offer the same need and the runner picks
   where to pick up in «Pedidos»; «Asignar a runner»; «Despachadas» moved into 🕓 Historial; rename/archive centers;
   team switch on the right; cards like Runners (map top right, people breakdown, contacts collapse after 2) (§7, §8).
@@ -121,8 +129,10 @@ Details:
 - **Remember**: after a successful sign-in the code is saved on the phone; next time it is prefilled and «Entrar» is
   enough. Unchecking «Recordar» forgets it. «Salir» ends the session but keeps the remembered code.
 - **Duplicate names**: if someone already has that full name, the new account becomes e.g. «Juan Pérez 2».
-- **One phone, one account.** People who registered before codes existed (name + phone only) sign in with name and
-  phone on Runners/Constructores.
+- **A phone can be used again** when creating an account: it may be the same person who lost their code. They get a new
+  account and a new code (never the old one); the same full name gets a number («Juan Pérez 2»). When putting people on
+  a team, ask them for their user ID («Copiar mi ID» in the menu) to know which account is which. People who
+  registered before codes existed (name + phone only) sign in with name and phone on Runners/Constructores.
 - **Email**: optional, for code recovery: admin looks the person up by phone or email in Usuarios and shows or
   changes their code. No emails are sent.
 
@@ -130,14 +140,21 @@ Details:
 
 ## 5. Points
 
-A point has zone/area, place, directions, GPS (Maps link or coordinates), coordinator and contacts, counts (people,
+A point has zone/area, place, directions, GPS (Maps link or coordinates), **«Reportado por»** (who reported it and knows
+most about it, with a megaphone icon; stored as the `coordinator` field, older screens called it «Coordinador») and
+contacts, counts (people,
 adults, children, babies, elderly, disability, **families**), reported needs and notes.
 
-**Coordinator when adding a point**: if the person adding it is signed in and **on a team**, they are the coordinator
-by default: a card «Coordinador · Ada Agente · Tú · Equipo · phone» with **«Cambiar»** instead of fields. «Cambiar»
+**«Reportado por» when adding a point**: if the person adding it is signed in and **on a team**, they are «Reportado
+por» by default: a card «Reportado por · Ada Agente · Tú · Equipo · phone» with **«Cambiar»** instead of fields. «Cambiar»
 opens empty fields to write someone else; «↺ Soy yo» puts them back. Without a team, the usual fields (there is no
-«Yo» button anymore). In «Personas del grupo», each field has its icon: person (name), phone, cake (age), ID card
-(cédula).
+«Yo» button anymore). Contacts: «Al menos un contacto con teléfono es obligatorio»; each row has icons for person (name), phone, cake
+(age) and ID card (cédula); **«＋ Agregar otro contacto»** adds a row (a new one also appears when you type in the last).
+
+**«Nuestro equipo lo abastece»** (only for someone on a team adding a point): a switch at the end of the form. When on,
+the point is **not published for 3 hours**: the public map, the camp page, the Resumen, the newsletter and other
+teams' Runners and Supply don't see it (nor its needs); the team does, marked «🔒 Solo tu equipo». After 3 hours it
+publishes by itself; Comando and admin can publish it sooner with «🌐 Publicar ahora».
 
 **States**
 
@@ -274,7 +291,7 @@ Tabs:
 | 📦 ¡A empacar! | Runs linked to this center, on the way, not dispatched yet: pack them and dispatch. |
 | 🏃 ¡Abastéceme! | Runners with a run asking for a supply center: «✓ Puedo surtirlo» / «✗ No puedo» / «Retirar». |
 | 🙌 Por surtir (last) | Open needs: **«🙋 ¡Yo abastezco!»** offers to supply it (several centers can offer the same need; the runner chooses where to pick up, the closest) or «Retirar oferta»; **«🏃 Asignar a runner»** links it to this center with a runner who is here. The card says how many centers offer it. Below, «🚚 Ya en camino»: other people's runs, with «🙋 Abastezco otro envío» / «🏃 Asignar otro runner». |
-| 🕓 Historial | First **«🚚 Despachadas · en camino»** (dispatched, still on the way, with «Deshacer»), then **«✓ Entregadas»** of the last 30 days (up to 60, newest first): point, items, runner, when it left and when it was delivered, packing list and photos. On phones it is the clock button next to «Lista / Mapa»; on desktop, the clock at the end of the tabs. There is no separate «Despachadas» tab. |
+| 🕓 Historial | On phones the other tabs hide while you are in the history. First **«🚚 Despachadas · en camino»** (dispatched, still on the way, with «Deshacer»), then **«✓ Entregadas»** of the last 30 days (up to 60, newest first): point, items, runner, when it left and when it was delivered, packing list and photos. On phones it is the clock button next to «Lista / Mapa»; on desktop, the clock at the end of the tabs. There is no separate «Despachadas» tab. |
 
 On phones each tab shows its icon above the name and the count below.
 
@@ -363,7 +380,8 @@ order, «Sin GPS», need chips) fold behind **«Filtros ▾»**, which shows how
 **Rows**: a short line «Revisado hace 1 h» (or «Creado / Suplido hace …»; exact date on hover) with a **badge of who
 added it** (full name; green with «(tú)» if it was you), the
 point name, a line with small icons for place, people and coordinator, then the counters, «Checkup» and «Editar».
-Point rows and need cards show the gold «Verificado por equipo» badge with the team name. Editing a repair need shows
+Point rows and need cards show the gold «Verificado por equipo» badge with the team name. A point a team is holding
+shows «🔒 Solo equipo X · se publica a las …» with **«🌐 Publicar ahora»** (asks first). Editing a repair need shows
 its materials, which can be changed. Works on phones (single column).
 
 ---
@@ -400,10 +418,27 @@ Access: Donations role or admin.
 - **Points**: cards with counters, filters, «Agregado por» (added by), map on the right, point editor with its needs
   (list above the form) and services. Cards and needs show the gold «Verificado por equipo» badge with the team name;
   editing a repair need shows its materials.
-- **Usuarios** (☰ menu): search, «Solo con código», «Ver desactivados». Click headers to sort (click again to
-  reverse; ▲▼ shows direction): Usuario, Roles, Actividad, Creado (default: newest first). «Roles» filters with
-  checkboxes (several at once; «Sin acceso» = no roles); «Equipo» filters by team. Empty fields are left blank.
-  Bulk select to move to a team, deactivate or activate. View/copy each user's code (🔑), email, roles, team.
+- **Usuarios** (☰ menu) has two tabs, **«👤 Usuarios»** and **«👥 Equipos»** (the tab is kept in the link:
+  `?view=usuarios&tab=equipos`). The page refreshes by itself **every 10 seconds** («● En vivo · hace N s»), except
+  while you are typing or editing a user; the browser tab title shows how many new people are waiting, e.g. «(2)».
+  - **«🆕 Recién registrados sin equipo»** (top of Usuarios): people who signed up in the last 3 days (e.g. with the
+    sign-up link) and have no team yet, newest first. Someone who appears while you watch is highlighted «NUEVO». Each
+    row shows the name, how long ago, the phone and the **user ID** (with «copiar»): ask the person for their ID
+    («Copiar mi ID» in their menu) to confirm which account is theirs. In the same row choose the **team** (it
+    remembers the last one you used), tap the **roles** (Runner, Constructor, Supply, Team manager, Agente,
+    Donaciones) and **«✓ Asignar»**: saved at once, without opening the user; the row shows «✓ En Oro · Runner,
+    Supply» for a moment. «Abrir» opens the full user.
+  - The full list: search, «Solo con código», «Ver desactivados». Click headers to sort (click again to reverse; ▲▼
+    shows direction): Usuario, Roles, Actividad, Creado (default: newest first). «Roles» filters with checkboxes
+    (several at once; «Sin acceso» = no roles); «Equipo» filters by team. Empty fields are left blank. Bulk select to
+    move to a team, deactivate or activate. View/copy each user's code (🔑), email, roles, team.
+  - **«👥 Equipos»**: create a team at the top; one **card per team** with its **★ Team manager** (red when the team
+    has none yet), then its members with their roles and ID. **«☆ Hacer team manager»** gives that role in one tap
+    (that person then manages the team from «Mi equipo»: invites, roles); **«Quitar»** takes someone out of the team
+    (and out of Team manager), after confirming. **«＋ Agregar miembro»** searches people with a code by name, phone or
+    ID and adds them (asks before moving someone from another team). «Editar nombre» renames. Below, «Asignar en
+    lote» keeps the table to assign many users at once.
+  - Role names shown in admin: Runner, Constructor, Agente, Donaciones, Supply, Team manager.
 - **Teams**, **newsletter** (boletín), **backup** (download; import only on test servers), **master password**.
 
 ---
@@ -430,6 +465,7 @@ specific point):
 - **«Verificado por equipo»**: public pages show only that a team verified it («Verificado por un equipo»); which team,
   who and when are visible only in panels with a session (Comando, admin, Runners, Supply).
 - Repair needs and their materials are never public.
+- A point held with «Nuestro equipo lo abastece» is hidden from the public and from other teams for 3 hours.
 - Code users see more (e.g. the runner's name on their team's needs).
 
 ---

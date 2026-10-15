@@ -25,6 +25,7 @@ var agentAllowed = []string{
 	"PATCH /api/admin/camps/{id}",
 	"POST /api/admin/points/{id}/merge",
 	"POST /api/admin/camps/{id}/checkup",
+	"POST /api/admin/camps/{id}/publish",
 	"GET /api/admin/camps/{id}/needs",
 	"GET /api/admin/needs",
 	"POST /api/admin/camps/{id}/needs",

@@ -29,10 +29,11 @@ func TestSignupCreatesActiveRunnerWithMemorableCode(t *testing.T) {
 	if login := s.call("POST", "/api/session/code", `{"accessCode":"`+strings.ToLower(code)+`"}`, false); login.Code != 200 || !strings.Contains(login.Body.String(), "/runner.html") {
 		t.Fatalf("signed in right away: %d %s", login.Code, login.Body.String())
 	}
-	// Same phone again (any format): refused without revealing the code.
-	again := s.call("POST", "/api/session/signup", `{"name":"Otra Persona","telephone":"69991234"}`, false)
-	if again.Code != 400 || !strings.Contains(again.Body.String(), "Ya hay una cuenta con ese teléfono") || strings.Contains(again.Body.String(), code) {
-		t.Fatalf("duplicate phone: %d %s", again.Code, again.Body.String())
+	// Same phone again (maybe the same person who lost their code): a new account with its own code, never the old one;
+	// the same full name gets a number. Teams tell them apart by user ID.
+	again := s.call("POST", "/api/session/signup", `{"name":"José Pérez","telephone":"69991234"}`, false)
+	if again.Code != 201 || strings.Contains(again.Body.String(), code) || !strings.Contains(again.Body.String(), "José Pérez 2") {
+		t.Fatalf("duplicate phone is allowed: %d %s", again.Code, again.Body.String())
 	}
 	for body, field := range map[string]string{`{"name":"Solo","telephone":"6999-0000"}`: "name", `{"name":"Ana Ruiz","telephone":"12"}`: "telephone"} {
 		if w := s.call("POST", "/api/session/signup", body, false); w.Code != 400 || !strings.Contains(w.Body.String(), field) {

@@ -2,8 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	bolt "go.etcd.io/bbolt"
+	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 // «Verificado por equipo»: un punto o una necesidad que crea o actualiza alguien de un equipo queda marcado (equipo,
@@ -78,5 +81,73 @@ func TestTeamWritesMarkPointsAndNeedsVerified(t *testing.T) {
 	}
 	if seen < 2 {
 		t.Fatalf("both points listed: %d", seen)
+	}
+}
+
+// «Nuestro equipo lo abastece»: a team member adding a point can hold it from the public (and other teams) for
+// holdHours; their team sees it at once; it publishes by itself after that, or sooner with «Publicar ahora».
+func TestTeamHoldDelaysPublicationForThreeHours(t *testing.T) {
+	s := newServiceHarness(t)
+	mia := s.expect("POST", "/api/admin/users", `{"name":"Mia","telephone":"6999-4444","roles":["runner"],"accessCode":"MIA123"}`, 201)["id"].(string)
+	leo := s.expect("POST", "/api/admin/users", `{"name":"Leo","telephone":"6999-5555","roles":["runner"],"accessCode":"LEO123"}`, 201)["id"].(string)
+	otto := s.expect("POST", "/api/admin/users", `{"name":"Otto","telephone":"6999-6666","roles":["runner"],"accessCode":"OTTO12"}`, 201)["id"].(string)
+	s.team("Norte", mia, leo)
+	s.team("Sur", otto)
+	mc, lc, oc := s.viewerCookie("MIA123"), s.viewerCookie("LEO123"), s.viewerCookie("OTTO12")
+	if w := s.as(mc, "POST", "/api/full/points", `{"area":"Retenido","coordinatorPhone":"6555-1234","needs":"Agua","holdTeam":true}`); w.Code != 201 {
+		t.Fatalf("add: %d %s", w.Code, w.Body.String())
+	}
+	var id string
+	var pts []Point
+	json.Unmarshal(s.call("GET", "/api/admin/points", "", true).Body.Bytes(), &pts)
+	for _, p := range pts {
+		if p.Area == "Retenido" {
+			id = p.ID
+			if p.HeldBy == "" || p.HeldUntil <= nowStamp() || p.HoldTeam {
+				t.Fatalf("held for the team, a few hours: %+v", p)
+			}
+		}
+	}
+	has := func(c *http.Cookie) bool {
+		path := "/api/points"
+		if c != nil {
+			path = "/api/full/points"
+		}
+		return strings.Contains(s.as(c, "GET", path, "").Body.String(), "Retenido")
+	}
+	if has(nil) || has(oc) || !has(lc) {
+		t.Fatalf("public %v, other team %v, own team %v", has(nil), has(oc), has(lc))
+	}
+	if w := s.call("GET", "/api/camps/"+id+"/needs", "", false); w.Code != 404 {
+		t.Fatalf("its needs are hidden from the public too: %d", w.Code)
+	}
+	// A point added without the toggle, or by someone without a team, is public right away.
+	s.as(mc, "POST", "/api/full/points", `{"area":"Abierto","coordinatorPhone":"6555-1235","needs":"Agua"}`)
+	if !strings.Contains(s.call("GET", "/api/points", "", false).Body.String(), "Abierto") {
+		t.Fatal("no toggle: public at once")
+	}
+	// After the hold it publishes by itself.
+	s.app.db.Update(func(tx *bolt.Tx) error {
+		var p Point
+		json.Unmarshal(tx.Bucket(submissions).Get([]byte(id)), &p)
+		p.HeldUntil = time.Now().Add(-time.Minute).UTC().Format(time.RFC3339)
+		return putJSON(tx.Bucket(submissions), id, p)
+	})
+	if !has(nil) || !has(oc) {
+		t.Fatal("published by itself after the hold")
+	}
+	// «Publicar ahora» (admin or agent) ends a hold early.
+	s.app.db.Update(func(tx *bolt.Tx) error {
+		var p Point
+		json.Unmarshal(tx.Bucket(submissions).Get([]byte(id)), &p)
+		p.HeldUntil = time.Now().Add(time.Hour).UTC().Format(time.RFC3339)
+		return putJSON(tx.Bucket(submissions), id, p)
+	})
+	if has(nil) {
+		t.Fatal("held again")
+	}
+	s.expect("POST", "/api/admin/camps/"+id+"/publish", `{}`, 200)
+	if !has(nil) {
+		t.Fatal("published now")
 	}
 }

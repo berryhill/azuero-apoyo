@@ -47,7 +47,13 @@ type Point struct {
 	OlderAdults      string `json:"olderAdults,omitempty"`
 	Disabled         string `json:"disabled,omitempty"`
 	// Familias (grupos familiares) en el punto; conteo como los demás.
-	Families       string    `json:"families,omitempty"`
+	Families string `json:"families,omitempty"`
+	// «Nuestro equipo lo abastece»: al agregarlo alguien de un equipo puede retener la publicación unas horas
+	// (holdHours). Mientras tanto no lo ven el público ni otros equipos; luego se publica solo. HoldTeam es solo la
+	// casilla del formulario (no se guarda); HeldBy es el equipo y HeldUntil hasta cuándo.
+	HoldTeam       bool      `json:"holdTeam,omitempty"`
+	HeldBy         string    `json:"heldBy,omitempty"`
+	HeldUntil      string    `json:"heldUntil,omitempty"`
 	SecondContact  string    `json:"secondContact,omitempty"`
 	SecondPhone    string    `json:"secondPhone,omitempty"`
 	ThirdContact   string    `json:"thirdContact,omitempty"`
@@ -370,8 +376,25 @@ func parseMapLink(link string) ([]float64, error) {
 	}
 	return []float64{lat, lon}, nil
 }
+
+// holdHours: cuánto se retiene la publicación de un punto que un equipo va a abastecer.
+const holdHours = 3
+
+// heldFrom: el punto está retenido para su equipo y quien mira (team, vacío para el público) no es de ese equipo.
+func heldFrom(p Point, team string) bool {
+	return p.HeldBy != "" && p.HeldUntil > nowStamp() && team != p.HeldBy
+}
+
+// campHeldFrom: como heldFrom, buscando el punto por su ID.
+func campHeldFrom(tx *bolt.Tx, id, team string) bool {
+	var p Point
+	v := tx.Bucket(submissions).Get([]byte(id))
+	return v != nil && json.Unmarshal(v, &p) == nil && heldFrom(p, team)
+}
+
 func publicPoint(p Point) Point {
 	p.ClientRef = ""
+	p.HeldBy = ""
 	p.Needs, _ = splitRepair(p.Needs)
 	p.AddedBy, p.AddedByName = "", ""
 	p.VerifiedTeam, p.VerifiedBy = "", ""
@@ -984,7 +1007,7 @@ func (a *App) publicPoints(w http.ResponseWriter, viewer string) {
 			if e := json.Unmarshal(v, &p); e != nil {
 				return e
 			}
-			if p.Status == "approved" {
+			if p.Status == "approved" && !heldFrom(p, tv.team) {
 				status, urgency, e := aggregateCamp(tx, p.ID)
 				if e != nil {
 					return e
@@ -1073,6 +1096,8 @@ func (a *App) routes() http.Handler {
 		askedBy := strings.TrimSpace(p.AddedBy)
 		p.AddedBy, p.AddedByName = "", ""
 		p.VerifiedTeam, p.VerifiedBy, p.VerifiedAt = "", "", ""
+		hold := p.HoldTeam
+		p.HoldTeam, p.HeldBy, p.HeldUntil = false, "", ""
 		if by != nil {
 			p.AddedBy, p.AddedByName = by.ID, by.Name
 		}
@@ -1141,6 +1166,11 @@ func (a *App) routes() http.Handler {
 				p.AddedBy, p.AddedByName = u.ID, u.Name
 			}
 			verifyStamp(tx, by, &p.VerifiedTeam, &p.VerifiedBy, &p.VerifiedAt)
+			if hold && by != nil && publish {
+				if t := teamOf(tx, by.ID); t != "" {
+					p.HeldBy, p.HeldUntil = t, time.Now().Add(holdHours*time.Hour).UTC().Format(time.RFC3339)
+				}
+			}
 			data, _ := json.Marshal(p)
 			if reviewed {
 				errDuplicate := errors.New("duplicate code")
@@ -2033,6 +2063,26 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 		}
 		response(w, 200, target)
 	})
+	// «Publicar ahora»: termina la retención de un punto que un equipo iba a abastecer (si no, se publica solo).
+	mux.HandleFunc("POST /api/admin/camps/{id}/publish", func(w http.ResponseWriter, r *http.Request) {
+		if !a.adminWrite(w, r) {
+			return
+		}
+		var p Point
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(submissions)
+			v := b.Get([]byte(r.PathValue("id")))
+			if v == nil || json.Unmarshal(v, &p) != nil {
+				return errMissing
+			}
+			p.HeldBy, p.HeldUntil = "", ""
+			return putJSON(b, p.ID, p)
+		})
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 200, map[string]string{"id": p.ID})
+	})
 	mux.HandleFunc("POST /api/admin/camps/{id}/checkup", func(w http.ResponseWriter, r *http.Request) {
 		if !a.adminWrite(w, r) {
 			return
@@ -2594,7 +2644,8 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 				if e := json.Unmarshal(v, &p); e != nil {
 					return e
 				}
-				if p.Status == "approved" {
+				// Retenido para otro equipo: sus runners todavía no lo ven.
+				if p.Status == "approved" && !heldFrom(p, tv.team) {
 					contacts := campContacts(p)
 					// Paneles con sesión: el equipo y quién verificó sí se muestran (publicPoint los quita).
 					vTeam, vBy := p.VerifiedTeam, p.VerifiedBy
@@ -2915,7 +2966,7 @@ func (a *App) boletinRoutes(mux *http.ServeMux) {
 				if e := json.Unmarshal(v, &p); e != nil {
 					return e
 				}
-				if p.Status != "approved" {
+				if p.Status != "approved" || heldFrom(p, "") {
 					return nil
 				}
 				p.Needs = withoutReservedItems(p.Needs, reserved[p.ID])
@@ -3013,7 +3064,7 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 	list := []CampNeed{}
 	err := a.db.View(func(tx *bolt.Tx) error {
 		tv := newTeamView(tx, viewer)
-		if !a.campExists(tx, id) {
+		if !a.campExists(tx, id) || public && campHeldFrom(tx, id, tv.team) {
 			return errMissing
 		}
 		return tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
