@@ -13,8 +13,8 @@ import (
 // Alta desde la página pública («Entrar» → «Crear mi código»): cualquiera crea su usuario con nombre y teléfono y el
 // servidor le genera un código fácil de recordar pero difícil de adivinar: palabra + 2 dígitos + parte del nombre + 1 dígito,
 // p. ej. LORO47JUAN3 (unas 80 × 100 × 10 combinaciones por nombre, y entrar sigue limitado a 10 códigos incorrectos cada
-// 10 minutos por conexión). El usuario queda pendiente: sin roles su código no abre ningún panel ni la vista completa hasta
-// que administración le dé acceso en Usuarios.
+// 10 minutos por conexión). Queda aprobado de inmediato como corredor (Runners); administración puede cambiarle el acceso
+// o desactivarlo en Usuarios.
 var signupWords = []string{
 	"AGUILA", "ALCE", "ARDILLA", "BALLENA", "BUHO", "BURRO", "CABRA", "CAIMAN", "CAMELLO", "CANGREJO",
 	"CASTOR", "CEBRA", "CERDO", "CIERVO", "CISNE", "COBRA", "CONDOR", "CONEJO", "COYOTE", "DELFIN",
@@ -59,7 +59,7 @@ func signupCode(name string) string {
 
 var errSignupPhoneTaken = userFieldError{"telephone", "Ya hay una cuenta con ese teléfono. Entra con tu código; si lo perdiste, pídelo a administración."}
 
-const signupPendingNote = "Se registró desde la página pública: pendiente de aprobación. Dale acceso (corredor, constructor o agente) para activarlo."
+const signupNote = "Se registró desde la página pública: entró como corredor sin aprobación manual. Cambia su acceso o desactívalo si hace falta."
 
 func (a *App) signupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/session/signup", func(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +76,7 @@ func (a *App) signupRoutes(mux *http.ServeMux) {
 			return
 		}
 		a.mu.Unlock()
-		f, ok := decodeFields(w, r, map[string]int{"name": 120, "telephone": 40})
+		f, ok := decodeFields(w, r, map[string]int{"name": 120, "telephone": 40, "email": 160})
 		if !ok {
 			return
 		}
@@ -90,7 +90,13 @@ func (a *App) signupRoutes(mux *http.ServeMux) {
 			failField(w, 400, "telephone", "Escribe un teléfono válido (por ejemplo 6000-0000).")
 			return
 		}
-		u := User{ID: randomToken(), Name: name, Telephone: phone, Roles: []string{}, CreatedAt: nowStamp(), Note: signupPendingNote}
+		// Correo opcional: sirve para que administración reconozca a la persona si pierde su código.
+		email := normalizeEmail(fieldText(f, "email"))
+		if email != "" && !validEmail(email) {
+			failField(w, 400, "email", "Correo inválido (por ejemplo nombre@gmail.com).")
+			return
+		}
+		u := User{ID: randomToken(), Name: name, Telephone: phone, Email: email, Roles: []string{roleRunner}, CreatedAt: nowStamp(), Note: signupNote}
 		u.UpdatedAt = u.CreatedAt
 		var code string
 		err := a.db.Update(func(tx *bolt.Tx) error {
@@ -131,7 +137,7 @@ func (a *App) signupRoutes(mux *http.ServeMux) {
 		if userError(w, err) {
 			return
 		}
-		response(w, 201, map[string]any{"id": u.ID, "name": u.Name, "accessCode": code, "pending": true})
+		response(w, 201, map[string]any{"id": u.ID, "name": u.Name, "accessCode": code, "roles": u.Roles})
 	})
 }
 

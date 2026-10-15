@@ -273,10 +273,14 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   // Si lo escrito en el nombre empieza con «!» y un carácter más, es un código de acceso: se oculta el teléfono y el campo
   // pasa a «Código de acceso». Los formularios lo piden con data-codelogin.
   const codeIntro = 'Escribe tu código de acceso para retomar tus últimas carreras.';
+  // ¿Es un código de acceso? Empieza con «!», o es una sola palabra con letras y números (como los que se generan al
+  // registrarse, p. ej. loro47juan3): así un código pegado sin el «!» también entra. Los nombres no llevan números.
+  const isCode = v => { v = String(v || '').trim(); return /^!\S/.test(v) || /^(?=.*\d)(?=.*[a-zñ])[a-z0-9ñ]{6,24}$/i.test(v); };
+  const codeOf = v => String(v || '').trim().replace(/^!/, '').replace(/\s+/g, '');
   function syncCodeLogin(form) {
     const name = form.elements.name, phone = form.elements.telephone?.closest('label'), label = form.querySelector('.lbl'), intro = form.querySelector('[data-intro]');
     if (!name) return;
-    const code = /^!./.test(name.value.trimStart());
+    const code = isCode(name.value);
     if (label) { label.dataset.normal ??= label.textContent; label.textContent = code ? 'Código de acceso' : label.dataset.normal; }
     if (intro) { intro.dataset.normal ??= intro.textContent; intro.textContent = code ? codeIntro : intro.dataset.normal; }
     if (phone) phone.style.display = code ? 'none' : '';
@@ -297,19 +301,35 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     btn.insertAdjacentHTML('beforebegin', `<label class="remember" hidden><input type="checkbox" name="remember"${on ? ' checked' : ''}> Recordar mi código de acceso</label>`);
   }
   function showRemember(form, code) { const box = form.querySelector('.remember'); if (box) box.hidden = !code; }
+  // Al enviar se anota solo la preferencia; el código se guarda cuando la página confirma que entró (codeSignedIn), para no
+  // recordar un código mal escrito.
   document.addEventListener('submit', e => {
     const form = e.target, name = form.elements?.name, box = form.querySelector?.('.remember input');
-    if (!name || !box || !/^!./.test(name.value.trimStart())) return;
-    const code = name.value.trim().slice(1).trim();
+    if (!name || !box || !isCode(name.value)) return;
+    try { localStorage.setItem('rememberCode', box.checked ? '1' : '0'); } catch {}
+  }, true);
+  // Entró con este código: se recuerda en el teléfono (por defecto) para todas las páginas; si desmarcó «Recordar», se olvida.
+  function codeSignedIn(code) {
+    code = codeOf(code);
+    if (!code) return;
     try {
-      localStorage.setItem('rememberCode', box.checked ? '1' : '0');
-      if (box.checked) { localStorage.setItem('rememberedCode', code); codeKeys.forEach(k => localStorage.setItem(k, code)); }
-      // Sin recordar: se olvida; la página guarda el código al entrar y se borra en cuanto termina de entrar.
+      if (localStorage.getItem('rememberCode') !== '0') { localStorage.setItem('rememberCode', '1'); localStorage.setItem('rememberedCode', code); codeKeys.forEach(k => localStorage.setItem(k, code)); }
       else { localStorage.removeItem('rememberedCode'); setTimeout(() => codeKeys.forEach(k => localStorage.removeItem(k)), 4000); }
     } catch {}
-  }, true);
+  }
   // Con el código recordado, cada página lo encuentra con su propio nombre para entrar sola.
   try { const saved = codeKeys.map(k => localStorage.getItem(k)).find(Boolean); if (saved && localStorage.getItem('rememberCode') === '1') codeKeys.forEach(k => { if (!localStorage.getItem(k)) localStorage.setItem(k, saved); }); } catch {}
+  // El código recordado ya escrito en las entradas (al abrir la página, al abrir «Login» y después de «Salir»): solo falta «Entrar».
+  function prefillCode(form) {
+    const name = form?.elements?.name, saved = rememberedCode();
+    if (!name || !saved || name.value.trim()) return;
+    name.value = isCode(saved) ? saved : '!' + saved;
+    form.dataset.filled = '1';
+    name.dispatchEvent(new Event('input', {bubbles: true}));
+  }
+  const prefillAll = () => document.querySelectorAll('form[data-codelogin],form#loginForm').forEach(prefillCode);
+  document.addEventListener('reset', e => { if (e.target.matches?.('form[data-codelogin],form#loginForm')) setTimeout(() => prefillCode(e.target)); });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', prefillAll); else setTimeout(prefillAll);
   const rememberedCode = () => { try { return localStorage.getItem('rememberCode') === '1' && localStorage.getItem('rememberedCode') || ''; } catch { return ''; } };
   document.addEventListener('input', e => {
     const f = e.target.closest?.('form[data-codelogin],form#loginForm');
@@ -321,12 +341,12 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (!e.target.value.trim()) delete f.dataset.filled;
     if (f.matches('[data-codelogin]')) syncCodeLogin(f);
     rememberBox(f);
-    showRemember(f, /^!/.test(e.target.value.trimStart()));
+    showRemember(f, /^!/.test(e.target.value.trimStart()) || isCode(e.target.value));
   });
   // Nombre corto para encabezados: nombre + primeras letras del apellido («Arianne Ori…»).
   const shortName = n => { const w = String(n || '').trim().split(/\s+/).filter(Boolean); return w.length < 2 ? w.join('') : w[0] + ' ' + (w[1].length > 3 ? w[1].slice(0, 3) + '…' : w[1]); };
   const drawAll = () => { draw(); drawMobileBar(); };
-  window.AppNav = {draw: drawAll, confirm, choose, phone, shortName, syncCodeLogin, codeIntro};
+  window.AppNav = {draw: drawAll, confirm, choose, phone, shortName, syncCodeLogin, codeIntro, isCode, codeOf, codeSignedIn, prefillCode};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); }); else { draw(); mountTextSize(); mountMobileBar(); }
   // Entrar o salir en otra pestaña actualiza esta.
   addEventListener('storage', e => { if (e.key === 'codeUser' || e.key === null) draw(); if (e.key === 'textZoom' || e.key === null) { zoom = sizes.includes(savedSize()) ? savedSize() : 1; applySize(); } });

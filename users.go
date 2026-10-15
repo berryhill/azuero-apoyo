@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -32,11 +33,13 @@ const (
 var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations}
 
 type User struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Telephone string   `json:"telephone"`
-	Roles     []string `json:"roles"`
-	Disabled  bool     `json:"disabled,omitempty"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Telephone string `json:"telephone"`
+	// Correo para recuperar el código de acceso (lo deja quien se registra o administración); privado.
+	Email    string   `json:"email,omitempty"`
+	Roles    []string `json:"roles"`
+	Disabled bool     `json:"disabled,omitempty"`
 	// HMAC del código de acceso normalizado: con él se entra (búsqueda y unicidad).
 	CodeHash string `json:"codeHash,omitempty"`
 	// El código tal cual, para que administración lo pueda ver (👁) en Usuarios. Nunca va en la lista ni en otras respuestas;
@@ -62,6 +65,7 @@ type adminUser struct {
 	ID            string   `json:"id"`
 	Name          string   `json:"name"`
 	Telephone     string   `json:"telephone"`
+	Email         string   `json:"email,omitempty"`
 	Roles         []string `json:"roles"`
 	Disabled      bool     `json:"disabled"`
 	HasAccessCode bool     `json:"hasAccessCode"`
@@ -76,7 +80,7 @@ type adminUser struct {
 }
 
 func (u User) admin() adminUser {
-	return adminUser{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Roles: u.Roles, Disabled: u.Disabled, HasAccessCode: u.CodeHash != "", CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, Note: u.Note, LastActiveAt: u.LastActiveAt, TeamID: u.TeamID, LocationConsentAt: u.locationConsent()}
+	return adminUser{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Email: u.Email, Roles: u.Roles, Disabled: u.Disabled, HasAccessCode: u.CodeHash != "", CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, Note: u.Note, LastActiveAt: u.LastActiveAt, TeamID: u.TeamID, LocationConsentAt: u.locationConsent()}
 }
 
 // En línea: usó su sesión en los últimos 5 minutos (el panel de corredor consulta cada 30 s mientras está abierto).
@@ -587,6 +591,12 @@ func applyUserFields(tx *bolt.Tx, u *User, f map[string]json.RawMessage) error {
 	if _, ok := f["name"]; ok {
 		u.Name = strings.Join(strings.Fields(fieldText(f, "name")), " ")
 	}
+	if _, ok := f["email"]; ok {
+		u.Email = normalizeEmail(fieldText(f, "email"))
+		if u.Email != "" && !validEmail(u.Email) {
+			return userFieldError{"email", "Correo inválido (por ejemplo nombre@gmail.com)."}
+		}
+	}
 	if _, ok := f["telephone"]; ok {
 		u.Telephone = strings.Join(strings.Fields(fieldText(f, "telephone")), " ")
 	}
@@ -657,7 +667,7 @@ func userError(w http.ResponseWriter, err error) bool {
 }
 
 func (a *App) userRoutes(mux *http.ServeMux) {
-	fields := map[string]int{"name": 120, "telephone": 40, "accessCode": 64, "roles": 0, "disabled": 0, "teamId": 120}
+	fields := map[string]int{"name": 120, "telephone": 40, "email": 160, "accessCode": 64, "roles": 0, "disabled": 0, "teamId": 120}
 	mux.HandleFunc("GET /api/admin/users", func(w http.ResponseWriter, r *http.Request) {
 		if !a.admin(w, r) {
 			return
@@ -743,3 +753,10 @@ func (a *App) userRoutes(mux *http.ServeMux) {
 		response(w, 200, u.admin())
 	})
 }
+
+func normalizeEmail(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
+
+var emailPattern = regexp.MustCompile(`^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$`)
+
+// validEmail: forma básica nombre@dominio.algo; no se comprueba que exista.
+func validEmail(s string) bool { return len(s) <= 160 && emailPattern.MatchString(s) }
