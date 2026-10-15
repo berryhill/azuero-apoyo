@@ -2417,6 +2417,11 @@ test('«Mi equipo» (team.html): invite links (one use, expiring), members with 
   assert.match(signup, /fetch\('\/api\/full\/invites\/accept',\{method:'POST'/);
   assert.match(signup, /showDone\(user\);await acceptInvite\(\);return\}showEnter\(\)/, 'already signed in: joins right away');
   assert.match(signup, /showDone\(await signIn\(code\),code\);await acceptInvite\(\)/, 'new account: joins after creating it');
+  assert.match(page, /const ROLE_ICONS=\{runner:'🏃',builder:'🔨',agent:'🎧',donations:'🎁',supplier:'📦',teammanager:'👥'\}/, 'role chips carry the page icons');
+  assert.ok((page.match(/clean\(roleLabel\(r\)\)/g) || []).length === 2, 'icons on member chips and in the roles dialog');
+  assert.match(page, /<input type="search" class="msearch" id="memberSearch"/);
+  assert.match(page, /\$\('#memberSearch'\)\.oninput=renderMembers;/, 'filters as you type');
+  assert.match(page, /\$\{ms\.length\} de \$\{all\.length\}/, 'count shows matches of total');
   const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
   assert.match(admin, /<input type="checkbox" name="roles" value="teammanager"> Team manager <small>\(necesita equipo\)<\/small><\/label>/);
 });

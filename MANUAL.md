@@ -261,7 +261,9 @@ Access: Donations role or admin.
 - A **Team manager** (must be in a team) opens **Mi equipo** from the ☰ menu:
   - **Invite**: «Crear enlace» (expires in 24 h, 3 days or 7 days; **single use**). Copy, share, or send via
     WhatsApp. Invite list: pending, used by…, expired, revoked («Anular»).
-  - **Members**: phone, roles, activity; «Roles» (can grant or remove Runner, Builder, Supply, Team manager; Agent
+  - **Members**: a quick search above the list filters as you type by name, phone (3+ digits) or role, ignoring
+    accents and case (the counter shows e.g. «1 de 3»). Each member shows phone, role chips with the page icons
+    (🏃 Runner, 🔨 Constructor, 📦 Supply, 👥 Team manager, 🎧 Agente, 🎁 Donaciones), activity; «Roles» (can grant or remove Runner, Builder, Supply, Team manager; Agent
     and Donations are locked) and «Quitar del equipo» (remove from team). They can't change themselves. Removing a
     team manager from the team also removes that role.
 - **Opening an invite** (`/signup.html?invite=…`) requires a code session. If the person is already signed in they
