@@ -1619,7 +1619,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.equal(stats([]), '', 'nothing pending, nothing completed: no counters at all');
   assert.equal(stats([{status: 'COMPLETED'}]), '<small class="minorstats">1 completada</small>');
   assert.doesNotMatch(stats([{status: 'OPEN'}, {status: 'OPEN'}]), /class="route"|minorstats/, 'only what there is');
-  assert.match(stats([{status: 'OPEN'}, {status: 'OPEN'}, {status: 'IN_PROGRESS'}]), /title="Por llevar"[^>]*>F<b>2<\/b><\/div><div class="route" title="En camino"[^>]*>W<b>1<\/b>/);
+  assert.match(stats([{status: 'OPEN'}, {status: 'OPEN'}, {status: 'IN_PROGRESS'}]), /title="Por llevar"[^>]*>F<b>2<\/b><span>por llevar<\/span><\/div><div class="route" title="En camino"[^>]*>W<b>1<\/b><span>en camino<\/span>/);
   assert.match(agent, /`<p class="summary">\$\{\[p\.place&&clean\(p\.place\),p\.people&&`<span title="\$\{clean\(p\.people\)\} personas">👥 \$\{clean\(p\.people\)\}<\/span>`,p\.coordinator&&'Coord\. '\+clean\(p\.coordinator\)\]/, 'summary: place · people · coordinator');
   assert.match(agent, /\(people\.find\(m=>m\.phone\)\|\|people\[0\]\)/, 'one contact with phone, «y N más»');
   assert.match(agent, /role=n\.kind==='repair'\?'Constructor':'Runner'/, '«Runner», the term used in the operation');
@@ -2274,7 +2274,7 @@ test('Supply ↔ Runners: Supply asks for a runner («📣 Pedidos» for runners
   assert.match(runner, /requests=\(\)=>available\.filter\(n=>n\.requestedAt&&n\.status==='OPEN'\)/);
   assert.match(runner, /if\(tab==='req'\)\{const req=requests\(\);feed\.innerHTML=req\.length\?req\.map\(n=>`<article class="card reqcard[^`]*\$\{supplierLine\(n,true\)\}[^`]*data-take=/);
   assert.match(runner, /function supplierLine\(n,asking\)\{const x=n\.supplier;[^\n]*\$\{asking\?'Pide':'Recoger en acopio'\}: <b>\$\{clean\(x\.center\|\|'Centro de acopio'\)\}<\/b> · \$\{clean\(x\.name\)\}/);
-  assert.match(runner, /\$\{supplierLine\(n,false\)\}\$\{supplyAskBox\(n\)\}\$\{n\.dispatchedAt\?/, 'pickup line on the «Yo» card');
+  assert.match(runner, /\$\{supplierLine\(n,false\)\}\$\{alsoLine\(n\)\}\$\{supplyAskBox\(n\)\}\$\{n\.dispatchedAt\?/, 'pickup line on the «Yo» card');
   const tabNow = new Function('mine', 'mainTab', `return (${runner.match(/const tabNow=([^\n;]*);/)[1]})()`);
   assert.equal(tabNow([], 'req'), 'req');
   // Supply: three tabs, center name, request/cancel, in-person assign with a runner picker.
@@ -2282,7 +2282,7 @@ test('Supply ↔ Runners: Supply asks for a runner («📣 Pedidos» for runners
   assert.match(page, /<label for="centerInput"[^>]*>📍 Centro<\/label><input id="centerInput" list="centerList"[^>]*><datalist id="centerList"><\/datalist>/, 'typeahead with the shared list of centers');
   assert.match(page, /\$\('#centerInput'\)\.addEventListener\('change',saveCenter\)/, 'saves when picked or when leaving the field');
   assert.doesNotMatch(page, /id="heading"|id="sub"/, 'no heading or intro text taking space');
-  for (const api of ["/request','POST',{})", "/request','POST',{cancel:true})", "/assign','POST',{runnerId:r.id})", "/api/supplier/center','POST'"]) assert.ok(page.includes(api), api);
+  for (const api of ["/request','POST',{})", "/request','POST',{cancel:true})", "(assignAnother?'/another':'/assign'),'POST',{runnerId:r.id})", "/api/supplier/center','POST'"]) assert.ok(page.includes(api), api);
   assert.match(page, /<dialog id="assignDlg"[^>]*>[^]*?<input class="sfind" id="assignFind"[^>]*>[^]*?<div class="runnerpick" id="assignList"/);
   assert.match(page, /other\?'':`<div class="reqacts">/, 'a need another Supply asked for: no buttons');
 });
@@ -2336,4 +2336,44 @@ test('runner and Supply cards: no real location → the Maps button is disabled 
   const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
   const code = page.replace(/\/\*[^]*?\*\//g, '').split('\n').map(l => l.replace(/(^|[;}])\s*\/\/.*$/, '$1')).join('\n');
   assert.doesNotMatch(code, /[Cc]orredor|[Cc]arrera|surtirla/, 'Supply uses Runner / run');
+});
+
+test('access stays current: pages check their session every 45 s; new roles show in the menu, a lost page sends you home', () => {
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  const w = nav.slice(nav.indexOf('function watchAccess('), nav.indexOf('// Al llegar al inicio porque cambió el acceso'));
+  assert.match(w, /setInterval\(check, 45000\);/);
+  assert.match(w, /document\.addEventListener\('visibilitychange', \(\) => \{ if \(!document\.hidden\) check\(\); \}\);/, 'and when coming back to the tab');
+  assert.match(w, /if \(Array\.isArray\(b\.panels\)\) \{ saveAccess\(b\); if \(page && !b\.panels\.some\(p => p\.url === page\)\) leave\(\); \}/);
+  assert.match(w, /if \(r\.status !== 401 \|\| !armed \|\| !page\) return;/, 'only after the page had a session');
+  assert.match(w, /fetch\('\/api\/session\/code'/, 'with the saved code it signs in again and keeps the pages it still has');
+  assert.match(w, /const leave = \(\) => \{ location\.href = '\/\?acceso=0'; \};/);
+  assert.match(nav, /Tu acceso cambió: ya no puedes usar esa página\. Tus páginas están en el menú\./);
+  for (const [f, url, page] of [['runner.html', '/api/runner/session', '/runner.html'], ['builder.html', '/api/builder/session', '/builder.html'], ['command.html', '/api/agent/session', '/command.html'], ['supplier.html', '/api/supplier/session', '/supplier.html'], ['donations.html', '/api/desk/session', '/donations.html'], ['index.html', '/api/full/me', null]]) {
+    const html = readFileSync(new URL('./' + f, import.meta.url), 'utf8');
+    assert.ok(html.includes(`window.AppNav?.watchAccess('${url}',${page ? `'${page}'` : 'null'});`), f);
+  }
+});
+
+test('several runners on the same need: Supply sends «otro runner» (request or in person) from «Ya en camino»; cards show who else goes; «Solo mi equipo» on Supply', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  for (const [f, html] of [['runner', runner], ['supplier', page]]) assert.match(html, /function alsoLine\(n\)\{const a=n\.also\|\|\[\];if\(!a\.length\)return '';return `<div class="alsoline">👥 También va:/, f);
+  assert.match(runner, /\$\{supplierLine\(n,true\)\}\$\{alsoLine\(n\)\}/, 'also on «Pedidos» cards');
+  assert.match(page, /<h3 class="listhead">🚚 Ya en camino · si hace falta, manda otro runner<\/h3>\$\{way\.map\(enrouteCard\)\.join\(''\)\}/);
+  assert.match(page, /data-another="\$\{id\}">📣 Pedir otro runner<\/button><button class="btn assign" type="button" data-anotherassign="\$\{id\}">🏃 Otro en persona<\/button>/);
+  assert.match(page, /\(assignAnother\?'\/another':'\/assign'\),'POST',\{runnerId:r\.id\}\)/);
+  assert.match(page, /<select id="teamOnly" class="rselect" aria-label="Filtro de equipo"><option value="0">Todas<\/option><option value="1">Solo mi equipo<\/option><\/select>/);
+  assert.match(page, /const teamOk=n=>!teamOnly\|\|\(mainTab==='req'\?!!n\.camp\.team:!!\(n\.camp\.team\|\|n\.runnerTeam\)\);/, 'my team points (and my team runners on runs)');
+  assert.match(page, /list=runners\.filter\(r=>\(!teamOnly\|\|r\.team\)&&/, 'only my team runners in the picker');
+});
+
+test('command center on phones: opened point stacks full width; title is the point name; counters say what they count; edit form uses the full width', () => {
+  const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  assert.match(cmd, /\.row\{grid-template-columns:1fr;grid-template-areas:'main' 'stats' 'needs' 'report' 'detail';padding:12px 14px\}/, 'the opened detail is part of the one-column phone layout');
+  assert.match(cmd, /\.row\.editing\{padding:0;border:0;background:none;box-shadow:none\}/);
+  assert.match(cmd, /\$\{clean\(pointName\(p\)\)\}\$\{p\.code&&!autoCode\(p\.code\)\?` <small class="pcode">/);
+  const {autoCode, pointName} = new Function(cmd.match(/const autoCode=[^\n]*/)[0] + ';return {autoCode, pointName}')();
+  assert.equal(pointName({area: 'la Colorada', code: 'P-f1bc49236515'}), 'la Colorada');
+  assert.equal(pointName({area: 'Sin ubicación', place: 'Escuela'}), 'Escuela');
+  assert.ok(autoCode('P-f1bc49236515') && !autoCode('AB-6'));
 });

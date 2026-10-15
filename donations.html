@@ -88,4 +88,7 @@ if(status==='cancelled'&&!await AppNav.confirm('¿Cancelar esta donación?',{yes
 msg.textContent='Guardando…';msg.className='msg';try{current?await api('/donations/'+encodeURIComponent(current.id),'PATCH',data):await api('/donations','POST',data);$('#dlg').close();await load();$('#msg').className='msg good';$('#msg').textContent=status?`Guardada: ${stName[status]}.`:'Guardada.'}catch(e){msg.textContent=e.message;if(e.field&&f[e.field])f[e.field].focus()}}
 $('#form').onsubmit=e=>{e.preventDefault();save(e.submitter?.dataset.new||'')};$('#acts').onclick=e=>{const b=e.target.closest('[data-to]');if(b)save(b.dataset.to)};
 start();
+
+// Acceso al día (nav.js): roles nuevos al menú; sin acceso a esta página, al inicio.
+window.AppNav?.watchAccess('/api/desk/session','/donations.html');
 </script></body></html>

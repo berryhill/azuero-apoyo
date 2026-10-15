@@ -131,4 +131,7 @@ document.querySelector('.mobile-nav').addEventListener('click',e=>{const b=e.tar
 let popupOpen=false;if(map)map.on('popupopen',()=>popupOpen=true).on('popupclose',()=>popupOpen=false);
 setInterval(()=>{if(csrf&&!popupOpen)refresh()},30000);
 (async()=>{const r=await fetch('/api/builder/session',{credentials:'same-origin',cache:'no-store'}).catch(()=>null);if(r&&r.ok){const s=await r.json();csrf=s.csrf;builderName=s.name;myId=s.id||'';$('#who').hidden=false;$('#whoName').textContent=(window.AppNav?AppNav.shortName(builderName):builderName);$('#whoName').title=builderName;return refresh()}if(await relogin())return refresh();showGate()})();
+
+// Acceso al día (nav.js): roles nuevos al menú; sin acceso a esta página, al inicio.
+window.AppNav?.watchAccess('/api/builder/session','/builder.html');
 </script></body></html>

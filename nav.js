@@ -30,7 +30,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 .msuser{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid #ffffff1f;color:#fff}.msuser b{flex:1;min-width:0;font-size:15px;overflow-wrap:anywhere}.msuser button{border:1px solid #ffffff40;background:none;color:#ffd0c2;border-radius:9px;padding:8px 12px;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}
 .mpages{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid #ffffff1f}.mpages a{display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:10px;color:#e3ecef;text-decoration:none;font-size:15px;font-weight:750}.mpages a[aria-current="page"]{background:#fff;color:#10263a}.mpages a:active{background:#ffffff26}
 .msize{display:flex;align-items:center;gap:8px;padding:12px 4px 2px;color:#c8d6db;font-size:14px;font-weight:700}.msize .lbl{flex:1}.msize button{width:44px;height:38px;border:1px solid #47657a;border-radius:9px;background:none;color:#fff;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.msize button:disabled{opacity:.4}.msize output{min-width:46px;text-align:center;color:#fff}}
-.gate:has(form[data-signin]){overflow-y:auto;place-items:start center}.gate form[data-signin]{margin:auto 0}.sg{border:1px solid #dbe5e5;border-radius:12px;margin:12px 0 0;padding:4px 14px 14px;min-width:0}.sg legend{padding:0 6px;font:800 14px Inter,system-ui,sans-serif;color:#173c46}.sg label{display:block}.sg .sgbtn{display:block;width:100%;margin-top:12px;border:0;border-radius:10px;padding:12px 16px;font:800 15px Inter,system-ui,sans-serif;cursor:pointer;color:#fff;background:#19745f}.sg-new .sgbtn{background:#ed7654}.sg small{font-weight:600;color:#7a8d94}.sgor{margin:10px 0 0;text-align:center;font-size:12px;font-weight:700;color:#8a9aa0}.remember{display:flex!important;align-items:center;gap:8px;margin:10px 0 2px;font-size:13px;font-weight:650;color:#36505a;cursor:pointer}.remember[hidden]{display:none!important}.remember input{width:20px;height:20px;margin:0;accent-color:#19745f;flex:none}
+.gate:has(form[data-signin]){overflow-y:auto;place-items:start center}.gate form[data-signin]{margin:auto 0}.accesstoast{position:fixed;z-index:4000;left:50%;top:76px;transform:translateX(-50%);width:min(440px,calc(calc(100vw / var(--text-zoom,1)) - 24px));padding:12px 16px;border-radius:12px;background:#10263a;color:#fff;font:700 14px Inter,system-ui,sans-serif;box-shadow:0 8px 24px #0006;text-align:center}.sg{border:1px solid #dbe5e5;border-radius:12px;margin:12px 0 0;padding:4px 14px 14px;min-width:0}.sg legend{padding:0 6px;font:800 14px Inter,system-ui,sans-serif;color:#173c46}.sg label{display:block}.sg .sgbtn{display:block;width:100%;margin-top:12px;border:0;border-radius:10px;padding:12px 16px;font:800 15px Inter,system-ui,sans-serif;cursor:pointer;color:#fff;background:#19745f}.sg-new .sgbtn{background:#ed7654}.sg small{font-weight:600;color:#7a8d94}.sgor{margin:10px 0 0;text-align:center;font-size:12px;font-weight:700;color:#8a9aa0}.remember{display:flex!important;align-items:center;gap:8px;margin:10px 0 2px;font-size:13px;font-weight:650;color:#36505a;cursor:pointer}.remember[hidden]{display:none!important}.remember input{width:20px;height:20px;margin:0;accent-color:#19745f;flex:none}
 .appconfirm .acts{display:flex;gap:10px;margin-top:18px}.appconfirm button{flex:1;border:0;border-radius:10px;padding:13px 16px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}.appconfirm .no{background:#eef3f3;color:#173c46}.appconfirm .yes{background:#9a4536;color:#fff}.appchoose .acts{flex-direction:column}.appconfirm .yes.ok{background:#19745f}.appconfirm .yes.go{background:#1f63c6}`;
   const style = document.createElement('style');
   style.textContent = css;
@@ -341,10 +341,64 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const choice = await choose('Tu código de acceso: ' + code, {detail: (name ? `Tu cuenta: ${name}. ` : '') + 'Ya quedó guardado en este teléfono: la próxima vez aparece escrito y solo tocas «Entrar». Cópialo para entrar en otro teléfono.', options: [['ok', 'Listo', 'go'], ['copy', 'Copiar código', 'ok']]});
     if (choice === 'copy') { try { await navigator.clipboard.writeText(code); } catch {} }
   }
+  // Acceso al día: cada página con sesión consulta la suya cada 45 s (y al volver a la pestaña). Los roles nuevos
+  // aparecen en el menú; si la persona perdió el acceso a esta página (o la desactivaron), vuelve al inicio con un aviso.
+  // Solo actúa después de que la página tuvo sesión (no saca a quien está en la entrada escribiendo su código).
+  function saveAccess(b) {
+    try { const u = JSON.parse(localStorage.getItem('codeUser') || 'null') || {}; localStorage.setItem('codeUser', JSON.stringify({...u, id: b.id || u.id, name: b.name || u.name, roles: b.roles || u.roles || [], panels: b.panels})); } catch {}
+    drawAll();
+  }
+  function watchAccess(url, page) {
+    let armed = false, busy = false;
+    const leave = () => { location.href = '/?acceso=0'; };
+    async function check() {
+      if (document.hidden || busy) return;
+      busy = true;
+      try {
+        const r = await fetch(url, {credentials: 'same-origin', cache: 'no-store'});
+        if (r.ok) {
+          const b = await r.json().catch(() => null);
+          if (!b) return;
+          armed = true;
+          if (Array.isArray(b.panels)) { saveAccess(b); if (page && !b.panels.some(p => p.url === page)) leave(); }
+          return;
+        }
+        if (r.status !== 401 || !armed || !page) return;
+        // La sesión de esta página terminó (se quitó el rol, se desactivó al usuario o venció): con el código guardado
+        // se vuelve a entrar; si esta página ya no es suya, al inicio.
+        let code = rememberedCode();
+        try { code = code || codeKeys.map(k => localStorage.getItem(k)).find(Boolean) || ''; } catch {}
+        if (code) {
+          const s = await fetch('/api/session/code', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({accessCode: code})});
+          const b = await s.json().catch(() => ({}));
+          if (s.ok && Array.isArray(b.panels)) { saveAccess(b); if (!b.panels.some(p => p.url === page)) leave(); return; }
+        }
+        try { localStorage.removeItem('codeUser'); codeKeys.forEach(k => localStorage.removeItem(k)); } catch {}
+        leave();
+      } catch {
+        // Sin conexión: se vuelve a revisar en la próxima vuelta.
+      } finally { busy = false; }
+    }
+    setInterval(check, 45000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+    setTimeout(check, 1500);
+  }
+  // Al llegar al inicio porque cambió el acceso: aviso breve y se limpia la dirección.
+  if (new URLSearchParams(location.search).get('acceso') === '0') {
+    const show = () => {
+      const t = document.createElement('div');
+      t.className = 'accesstoast'; t.setAttribute('role', 'status');
+      t.textContent = 'Tu acceso cambió: ya no puedes usar esa página. Tus páginas están en el menú.';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 7000);
+      history.replaceState(null, '', location.pathname + location.hash);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show); else show();
+  }
   // Nombre corto para encabezados: nombre + primeras letras del apellido («Arianne Ori…»).
   const shortName = n => { const w = String(n || '').trim().split(/\s+/).filter(Boolean); return w.length < 2 ? w.join('') : w[0] + ' ' + (w[1].length > 3 ? w[1].slice(0, 3) + '…' : w[1]); };
   const drawAll = () => { draw(); drawMobileBar(); };
-  window.AppNav = {draw: drawAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode};
+  window.AppNav = {draw: drawAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); }); else { draw(); mountTextSize(); mountMobileBar(); }
   // Entrar o salir en otra pestaña actualiza esta.
   addEventListener('storage', e => { if (e.key === 'codeUser' || e.key === null) draw(); if (e.key === 'textZoom' || e.key === null) { zoom = sizes.includes(savedSize()) ? savedSize() : 1; applySize(); } });

@@ -331,7 +331,7 @@ func (a *App) donationRoutes(mux *http.ServeMux) {
 	})
 	mux.HandleFunc("GET /api/desk/session", func(w http.ResponseWriter, r *http.Request) {
 		if u, s, ok := a.deskSession(w, r); ok {
-			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "csrf": s.csrf})
+			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "csrf": s.csrf, "roles": u.Roles, "panels": userPanels(u)})
 		}
 	})
 	mux.HandleFunc("POST /api/desk/logout", func(w http.ResponseWriter, r *http.Request) {

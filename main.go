@@ -252,6 +252,9 @@ type CampNeed struct {
 	// puede o no (SupplyOffers) y el corredor elige uno, que queda como SupplierID. Se borra si deja de estar en camino.
 	SupplyAskedAt string        `json:"supplyAskedAt,omitempty"`
 	SupplyOffers  []SupplyOffer `json:"supplyOffers,omitempty"`
+	// Otro runner a lo mismo: copia de la necesidad (SameAs = la original) que un acopio manda con otro runner; cada
+	// una tiene su runner, lista de empaque, fotos, despacho y «Completé» (así queda documentado cada envío).
+	SameAs string `json:"sameAs,omitempty"`
 	// Solo en la respuesta de la ficha para quien entró con código (nombre del conductor asignado, sin su ID); nunca se guarda.
 	RunnerName string `json:"runnerName,omitempty"`
 }
@@ -2078,14 +2081,16 @@ type runnerNeed struct {
 	// Pedido del corredor a los acopios (en su carrera): cuándo lo pidió y qué acopios dijeron que pueden surtirla.
 	SupplyAskedAt string        `json:"supplyAskedAt,omitempty"`
 	SupplyOffers  []supplyOffer `json:"supplyOffers,omitempty"`
-	Packing       []PackingLine `json:"packing,omitempty"`
-	Media         []MediaItem   `json:"media,omitempty"`
-	Scope         string        `json:"scope,omitempty"`
-	Materials     []PackingLine `json:"materials,omitempty"`
-	Progress      int           `json:"progress,omitempty"`
-	Kind          string        `json:"kind,omitempty"`
-	RepeatDays    int           `json:"repeatDays,omitempty"`
-	Assessments   []Assessment  `json:"assessments,omitempty"`
+	// Otros runners que llevan lo mismo al mismo punto (envíos hermanos).
+	Also        []alsoRun     `json:"also,omitempty"`
+	Packing     []PackingLine `json:"packing,omitempty"`
+	Media       []MediaItem   `json:"media,omitempty"`
+	Scope       string        `json:"scope,omitempty"`
+	Materials   []PackingLine `json:"materials,omitempty"`
+	Progress    int           `json:"progress,omitempty"`
+	Kind        string        `json:"kind,omitempty"`
+	RepeatDays  int           `json:"repeatDays,omitempty"`
+	Assessments []Assessment  `json:"assessments,omitempty"`
 	// assigned: la necesidad está asignada a quien consulta (puede armar su lista de empaque).
 	Assigned bool       `json:"assigned,omitempty"`
 	Camp     runnerCamp `json:"camp"`
@@ -2163,6 +2168,49 @@ func (a *App) crewSession(c *crew, w http.ResponseWriter, r *http.Request) (runn
 	a.touch(s.runnerID)
 	return s, true
 }
+
+// userPanels: las páginas que el usuario puede abrir ahora con su código (las mismas que abre la entrada con código).
+// Las páginas lo consultan seguido (nav.js) para mostrar las nuevas en el menú y salir de las que ya no tiene.
+func userPanels(u User) []map[string]string {
+	panels := []map[string]string{}
+	if u.Disabled || u.CodeHash == "" {
+		return panels
+	}
+	switch {
+	case u.has(roleRunner):
+		panels = append(panels, map[string]string{"label": "Corredores", "url": "/runner.html"})
+	case u.has(roleAgent):
+		panels = append(panels, map[string]string{"label": "Listas de empaque", "url": "/runner.html"})
+	}
+	if u.has(roleBuilder) {
+		panels = append(panels, map[string]string{"label": "Constructores", "url": "/builder.html"})
+	}
+	if u.has(roleAgent) {
+		panels = append(panels, map[string]string{"label": "Comando", "url": "/command.html"})
+	}
+	if u.has(roleSupplier) {
+		panels = append(panels, map[string]string{"label": "Supply", "url": "/supplier.html"})
+	}
+	if u.has(roleDonations) {
+		panels = append(panels, map[string]string{"label": "Donaciones", "url": "/donations.html"})
+	}
+	return panels
+}
+
+// accessOf: roles y páginas actuales de un usuario, para las respuestas de sesión.
+func (a *App) accessOf(id string) (roles []string, panels []map[string]string) {
+	a.db.View(func(tx *bolt.Tx) error {
+		if u, ok := getUser(tx, id); ok {
+			roles, panels = u.Roles, userPanels(u)
+		}
+		return nil
+	})
+	if roles == nil {
+		roles = []string{}
+	}
+	return roles, panels
+}
+
 func (a *App) runnerRoutes(mux *http.ServeMux) {
 	runners, builders := a.crews()
 	a.crewRoutes(mux, runners, runners, builders)
@@ -2233,7 +2281,8 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	// Tu propio ID (tocar tu nombre en la página pública lo copia), para sesiones guardadas antes de que se incluyera.
 	mux.HandleFunc("GET /api/full/me", func(w http.ResponseWriter, r *http.Request) {
 		if u, ok := a.viewer(w, r); ok {
-			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "locationConsent": u.locationConsent() != ""})
+			roles, panels := a.accessOf(u.ID)
+			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "locationConsent": u.locationConsent() != "", "roles": roles, "panels": panels})
 		}
 	})
 	mux.HandleFunc("POST /api/full/logout", func(w http.ResponseWriter, r *http.Request) {
@@ -2403,7 +2452,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 		if serviceError(w, err) {
 			return
 		}
-		response(w, 200, map[string]any{"id": item.ID, "name": item.Name, "csrf": s.csrf, "agent": s.agent, "locationConsent": item.locationConsent() != ""})
+		response(w, 200, map[string]any{"id": item.ID, "name": item.Name, "csrf": s.csrf, "agent": s.agent, "locationConsent": item.locationConsent() != "", "roles": item.Roles, "panels": userPanels(item)})
 	})
 	mux.HandleFunc("POST "+c.path+"/logout", func(w http.ResponseWriter, r *http.Request) {
 		if cookie, e := r.Cookie(c.cookie); e == nil {
@@ -2446,6 +2495,10 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 			}); e != nil {
 				return e
 			}
+			groups, e := needGroups(tx)
+			if e != nil {
+				return e
+			}
 			return tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
 				var n CampNeed
 				if e := json.Unmarshal(v, &n); e != nil {
@@ -2461,7 +2514,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					}
 				}
 				who := *c.assignee(&n)
-				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), Supplier: supplierOf(tx, n.SupplierID), SupplyAskedAt: n.SupplyAskedAt, SupplyOffers: offersFor(tx, n), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
+				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), Supplier: supplierOf(tx, n.SupplierID), SupplyAskedAt: n.SupplyAskedAt, SupplyOffers: offersFor(tx, n), Also: alsoFor(tx, groups, n), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
 				if item.Assigned {
 					item.Media = n.Media
 				} else if c.repair {

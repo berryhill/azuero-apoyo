@@ -31,6 +31,7 @@ type supplierView struct {
 	Runners []supplierRunner
 	Center  string
 	Centers []string
+	Enroute []supplierRun
 }
 
 func (s *serviceHarness) supplierView(cookie *http.Cookie) supplierView {
@@ -335,5 +336,150 @@ func TestRunnerAsksSupplyCentersAndPicksOne(t *testing.T) {
 		if n.ID == tents && (n.SupplyAskedAt != "" || len(n.SupplyOffers) != 0) {
 			t.Fatalf("released run keeps no ask: %+v", n)
 		}
+	}
+}
+
+// Pages ask their session endpoint often: it returns the current roles and pages, so a new role shows up in the
+// menu and a removed one ends that page's session (the page then sends the person home).
+func TestSessionChecksReflectRoleChanges(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/users", `{"name":"Rita Roles","telephone":"6999-4545","roles":["runner"],"accessCode":"RITA777"}`, 201)
+	var id string
+	var users []map[string]any
+	json.Unmarshal(s.call("GET", "/api/admin/users", "", true).Body.Bytes(), &users)
+	for _, u := range users {
+		if u["name"] == "Rita Roles" {
+			id = u["id"].(string)
+		}
+	}
+	w := s.call("POST", "/api/runner/session", `{"accessCode":"RITA777"}`, false)
+	if w.Code != 200 {
+		t.Fatalf("login: %d %s", w.Code, w.Body.String())
+	}
+	var cookie *http.Cookie
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "runner_session" {
+			cookie = c
+		}
+	}
+	check := func() (int, string) {
+		w := s.agentCall("GET", "/api/runner/session", "", cookie, "")
+		return w.Code, w.Body.String()
+	}
+	if code, body := check(); code != 200 || !strings.Contains(body, `"url":"/runner.html"`) || strings.Contains(body, "/supplier.html") {
+		t.Fatalf("runner only: %d %s", code, body)
+	}
+	s.expect("PATCH", "/api/admin/users/"+id, `{"roles":["runner","supplier"]}`, 200)
+	if code, body := check(); code != 200 || !strings.Contains(body, `"url":"/supplier.html"`) || !strings.Contains(body, `"supplier"`) {
+		t.Fatalf("new role shows up: %d %s", code, body)
+	}
+	s.expect("PATCH", "/api/admin/users/"+id, `{"roles":["supplier"]}`, 200)
+	if code, _ := check(); code != 401 {
+		t.Fatalf("runner role removed: the Runners session ends: %d", code)
+	}
+	if w := s.agentCall("POST", "/api/supplier/session", `{"accessCode":"RITA777"}`, nil, ""); w.Code != 200 || !strings.Contains(w.Body.String(), `"panels":[{"label":"Supply","url":"/supplier.html"}]`) {
+		t.Fatalf("still has Supply: %d %s", w.Code, w.Body.String())
+	}
+}
+
+// «Solo mi equipo» on Supply: points added by my team and my team's runners are flagged.
+func TestSupplyTeamFlags(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)
+	s.expect("POST", "/api/admin/users", `{"name":"Ana Equipo","telephone":"6999-2121","roles":["runner"],"accessCode":"ANA7777"}`, 201)
+	s.expect("POST", "/api/admin/users", `{"name":"Otro Runner","telephone":"6999-2222","roles":["runner"],"accessCode":"OTRO777"}`, 201)
+	ids := map[string]string{}
+	var users []map[string]any
+	json.Unmarshal(s.call("GET", "/api/admin/users", "", true).Body.Bytes(), &users)
+	for _, u := range users {
+		ids[u["name"].(string)] = u["id"].(string)
+	}
+	s.team("Equipo Norte", ids["Julie Acopio"], ids["Ana Equipo"])
+	created := s.expect("POST", "/api/admin/points", `{"area":"Flores","place":"Del equipo","phone":"6000-1111","addedBy":"`+ids["Ana Equipo"]+`"}`, 201)
+	teamCamp := created["id"].(string)
+	s.expect("POST", "/api/admin/camps/"+teamCamp+"/needs", `{"need":"Agua","status":"OPEN"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Arroz","status":"OPEN"}`, 201)
+	julie, _ := s.supplierLogin("JULIE77")
+	v := s.supplierView(julie)
+	flags := map[string]bool{}
+	for _, n := range v.Open {
+		flags[n.Need] = n.Camp.Team
+	}
+	if !flags["Agua"] || flags["Arroz"] {
+		t.Fatalf("team points: %+v", flags)
+	}
+	for _, r := range v.Runners {
+		if r.Team != (r.Name == "Ana Equipo") {
+			t.Fatalf("team runners: %+v", v.Runners)
+		}
+	}
+}
+
+// Two runners on the same need: a second supply center sends another runner (in person or by request); each run is
+// its own record (runner, packing, dispatch, completion) and both cards show who else is going.
+func TestAnotherRunnerToTheSameNeed(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)
+	s.expect("POST", "/api/admin/users", `{"name":"Pedro Acopio","telephone":"6999-1212","roles":["supplier"],"accessCode":"PEDRO77"}`, 201)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","status":"OPEN","urgency":"urgente"}`, 201)
+	orig := s.needsOf(s.camp)[0].ID
+	julie, jcsrf := s.supplierLogin("JULIE77")
+	pedro, pcsrf := s.supplierLogin("PEDRO77")
+	s.agentCall("POST", "/api/supplier/center", `{"center":"Villa Marina"}`, julie, jcsrf)
+	rui := s.runnerLogin("Rui Corre")
+	ana := s.runnerLogin("Ana Corre")
+	// Julie assigns the original to Rui in person.
+	var ruiID, anaID string
+	for _, r := range s.supplierView(julie).Runners {
+		switch r.Name {
+		case "Rui Corre":
+			ruiID = r.ID
+		case "Ana Corre":
+			anaID = r.ID
+		}
+	}
+	s.agentCall("POST", "/api/supplier/needs/"+orig+"/assign", `{"runnerId":"`+ruiID+`"}`, julie, jcsrf)
+	if w := s.agentCall("POST", "/api/supplier/needs/"+orig+"/another", `{}`, julie, jcsrf); w.Code != 201 {
+		// Julie may also send another; here we just make sure the endpoint works for her too, then remove it.
+		t.Fatalf("another by the same center: %d %s", w.Code, w.Body.String())
+	}
+	// Pedro sees it «en camino» with Julie's runner and sends Ana in person.
+	v := s.supplierView(pedro)
+	if r := findRun(v.Enroute, orig); r == nil || r.RunnerName != "Rui Corre" || r.Supplier == nil || r.Supplier.Center != "Villa Marina" {
+		t.Fatalf("Pedro sees the run already on its way: %+v", v.Enroute)
+	}
+	if w := s.agentCall("POST", "/api/supplier/needs/"+orig+"/another", `{"runnerId":"`+ruiID+`"}`, pedro, pcsrf); w.Code != 400 {
+		t.Fatalf("Rui already carries it: %d", w.Code)
+	}
+	w := s.agentCall("POST", "/api/supplier/needs/"+orig+"/another", `{"runnerId":"`+anaID+`"}`, pedro, pcsrf)
+	if w.Code != 201 {
+		t.Fatalf("another runner: %d %s", w.Code, w.Body.String())
+	}
+	var made map[string]string
+	json.Unmarshal(w.Body.Bytes(), &made)
+	second := made["id"]
+	// Each is its own run: Pedro dispatches Ana's, Julie still has Rui's to dispatch.
+	if r := findRun(s.supplierView(pedro).Runs, second); r == nil || r.RunnerName != "Ana Corre" || r.Need != "Agua" || r.Urgency != "urgente" || len(r.Also) != 2 {
+		t.Fatalf("Pedro's run: %+v", r)
+	}
+	if w := s.agentCall("POST", "/api/supplier/needs/"+second+"/dispatch", `{}`, pedro, pcsrf); w.Code != 200 {
+		t.Fatalf("dispatch Ana: %d", w.Code)
+	}
+	if r := findRun(s.supplierView(julie).Runs, orig); r == nil || r.DispatchedAt != "" {
+		t.Fatalf("Julie's run untouched: %+v", r)
+	}
+	// Runners see who else is going.
+	if body := rui.call("GET", "/api/runner/needs", "").Body.String(); !strings.Contains(body, `"also":[`) || !strings.Contains(body, "Ana Corre") {
+		t.Fatalf("Rui sees Ana: %s", body)
+	}
+	if w := ana.call("POST", "/api/runner/needs/"+second+"/complete", `{}`); w.Code != 200 {
+		t.Fatalf("Ana completes hers: %d %s", w.Code, w.Body.String())
+	}
+	statuses := map[string]string{}
+	for _, n := range s.needsOf(s.camp) {
+		statuses[n.ID] = n.Status
+	}
+	if statuses[orig] != "IN_PROGRESS" || statuses[second] != "COMPLETED" {
+		t.Fatalf("each run completes on its own: %v", statuses)
 	}
 }

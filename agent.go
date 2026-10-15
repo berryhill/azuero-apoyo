@@ -131,7 +131,7 @@ func (a *App) agentRoutes(mux *http.ServeMux) {
 	})
 	mux.HandleFunc("GET /api/agent/session", func(w http.ResponseWriter, r *http.Request) {
 		if u, s, ok := a.agentSession(w, r); ok {
-			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "csrf": s.csrf})
+			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "csrf": s.csrf, "roles": u.Roles, "panels": userPanels(u)})
 		}
 	})
 	mux.HandleFunc("POST /api/agent/logout", func(w http.ResponseWriter, r *http.Request) {

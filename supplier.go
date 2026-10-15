@@ -83,6 +83,8 @@ type supplierRun struct {
 	RunnerPhone      string `json:"runnerPhone,omitempty"`
 	DispatchedAt     string `json:"dispatchedAt,omitempty"`
 	DispatchedByName string `json:"dispatchedByName,omitempty"`
+	// El runner es de mi equipo (para «Solo mi equipo»; el punto lo dice camp.team).
+	RunnerTeam bool `json:"runnerTeam,omitempty"`
 	// Dónde va el corredor, si comparte su ubicación en vivo (reciente); solo en las carreras de este acopio.
 	RunnerLive *runnerOnMap `json:"runnerLive,omitempty"`
 	// «Corredores piden»: qué respondió este acopio («can» o «no»; vacío si no ha respondido) y cuántos más pueden.
@@ -99,6 +101,8 @@ type supplierRunner struct {
 	Name      string `json:"name"`
 	Telephone string `json:"telephone,omitempty"`
 	Active    int    `json:"active"`
+	// Team: es de mi equipo (para «Solo mi equipo»).
+	Team bool `json:"team,omitempty"`
 }
 
 func (a *App) startSupplierSession(w http.ResponseWriter, r *http.Request, userID string) runnerSession {
@@ -186,11 +190,11 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return
 		}
 		s := a.startSupplierSession(w, r, u.ID)
-		response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "telephone": u.Telephone, "roles": u.Roles, "center": u.SupplyCenter, "csrf": s.csrf})
+		response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "telephone": u.Telephone, "roles": u.Roles, "panels": userPanels(u), "center": u.SupplyCenter, "csrf": s.csrf})
 	})
 	mux.HandleFunc("GET /api/supplier/session", func(w http.ResponseWriter, r *http.Request) {
 		if u, s, ok := a.supplierSession(w, r); ok {
-			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "telephone": u.Telephone, "roles": u.Roles, "center": u.SupplyCenter, "csrf": s.csrf})
+			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "telephone": u.Telephone, "roles": u.Roles, "panels": userPanels(u), "center": u.SupplyCenter, "csrf": s.csrf})
 		}
 	})
 	mux.HandleFunc("POST /api/supplier/logout", func(w http.ResponseWriter, r *http.Request) {
@@ -209,7 +213,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if !ok {
 			return
 		}
-		runs, open, runners, asks := []supplierRun{}, []supplierRun{}, []supplierRunner{}, []supplierRun{}
+		runs, open, runners, asks, enroute := []supplierRun{}, []supplierRun{}, []supplierRunner{}, []supplierRun{}, []supplierRun{}
 		now := time.Now()
 		live := map[string]liveLocation{}
 		a.mu.Lock()
@@ -220,6 +224,16 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		}
 		a.mu.Unlock()
 		err := a.db.View(func(tx *bolt.Tx) error {
+			// «Solo mi equipo»: puntos que agregó alguien de mi equipo (o con un run de mi equipo) y runners de mi equipo.
+			tv := newTeamView(tx, me.ID)
+			team, e := teamCamps(tv)
+			if e != nil {
+				return e
+			}
+			groups, e := needGroups(tx)
+			if e != nil {
+				return e
+			}
 			camps := map[string]runnerCamp{}
 			if e := tx.Bucket(submissions).ForEach(func(_, v []byte) error {
 				var p Point
@@ -229,7 +243,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				if p.Status == "approved" {
 					contacts := campContacts(p)
 					p = publicPoint(p)
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts}
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID]}
 				}
 				return nil
 			}); e != nil {
@@ -246,13 +260,15 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				}
 				camp, ok := camps[n.CampID]
 				asking := supplyAskOpen(n)
-				if !ok || !(supplierOwns(n, me.ID) || supplierCanRequest(n) || asking) {
+				// En camino con otro acopio (o sin acopio): se puede mandar otro runner a lo mismo.
+				other := !isRepair(n) && n.Status == "IN_PROGRESS" && n.RunnerID != "" && n.SupplierID != me.ID && !asking
+				if !ok || !(supplierOwns(n, me.ID) || supplierCanRequest(n) || asking || other) {
 					return nil
 				}
 				if n.Need, _ = splitRepair(n.Need); n.Need == "" {
 					return nil
 				}
-				run := supplierRun{runnerNeed: runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName}
+				run := supplierRun{runnerNeed: runnerNeed{Also: alsoFor(tx, groups, n), ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName}
 				if n.Status == "OPEN" {
 					run.Media, run.Packing = nil, nil
 					if n.SupplierRequestedAt != "" {
@@ -280,15 +296,21 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 					}
 					run.Media, run.Packing, run.RequestedAt = nil, nil, n.SupplyAskedAt
 				}
+				run.RunnerTeam = tv.mate(n.RunnerID)
 				if u, found := getUser(tx, n.RunnerID); found {
 					run.RunnerName, run.RunnerPhone = u.Name, u.Telephone
 					if loc, ok := live[n.RunnerID]; ok {
 						run.RunnerLive = &runnerOnMap{ID: u.ID, Name: u.Name, Lat: loc.Lat, Lon: loc.Lon, Accuracy: loc.Accuracy, At: loc.At.UTC().Format(time.RFC3339), Seconds: int(now.Sub(loc.At).Seconds())}
 					}
 				}
-				if asking {
+				switch {
+				case asking:
 					asks = append(asks, run)
-				} else {
+				case other:
+					run.Media, run.Packing, run.RunnerLive = nil, nil, nil
+					run.Supplier = supplierOf(tx, n.SupplierID)
+					enroute = append(enroute, run)
+				default:
 					runs = append(runs, run)
 				}
 				return nil
@@ -297,7 +319,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			}
 			return eachUser(tx, func(u User) error {
 				if u.has(roleRunner) && !u.Disabled {
-					runners = append(runners, supplierRunner{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Active: active[u.ID]})
+					runners = append(runners, supplierRunner{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Active: active[u.ID], Team: tv.mate(u.ID)})
 				}
 				return nil
 			})
@@ -327,7 +349,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if e := a.db.View(func(tx *bolt.Tx) (e error) { centers, e = supplyCenters(tx); return e }); serviceError(w, e) {
 			return
 		}
-		response(w, 200, map[string]any{"runs": runs, "open": open, "asks": asks, "runners": runners, "center": me.SupplyCenter, "centers": centers})
+		response(w, 200, map[string]any{"runs": runs, "open": open, "asks": asks, "enroute": enroute, "runners": runners, "center": me.SupplyCenter, "centers": centers})
 	})
 	// «Corredores piden»: este acopio puede surtir la carrera (can), no puede (can:false) o retira su oferta (withdraw).
 	mux.HandleFunc("POST /api/supplier/needs/{id}/offer", func(w http.ResponseWriter, r *http.Request) {
@@ -455,6 +477,79 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return
 		}
 		response(w, 200, map[string]any{"id": n.ID, "requestedAt": n.SupplierRequestedAt})
+	})
+	// Otro runner a lo mismo: de una necesidad ya en camino se crea otro envío ligado a este acopio; con runnerId se
+	// asigna en persona (queda en camino), sin él se pide a los runners («Pedidos»).
+	mux.HandleFunc("POST /api/supplier/needs/{id}/another", func(w http.ResponseWriter, r *http.Request) {
+		me, _, ok := a.supplierSession(w, r)
+		if !ok {
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"runnerId": 128})
+		if !ok {
+			return
+		}
+		runnerID := fieldText(f, "runnerId")
+		var copy CampNeed
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(needsBucket)
+			v := b.Get([]byte(r.PathValue("id")))
+			if v == nil {
+				return errMissing
+			}
+			var orig CampNeed
+			if e := json.Unmarshal(v, &orig); e != nil {
+				return e
+			}
+			if !a.campExists(tx, orig.CampID) || isRepair(orig) || orig.Status != "IN_PROGRESS" {
+				return errNotARun
+			}
+			copy = CampNeed{ID: randomToken(), CampID: orig.CampID, Need: orig.Need, Urgency: orig.Urgency, Kind: orig.Kind, RequesterName: orig.RequesterName, RequesterPhone: orig.RequesterPhone, CreatedAt: nowStamp(), SameAs: groupOf(orig), SupplierID: me.ID}
+			if runnerID == "" {
+				copy.Status, copy.SupplierRequestedAt = "OPEN", nowStamp()
+				return putNeed(b, &copy)
+			}
+			runner, found := getUser(tx, runnerID)
+			if !found || runner.Disabled || !runner.has(roleRunner) {
+				return userFieldError{"runnerId", "Elige un runner activo."}
+			}
+			busy, already := 0, false
+			if e := b.ForEach(func(_, v []byte) error {
+				var other CampNeed
+				if e := json.Unmarshal(v, &other); e != nil {
+					return e
+				}
+				if other.RunnerID == runnerID && other.Status == "IN_PROGRESS" && !isRepair(other) {
+					busy++
+					if groupOf(other) == groupOf(orig) {
+						already = true
+					}
+				}
+				return nil
+			}); e != nil {
+				return e
+			}
+			if already {
+				return userFieldError{"runnerId", "Ese runner ya lleva esta necesidad."}
+			}
+			if busy >= 10 {
+				return errRunnerBusy
+			}
+			copy.Status, copy.RunnerID, copy.EnRouteAt = "IN_PROGRESS", runnerID, nowStamp()
+			if e := putNeed(b, &copy); e != nil {
+				return e
+			}
+			runner.RunOrder = append(runner.RunOrder, copy.ID)
+			return putJSON(tx.Bucket(usersBucket), runner.ID, runner)
+		})
+		if errors.Is(err, errNotARun) || errors.Is(err, errRunnerBusy) {
+			fail(w, 409, err.Error())
+			return
+		}
+		if userError(w, err) {
+			return
+		}
+		response(w, 201, map[string]any{"id": copy.ID, "status": copy.Status})
 	})
 	// Asignar en persona: el corredor ya está en el acopio; la carrera pasa a En camino, a su «Yo» y a «Por despachar».
 	mux.HandleFunc("POST /api/supplier/needs/{id}/assign", func(w http.ResponseWriter, r *http.Request) {
@@ -766,4 +861,59 @@ func (a *App) supplyAskRoutes(mux *http.ServeMux, runners *crew) {
 			return nil
 		})
 	})
+}
+
+// alsoRun: otro envío de la misma necesidad (otro runner, quizá de otro acopio), para verlo en las tarjetas.
+type alsoRun struct {
+	ID         string `json:"id"`
+	RunnerName string `json:"runnerName,omitempty"`
+	Center     string `json:"center,omitempty"`
+	Status     string `json:"status"`
+	Dispatched bool   `json:"dispatched,omitempty"`
+}
+
+func groupOf(n CampNeed) string {
+	if n.SameAs != "" {
+		return n.SameAs
+	}
+	return n.ID
+}
+
+// needGroups: envíos activos (abiertos o en camino) por grupo; solo se arma si hay más de uno en algún grupo.
+func needGroups(tx *bolt.Tx) (map[string][]CampNeed, error) {
+	groups := map[string][]CampNeed{}
+	err := tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
+		var n CampNeed
+		if e := json.Unmarshal(v, &n); e != nil {
+			return e
+		}
+		if isRepair(n) || (n.Status != "OPEN" && n.Status != "IN_PROGRESS" && n.Status != "COMPLETED") {
+			return nil
+		}
+		groups[groupOf(n)] = append(groups[groupOf(n)], n)
+		return nil
+	})
+	return groups, err
+}
+
+// alsoFor: los demás envíos del grupo de n (el original y sus copias), con runner y acopio.
+func alsoFor(tx *bolt.Tx, groups map[string][]CampNeed, n CampNeed) []alsoRun {
+	var out []alsoRun
+	for _, o := range groups[groupOf(n)] {
+		if o.ID == n.ID {
+			continue
+		}
+		x := alsoRun{ID: o.ID, Status: o.Status, Dispatched: o.DispatchedAt != ""}
+		if u, ok := getUser(tx, o.RunnerID); ok && o.RunnerID != "" {
+			x.RunnerName = u.Name
+		}
+		if sup := supplierOf(tx, o.SupplierID); sup != nil {
+			x.Center = sup.Center
+			if x.Center == "" {
+				x.Center = sup.Name
+			}
+		}
+		out = append(out, x)
+	}
+	return out
 }
