@@ -56,7 +56,7 @@ func supplyCenters(tx *bolt.Tx) ([]string, error) {
 	return list, nil
 }
 
-var errNotARun = errors.New("Esta carrera ya no está en camino.")
+var errNotARun = errors.New("Este run ya no está en camino.")
 
 // supplierInfo: el acopio de una carrera, como lo ven los corredores (para llamar y saber dónde recoger).
 type supplierInfo struct {
@@ -162,9 +162,9 @@ func openRequest(n CampNeed) string {
 	return n.SupplierRequestedAt
 }
 
-var errRequestedElsewhere = errors.New("Otro acopio ya pidió un corredor para esta necesidad.")
-var errNotOpen = errors.New("Esta necesidad ya no está abierta: otro corredor la tomó o cambió de estado.")
-var errRunnerBusy = errors.New("Ese corredor ya lleva 10 carreras en camino.")
+var errRequestedElsewhere = errors.New("Otro acopio ya pidió un runner para esta necesidad.")
+var errNotOpen = errors.New("Esta necesidad ya no está abierta: otro runner la tomó o cambió de estado.")
+var errRunnerBusy = errors.New("Ese runner ya lleva 10 runs en camino.")
 
 func (a *App) supplierRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/supplier/session", func(w http.ResponseWriter, r *http.Request) {
@@ -471,7 +471,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		err := a.db.Update(func(tx *bolt.Tx) error {
 			runner, found := getUser(tx, runnerID)
 			if !found || runner.Disabled || !runner.has(roleRunner) {
-				return userFieldError{"runnerId", "Elige un corredor activo."}
+				return userFieldError{"runnerId", "Elige un runner activo."}
 			}
 			b := tx.Bucket(needsBucket)
 			v := b.Get([]byte(r.PathValue("id")))
@@ -687,7 +687,7 @@ func myOffer(n CampNeed, me string) *SupplyOffer {
 	return nil
 }
 
-var errNoAsk = errors.New("Este corredor ya no está pidiendo acopio para esta carrera.")
+var errNoAsk = errors.New("Este runner ya no está pidiendo acopio para este run.")
 var errNotOffered = errors.New("Ese acopio no ofreció surtir esta carrera.")
 
 // Corredor: pedir acopio para su carrera en camino, cancelar el pedido o elegir uno de los acopios que pueden.
