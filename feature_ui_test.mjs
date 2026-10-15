@@ -1301,7 +1301,7 @@ test('«Solo Nuestro Equipo»: code users can limit the public list/map and runn
   assert.match(runner, /\.mobile-nav button\.active\{background:#173c46;border-color:#173c46;color:#fff;box-shadow:/, 'selected = dark pill');
   assert.match(runner, /b\.classList\.toggle\('active',on\);b\.setAttribute\('aria-pressed',on\)/);
   assert.doesNotMatch(runner, /en camino · \$\{shown\.length\} por llevar|Tus carreras <small>/, 'no 2/10 count line');
-  assert.match(runner, /const listed=\(\)=>teamOnly\?available\.filter\(n=>n\.camp\.team\):available;/);
+  assert.match(runner, /const listed=\(\)=>\(teamOnly\?available\.filter\(n=>n\.camp\.team\):available\)\.filter\(n=>agentMode\|\|!n\.requestedAt\)/);
   assert.match(runner, /renderMap\(\[\.\.\.mine,\.\.\.shown\]\)/, 'your own runs always stay');
   assert.match(runner, /if\(!localStorage\.getItem\('runnerCode'\)\)teamOnly=false;/);
 });
@@ -1853,7 +1853,7 @@ test('run link: «Enlace para runner» in the command center opens runner.html o
 
 test('runner: «Mi recorrido» (only your runs and their route) and «Se necesita» (what else is open, team filter inside)', () => {
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
-  assert.match(runner, /<nav class="maintabs" id="mainTabs" role="tablist" aria-label="Vista"><button type="button" role="tab" data-main="mine" aria-selected="false" title="Mis carreras en camino"><svg class="walkico"[^]*?<\/svg> Yo <b id="cntMine"><\/b><\/button><button type="button" role="tab" data-main="needs" aria-selected="false" title="Necesidades por llevar"><span aria-hidden="true">🚩<\/span> Runs <b id="cntNeeds"><\/b><\/button><\/nav><div class="rfilter" id="teamFilter"><select id="teamSelect" class="rselect" aria-label="Filtro"><option value="0">Todas<\/option><option value="1">Solo mi equipo<\/option><\/select><\/div>/, 'a plain drop menu: Todas \/ Solo mi equipo');
+  assert.match(runner, /<nav class="maintabs" id="mainTabs" role="tablist" aria-label="Vista"><button type="button" role="tab" data-main="mine" aria-selected="false" title="Mis carreras en camino"><svg class="walkico"[^]*?<\/svg> Yo <b id="cntMine"><\/b><\/button><button type="button" role="tab" data-main="needs" aria-selected="false" title="Necesidades por llevar"><span aria-hidden="true">🚩<\/span> Runs <b id="cntNeeds"><\/b><\/button><button type="button" role="tab" data-main="req"[^>]*><span aria-hidden="true">📣<\/span> Pedidos <b id="cntReq"><\/b><\/button><\/nav><div class="rfilter" id="teamFilter"><select id="teamSelect" class="rselect" aria-label="Filtro"><option value="0">Todas<\/option><option value="1">Solo mi equipo<\/option><\/select><\/div>/, 'a plain drop menu: Todas \/ Solo mi equipo');
   const tabNow = new Function('mine', 'mainTab', `return (${runner.match(/const tabNow=([^\n;]*);/)[1]})()`);
   assert.equal(tabNow([{id: 'a'}], ''), 'mine', 'opens on your route when you have one');
   assert.equal(tabNow([], ''), 'needs');
@@ -2259,4 +2259,22 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   assert.match(nav, /\['\/supplier\.html', '📦', \(\) => 'Supply', u => has\(u, 'supplier'\)\]/);
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
   assert.match(runner, /🚚 Despachada desde acopio/, 'the runner sees it on the card');
+});
+
+test('Supply ↔ Runners: Supply asks for a runner («📣 Pedidos» for runners, with who/where/phone) or assigns one in person; only linked runs to dispatch', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  // Runners: requests are their own tab, not in Runs; accepting is «¡Yo lo llevo!»; «Yo» shows where to pick up.
+  assert.match(runner, /requests=\(\)=>available\.filter\(n=>n\.requestedAt&&n\.status==='OPEN'\)/);
+  assert.match(runner, /if\(tab==='req'\)\{const req=requests\(\);feed\.innerHTML=req\.length\?req\.map\(n=>`<article class="card reqcard[^`]*\$\{supplierLine\(n,true\)\}[^`]*data-take=/);
+  assert.match(runner, /function supplierLine\(n,asking\)\{const x=n\.supplier;[^\n]*\$\{asking\?'Pide':'Recoger en acopio'\}: <b>\$\{clean\(x\.center\|\|'Centro de acopio'\)\}<\/b> · \$\{clean\(x\.name\)\}/);
+  assert.match(runner, /\$\{supplierLine\(n,false\)\}\$\{n\.dispatchedAt\?/, 'pickup line on the «Yo» card');
+  const tabNow = new Function('mine', 'mainTab', `return (${runner.match(/const tabNow=([^\n;]*);/)[1]})()`);
+  assert.equal(tabNow([], 'req'), 'req');
+  // Supply: three tabs, center name, request/cancel, in-person assign with a runner picker.
+  assert.match(page, /data-main="req"[^>]*><span aria-hidden="true">📣<\/span> Pedir corredor <b id="cntReq"><\/b>/);
+  assert.match(page, /<label for="centerInput" title="Centro de acopio">📍 Centro<\/label><input id="centerInput"/);
+  for (const api of ["/request','POST',{})", "/request','POST',{cancel:true})", "/assign','POST',{runnerId:r.id})", "/api/supplier/center','POST'"]) assert.ok(page.includes(api), api);
+  assert.match(page, /<dialog id="assignDlg"[^>]*>[^]*?<input class="sfind" id="assignFind"[^>]*>[^]*?<div class="runnerpick" id="assignList"/);
+  assert.match(page, /other\?'':`<div class="reqacts">/, 'a need another Supply asked for: no buttons');
 });

@@ -244,6 +244,10 @@ type CampNeed struct {
 	DispatchedAt     string `json:"dispatchedAt,omitempty"`
 	DispatchedBy     string `json:"dispatchedBy,omitempty"`
 	DispatchedByName string `json:"dispatchedByName,omitempty"`
+	// Acopio que lleva esta carrera (supplier.go): la pidió a los corredores (SupplierRequestedAt, mientras siga Abierta)
+	// o se la asignó en persona a un corredor. Solo esa persona de acopio la ve en «Por despachar».
+	SupplierID          string `json:"supplierId,omitempty"`
+	SupplierRequestedAt string `json:"supplierRequestedAt,omitempty"`
 	// Solo en la respuesta de la ficha para quien entró con código (nombre del conductor asignado, sin su ID); nunca se guarda.
 	RunnerName string `json:"runnerName,omitempty"`
 }
@@ -639,6 +643,10 @@ func putNeed(b *bolt.Bucket, n *CampNeed) error {
 	n.UpdatedAt, n.RunnerName = nowStamp(), ""
 	if n.Status != "IN_PROGRESS" && n.Status != "COMPLETED" {
 		n.DispatchedAt, n.DispatchedBy, n.DispatchedByName = "", "", ""
+	}
+	// Vuelve a Abierta sin pedido de acopio (se la habían asignado en persona): queda libre de ese acopio.
+	if n.Status == "OPEN" && n.SupplierRequestedAt == "" || n.Status == "DELETED" {
+		n.SupplierID, n.SupplierRequestedAt = "", ""
 	}
 	rescheduleService(n)
 	return putJSON(b, n.ID, n)
@@ -2053,15 +2061,18 @@ type runnerNeed struct {
 	RevisedAt      string `json:"revisedAt,omitempty"`
 	EnRouteAt      string `json:"enRouteAt,omitempty"`
 	// Despachada desde acopio (sigue en camino).
-	DispatchedAt string        `json:"dispatchedAt,omitempty"`
-	Packing      []PackingLine `json:"packing,omitempty"`
-	Media        []MediaItem   `json:"media,omitempty"`
-	Scope        string        `json:"scope,omitempty"`
-	Materials    []PackingLine `json:"materials,omitempty"`
-	Progress     int           `json:"progress,omitempty"`
-	Kind         string        `json:"kind,omitempty"`
-	RepeatDays   int           `json:"repeatDays,omitempty"`
-	Assessments  []Assessment  `json:"assessments,omitempty"`
+	DispatchedAt string `json:"dispatchedAt,omitempty"`
+	// Pedido de acopio (Abierta) o acopio donde se recoge (en camino): quién, dónde y su teléfono para llamarle.
+	RequestedAt string        `json:"requestedAt,omitempty"`
+	Supplier    *supplierInfo `json:"supplier,omitempty"`
+	Packing     []PackingLine `json:"packing,omitempty"`
+	Media       []MediaItem   `json:"media,omitempty"`
+	Scope       string        `json:"scope,omitempty"`
+	Materials   []PackingLine `json:"materials,omitempty"`
+	Progress    int           `json:"progress,omitempty"`
+	Kind        string        `json:"kind,omitempty"`
+	RepeatDays  int           `json:"repeatDays,omitempty"`
+	Assessments []Assessment  `json:"assessments,omitempty"`
 	// assigned: la necesidad está asignada a quien consulta (puede armar su lista de empaque).
 	Assigned bool       `json:"assigned,omitempty"`
 	Camp     runnerCamp `json:"camp"`
@@ -2436,7 +2447,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					}
 				}
 				who := *c.assignee(&n)
-				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
+				item := runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), Supplier: supplierOf(tx, n.SupplierID), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
 				if item.Assigned {
 					item.Media = n.Media
 				} else if c.repair {
@@ -2834,7 +2845,7 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 							n.RunnerName = u.Name
 						}
 					}
-					n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName = "", "", "", ""
+					n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName, n.SupplierID, n.SupplierRequestedAt = "", "", "", "", "", ""
 					if !reveal {
 						n.Packing, n.Media = nil, nil
 					} else {
