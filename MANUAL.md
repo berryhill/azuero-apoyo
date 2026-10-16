@@ -9,6 +9,7 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-15**
+- Home: signed-out visitors see «🙌 ¿Quieres ayudar?» above the Resumen, with «Crear mi cuenta» and «Ya tengo código» (§14).
 - Change requests: an agent outside the team of whoever last updated a need can't overwrite it; the change goes to
   that person as «📝 Cambios propuestos» (Runners, Command) to accept or reject. Applies to every Command need change,
   including «Checkup» and «Ya no necesita nada» (§3, §6, §7, §10).
@@ -547,6 +548,12 @@ Access: Donations role or admin.
 
 «📊 Resumen» is the home sidebar (on phones, the 📊 view, which is where the home page opens unless the link points to a
 specific point):
+
+- **«🙌 ¿Quieres ayudar?»** (only when not signed in): a card at the top inviting visitors to sign up: «Crea tu cuenta
+  con tu nombre y teléfono. Te sumamos a un equipo y empiezas a ayudar…». **«Crear mi cuenta»** opens «Login» with the
+  cursor in «Crear cuenta nueva»; **«Ya tengo código»** opens it on the code field. New accounts appear to admin in
+  «📡 Registros en vivo» to be given a team and roles (§13). «×» hides the card for this visit; it disappears once
+  signed in.
 
 - **Reach**: people (children, babies, elderly), points (how many mapped), zones.
 - **Estimated consumption\***: liters of water per day (babies 0.75 L, children 1.5 L, adults 3 L, elderly 2.5 L, for

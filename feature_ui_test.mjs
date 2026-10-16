@@ -2773,3 +2773,11 @@ test('change requests: agents from another team send «Cambios propuestos» to w
   assert.match(cmd, /if\(r\.status===202&&body\.request\)askedOwner=body\.request/);
   assert.match(cmd, /📝 Cambio enviado a \$\{askedOwner\.toName\}/);
 });
+
+test('home: signed-out visitors see «🙌 ¿Quieres ayudar?» above the Resumen; «Crear mi cuenta» opens Login on the new-account form', () => {
+  assert.match(template, /box\.innerHTML=joinCard\(\)\+`<div class="sumhead">/);
+  assert.match(template, /hide=!!localStorage\.getItem\('codeUser'\)\|\|sessionStorage\.getItem\('joinHidden'\)==='1'/);
+  assert.match(template, /<b>🙌 ¿Quieres ayudar\?<\/b>/);
+  assert.match(template, /data-join="new">Crear mi cuenta<\/button><button type="button" class="joinlink" data-join="code">Ya tengo código/);
+  assert.match(template, /openLogin\(\);setTimeout\(\(\)=>\$\(b\.dataset\.join==='new'\?'#loginForm \[name=name\]'/);
+});
