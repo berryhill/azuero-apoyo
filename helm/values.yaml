@@ -29,6 +29,12 @@ ingress:
   tls:
     enabled: true
     secretName: azuero-apoyo-tls
+# A second hostname on the same Service and database. Only rendered when the primary ingress is enabled.
+# Point app.unidosporazuero.com at the ingress controller before merging/deploying for TLS issuance.
+secondaryIngress:
+  enabled: true
+  host: app.unidosporazuero.com
+  tlsSecretName: unidosporazuero-app-tls
 # Reference an existing Secret; never place credential values in Helm values.
 existingEnvSecret: ""
 # Optional Secret for run photos/videos in object storage, created by an operator (never by CI):

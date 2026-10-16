@@ -1,0 +1,31 @@
+{{- if and .Values.ingress.enabled .Values.secondaryIngress.enabled }}
+{{- if not .Values.secondaryIngress.host }}{{ fail "secondaryIngress.host is required when secondaryIngress.enabled=true" }}{{- end }}
+{{- if not .Values.secondaryIngress.tlsSecretName }}{{ fail "secondaryIngress.tlsSecretName is required when secondaryIngress.enabled=true" }}{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "azuero-relief.fullname" . }}-app-unidosporazuero
+  labels:
+    {{- include "azuero-relief.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  tls:
+    - hosts:
+        - {{ .Values.secondaryIngress.host | quote }}
+      secretName: {{ .Values.secondaryIngress.tlsSecretName | quote }}
+  rules:
+    - host: {{ .Values.secondaryIngress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "azuero-relief.fullname" . }}
+                port:
+                  name: http
+{{- end }}
