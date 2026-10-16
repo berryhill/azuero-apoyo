@@ -2757,3 +2757,19 @@ test('admin and Command show «Agregada por» on a need added by editing someone
   assert.match(cmd, /n\.createdByName&&'Agregada por '\+n\.createdByName/);
   assert.match(adm, /n\.createdByName\?'Agregada por '\+n\.createdByName:''/);
 });
+
+test('change requests: agents from another team send «Cambios propuestos» to whoever last updated the need (Runners and Command)', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  const pf = readFileSync(new URL('./pointform.js', import.meta.url), 'utf8');
+  assert.match(pf, /function changeRequests\(box, \{load, decide, after, showSent\} = \{\}\)/);
+  assert.match(pf, /📝 Cambios propuestos/);
+  assert.match(pf, /✓ Aceptar<\/button><button type="button" class="crq-no" data-crq-no>✗ Rechazar/);
+  assert.match(pf, /📤 Cambios que pediste/);
+  assert.match(runner, /<div class="crqbox" id="changeReqs" hidden><\/div>/);
+  assert.match(runner, /fetch\('\/api\/runner\/change-requests'/);
+  assert.match(cmd, /<div class="crqbox" id="changeReqs" hidden><\/div>/);
+  assert.match(cmd, /showSent:true,load:async\(\)=>\{const r=await fetch\('\/api\/agent\/change-requests'/);
+  assert.match(cmd, /if\(r\.status===202&&body\.request\)askedOwner=body\.request/);
+  assert.match(cmd, /📝 Cambio enviado a \$\{askedOwner\.toName\}/);
+});

@@ -9,6 +9,9 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-15**
+- Change requests: an agent outside the team of whoever last updated a need can't overwrite it; the change goes to
+  that person as «📝 Cambios propuestos» (Runners, Command) to accept or reject. Applies to every Command need change,
+  including «Checkup» and «Ya no necesita nada» (§3, §6, §7, §10).
 - Manual checked against how runs work now: Command «¿quién la suplió?» and the need editor, admin, Runners «No
   puedo continuar», privacy and technical notes (§6, §7, §10, §13, §15, §16).
 - Several runners on one need never overwrite each other: «🚚 Agregar otro conductor» (home) and choosing another
@@ -109,7 +112,7 @@ menu shows the signed-in name and **roles**, «Copiar mi ID», «Salir» and tex
 | --- | --- | --- | --- |
 | `runner` | Runner | Runners | Takes and delivers runs. |
 | `builder` | Constructor | Constructores | Repair jobs. |
-| `agent` | Agente | Command (and Runners for packing lists only) | Sees private point data. Admin-only to grant. |
+| `agent` | Agente | Command (and Runners for packing lists only) | Sees private point data. Admin-only to grant. Changes to a need someone outside their team last updated go to that person as a request (§6). |
 | `donations` | Donaciones | Donaciones | Sees donor contacts. Admin-only to grant. |
 | `supplier` | Supply | Supply | A collection center. |
 | `teammanager` | Team manager | Mi equipo | **Must belong to a team.** |
@@ -248,15 +251,39 @@ A need belongs to a point and says what is missing (item text: «Agua, Arroz, Ca
     la suplió?» after «Ya no necesita nada»). If that runner already has an open or on-the-way run of this need, the
     change goes to their run (for example it is marked completed) instead of creating another.
   The first runner's run is not changed. To take a runner off, use «Quitar conductor» (home) or «Sin asignar»
-  (admin/Command); that run goes back to «Abierta» as before.
+  (admin/Command); that run goes back to «Abierta» as before. For an agent outside the team of whoever updated the
+  need last, any of these Command changes is first a change request and only happens once that person accepts it
+  (see «Change requests» below).
 - **Editing someone else's run**: when admin or an agent who is not the runner changes what an on-the-way or completed
   run asks for, the run keeps its text (what the runner is carrying). What was added becomes a **new open need** of the
   same point, linked to the run and noted with who added it (private: `createdByName`, never public). Urgency and
   state still change on the run. An edit that only removes things from a runner's run is refused with «Lo que lleva un
   runner no se cambia desde aquí: solo se pueden agregar cosas, que quedan como otra necesidad.» (409). Open needs
-  without a runner are edited in place as before.
+  without a runner are edited in place as before. An agent outside the last updater's team goes through a change
+  request first; these rules apply when it is accepted.
 - **Adding to someone else's run**: packing lines and departure photos are always added (never replace earlier ones)
   and each one keeps who added it.
+- **Change requests («📝 Cambios propuestos»)**: the person who was at the point is the better source of truth, so an
+  agent can help verify data but can't override them. Each need remembers **who updated it last** (`updatedBy`,
+  private): the runner who took, completed or dropped it, the runner who recorded it after a run, a code user who
+  assigned a runner from the home page, or the agent who edited it in Command. Older needs fall back to their runner
+  (or builder).
+  - When an agent changes a need (after a «Checkup» call or any edit in Command) and the person who updated it last is
+    someone else **outside the agent's team** (the agent has no team, or a different one), nothing changes yet: the
+    change is saved as a request to that person. Command shows «📝 Cambio enviado a … para que lo acepte o lo rechace».
+    One pending request per agent and need; a new one replaces it.
+  - Agents on the **same team** as that person edit directly, as before. So do admin with the master password, and
+    edits that change nothing.
+  - Requests only go to people who can answer them (a Runner or an agent); otherwise the edit applies directly.
+  - Adding packing lines or photos, creating a new need, and logging the checkup itself never need a request:
+    nothing is overwritten.
+  - The person sees it at the top of **Runners** (above the tabs) or **Command** (under the filters): who asks (name and
+    team, or «sin equipo»), the point, the need, and each change as «Pedido / Estado / Urgencia / Runner: before →
+    after», with **«✓ Aceptar»** or **«✗ Rechazar»**. Accepting applies the change exactly as the agent's edit would
+    (including the run rules above, so added items still become a new open need) and the need stays theirs; rejecting
+    changes nothing. The list refreshes every 30 s.
+  - In Command, **«📤 Cambios que pediste»** lists your requests of the last 7 days: «⏳ Esperando a», «✓ Lo aceptó» or
+    «✗ Lo rechazó».
 - **Packing list**: what is loaded for that run (item × quantity). Private.
 - **Photos**: departure photos (when loading) and delivery photos (when completing). Private.
 
@@ -284,6 +311,8 @@ On phones, «Lista / Mapa» switch between the list and the map.
 - **Packing list**, **📷 Foto de partida**, **✓ Completé** (the confirmation shows what is being delivered and allows
   delivery photos) and «No puedo continuar» (the need goes back to open; its packing list and photos stay on it, each
   with who added it, and the next runner who takes it sees them).
+- **«📝 Cambios propuestos»** (above the tabs): changes an agent from another team (or with no team) asks to make to
+  a need you updated last; «✓ Aceptar» or «✗ Rechazar» (§6).
 - **Only open needs can be taken** in «Runs»: a need another runner already carries can't be taken here. A second
   runner on the same need is added from the home page («🚚 Agregar otro conductor»), admin, Command or Supply, and gets
   a run of their own (§6).
@@ -400,6 +429,12 @@ point name, people, coordinator, counters «🚩 N por llevar» / «🏃 N en ca
 «Editar punto». Opening a point shows full data, contacts, changelog and its needs (update, report a new one, mark
 services done).
 
+**«Checkup»** (after calling someone at the point) asks «¿Lograste comunicarte con alguien en este punto?»: «No» does nothing;
+«Sí, están bien» logs the checkup and removes the needs still to be delivered; «Sí, necesitan cosas» logs it and opens
+the needs to update. The checkup itself is always saved. Removing or updating a need that someone outside your team
+updated last becomes a change request to that person (below), so after «Sí, están bien» those needs stay until they
+accept.
+
 In «Actualizar necesidad», **«Ya no necesita nada»** asks **«¿Alguien la suplió?»**:
 
 - «No, ya no la necesitan» removes the need (`DELETED`) and counts as a checkup on the point.
@@ -407,8 +442,15 @@ In «Actualizar necesidad», **«Ya no necesita nada»** asks **«¿Alguien la s
   `COMPLETED` under that person with the original items, like a finished run. A new name creates the runner with
   their phone. If another runner already has the need on the way, that run stays as it is and the person chosen gets
   their own completed run, linked to it (§6).
+- Both answers are change requests when the need was last updated by someone outside your team.
 
-In the need editor (and «Despachar»), choosing a **different runner** for a need that already has one adds a run
+**Changes to someone else's data**: if the need was last updated by someone outside your team (or you have no team),
+any change to it (editor, «Despachar», «Completada», «Ya no necesita nada», «Checkup») is sent to them as a request
+instead («📝 Cambio enviado a …»); they accept or reject it on their page, and you follow it in
+«📤 Cambios que pediste». Requests sent to you (as the last one who updated a need) show as «📝 Cambios propuestos»
+under the filters (§6).
+
+Once a change applies (directly, or when accepted), in the need editor (and «Despachar»), choosing a **different runner** for a need that already has one adds a run
 for that runner instead of replacing the first one; «Sin asignar» takes the runner off. Changing what an on-the-way or
 completed run asks for (when you are not its runner) keeps the run as it is and saves what you added as a new open
 need of the point, marked «Agregada por» you; removing items from a runner's run is refused (§6).
@@ -458,7 +500,8 @@ Access: Donations role or admin.
 - **Points**: cards with counters, filters, «Agregado por» (added by), map on the right, point editor with its needs
   (list above the form) and services. Cards and needs show the gold «Verificado por equipo» badge with the team name;
   editing a repair need shows its materials. As in Command, choosing a different runner for a need that already has
-  one adds a run for that runner, and adding items to a runner's run saves them as a new open need (§6).
+  one adds a run for that runner, and adding items to a runner's run saves them as a new open need (§6). Admin with
+  the master password is not an agent: its edits apply directly, without change requests.
 - **Usuarios** (☰ menu) has four tabs, **«👤 Usuarios»**, **«👥 Equipos»**, **«📡 Registros en vivo»** and
   **«🔗 Invitaciones»** (the tab is kept in the link: `&tab=equipos` / `registros` / `invitaciones`; the live tab shows
   how many are waiting, Invitaciones how many are pending). Registros, Equipos and the searches show each person's
@@ -536,6 +579,7 @@ specific point):
 - Repair needs and their materials are never public.
 - A point held with «Nuestro equipo lo abastece» is hidden from the public and from other teams for 3 hours.
 - Code users see more (e.g. the runner's name on their team's needs).
+- Who updated a need last (`updatedBy`) and change requests are private: only the people involved see a request.
 - Who added a need by changing someone's run is private: admin and Command show «Agregada por …» on that need; the
   public, Runners and Supply don't.
 - When several runners carry the same need, the public sees each run as its own «En camino» need, without names.
@@ -550,6 +594,9 @@ specific point):
 - APIs: `/api/…` public, `/api/admin/…` (master password), `/api/runner/…`, `/api/builder/…`, `/api/agent/…`,
   `/api/supplier/…`, `/api/desk/…` (donations), `/api/full/…` (code session: full view, Mi equipo, invites). Each has
   its own session (path-scoped cookie) and a CSRF token on writes.
+- Change requests (`changes.go`, bucket `change_requests`): `/api/runner/change-requests` and
+  `/api/agent/change-requests` (list; `POST …/{id}/accept|reject`). An agent's `PATCH /api/agent/needs/{id}` answers
+  202 with the request when it needs the owner's OK.
 - Several runners on one need (`runs.go`): each runner's run is its own record linked by `sameAs`; the server never
   puts a different runner on a record that already has one.
 - Tests: `go test ./...`, `node --test feature_ui_test.mjs`, `python3 -m unittest ci_index_test.py`.

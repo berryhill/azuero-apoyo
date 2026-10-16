@@ -57,8 +57,10 @@ func agentBy(r *http.Request) *User {
 }
 
 // actor: quién queda anotado en fotos y listas de empaque: el agente con su nombre, o administración.
-func actor(r *http.Request) (string, string) {
-	if u := agentBy(r); u != nil {
+func actor(r *http.Request) (string, string) { return actorOf(agentBy(r)) }
+
+func actorOf(u *User) (string, string) {
+	if u != nil {
 		return u.ID, u.Name
 	}
 	return "admin", "Administración"

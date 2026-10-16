@@ -279,6 +279,9 @@ type CampNeed struct {
 	// Quien agregó esta necesidad al cambiar lo que pedía la carrera de un runner (runs.go); privado.
 	CreatedBy     string `json:"createdBy,omitempty"`
 	CreatedByName string `json:"createdByName,omitempty"`
+	// Quien la actualizó por última vez (runner que la tomó, completó o soltó; agente que la editó; quien aceptó una
+	// solicitud de cambio). Un agente de otro equipo no la cambia sin su visto bueno (changes.go). Privado.
+	UpdatedBy string `json:"updatedBy,omitempty"`
 	// Solo en la respuesta de la ficha para quien entró con código (nombre del conductor asignado, sin su ID); nunca se guarda.
 	RunnerName string `json:"runnerName,omitempty"`
 }
@@ -476,6 +479,9 @@ func openApp(path, static string) (*App, error) {
 		if e := ensureTeamInvites(tx); e != nil {
 			return e
 		}
+		if e := ensureChangeRequests(tx); e != nil {
+			return e
+		}
 		b, e := tx.CreateBucketIfNotExists(meta)
 		if e != nil {
 			return e
@@ -507,7 +513,7 @@ func openApp(path, static string) (*App, error) {
 
 // migrate pone al día los datos guardados (al arrancar y después de importar un respaldo, que puede ser más viejo).
 func (a *App) migrate() error {
-	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateOpenRequests, migrateNeedUrgency, ensureDonations, ensureSupplyCenters, ensureTeamInvites} {
+	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateOpenRequests, migrateNeedUrgency, ensureDonations, ensureSupplyCenters, ensureTeamInvites, ensureChangeRequests} {
 		if err := a.db.Update(step); err != nil {
 			return err
 		}
@@ -1737,117 +1743,24 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		}
 		var n CampNeed
 		id := r.PathValue("id")
+		var req *ChangeRequest
 		err := a.db.Update(func(tx *bolt.Tx) error {
-			b := tx.Bucket(needsBucket)
-			v := b.Get([]byte(id))
-			if v == nil {
-				return errMissing
-			}
-			if e := json.Unmarshal(v, &n); e != nil {
-				return e
-			}
-			runnerBefore, orig := n.RunnerID, n
-			if _, yes := f["need"]; yes {
-				if text := fieldText(f, "need"); text != n.Need {
-					n.Need, n.RevisedAt = text, nowStamp()
-				}
-			}
-			removed := false
-			if _, yes := f["status"]; yes {
-				status := fieldText(f, "status")
-				removed = status == "DELETED" && n.Status != "DELETED"
-				if status == "COMPLETED" && n.Status != "COMPLETED" {
-					n.CompletedAt = nowStamp()
-				} else if status != "COMPLETED" {
-					n.CompletedAt = ""
-				}
-				if status == "IN_PROGRESS" && n.Status != "IN_PROGRESS" {
-					n.EnRouteAt = nowStamp()
-				} else if status == "OPEN" {
-					n.EnRouteAt = ""
-				}
-				n.Status = status
-			}
-			if _, yes := f["urgency"]; yes {
-				n.Urgency = fieldText(f, "urgency")
-			}
-			n.Urgency = normalizeUrgency(n.Urgency)
-			if _, yes := f["kind"]; yes {
-				if !validKind(fieldText(f, "kind")) {
-					return errInvalid
-				}
-				// Al cambiar de tipo se suelta la asignación del otro equipo.
-				if kind := storedKind(fieldText(f, "kind")); kind != n.Kind {
-					n.Kind, n.RunnerID, n.BuilderID = kind, "", ""
-				}
-			}
-			if _, yes := f["runnerId"]; yes {
-				n.RunnerID = fieldText(f, "runnerId")
-			}
-			if _, yes := f["builderId"]; yes {
-				n.BuilderID = fieldText(f, "builderId")
-			}
-			if field, _ := applyService(&n, f); field != "" {
-				return errInvalid
-			}
-			if n.Need == "" || !validStatus(n.Status) || !validUrgency(n.Urgency) || !validAssignee(tx, n) {
-				return errInvalid
-			}
-			// Otro runner en una necesidad que ya lleva alguien: el run de ese runner no se toca; lo pedido va al run
-			// propio del otro (el que ya tenga abierto o en camino en este grupo, o uno nuevo).
-			if n.Kind == orig.Kind && otherRunner(orig, n.RunnerID) && n.Status != "DELETED" {
-				run, has, e := runOf(tx, orig, n.RunnerID)
-				if e != nil {
-					return e
-				}
-				if !has {
-					if run, e = newRun(tx, orig, n.RunnerID, n.Status); e != nil {
-						return e
-					}
-				} else {
-					before := run.Status
-					run.Status = n.Status
-					if run.Status == "OPEN" {
-						run.Status = "IN_PROGRESS"
-					}
-					if run.Status == "COMPLETED" && before != "COMPLETED" {
-						run.CompletedAt = nowStamp()
-					}
-				}
-				if run.Need != n.Need {
-					run.Need, run.RevisedAt = n.Need, nowStamp()
-				}
-				run.Urgency = n.Urgency
-				n, removed = run, false
-				runnerBefore = n.RunnerID
-			}
-			// Quien no es el runner cambia lo que pide su carrera: el run sigue igual y lo agregado queda como otra necesidad.
-			var extra *CampNeed
-			if n.ID == orig.ID && n.Need != orig.Need && orig.Kind == "" && orig.RunnerID != "" && n.RunnerID == orig.RunnerID && (orig.Status == "IN_PROGRESS" || orig.Status == "COMPLETED") {
-				if by := agentBy(r); by == nil || by.ID != orig.RunnerID {
-					byID, byName := actor(r)
-					var e error
-					if extra, e = editOfRun(orig, n.Need, byID, byName); e != nil {
-						return e
-					}
-					n.Need, n.RevisedAt = orig.Need, orig.RevisedAt
-					verifyStamp(tx, agentBy(r), &extra.VerifiedTeam, &extra.VerifiedBy, &extra.VerifiedAt)
-					if e := putNeed(b, extra); e != nil {
-						return e
-					}
-				}
-			}
-			enRouteOnAssign(&n, runnerBefore)
-			// «Ya no necesita nada» (quitar la necesidad) confirma el estado del punto: cuenta como un checkup.
-			if removed {
-				if e := markCheckup(tx, n.CampID, true); e != nil {
+			// Un agente que no es del equipo de quien actualizó la necesidad por última vez no la pisa: se le pide a esa persona.
+			if by := agentBy(r); by != nil {
+				var e error
+				if req, e = a.askOwner(tx, id, f, *by); e != nil || req != nil {
 					return e
 				}
 			}
-			verifyStamp(tx, agentBy(r), &n.VerifiedTeam, &n.VerifiedBy, &n.VerifiedAt)
-			return putNeed(b, &n)
+			var e error
+			n, e = a.patchNeed(tx, id, f, agentBy(r))
+			return e
 		})
 		if runError(w, err) {
+			return
+		}
+		if req != nil {
+			response(w, 202, map[string]any{"request": req})
 			return
 		}
 		response(w, 200, n)
@@ -2506,6 +2419,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.settingsRoutes(mux)
 	a.backupRoutes(mux)
 	a.fullNeedRoutes(mux)
+	a.changeRoutes(mux, runners)
 	a.teamRoutes(mux)
 	a.trackRoutes(mux)
 	a.agentRoutes(mux)
@@ -2531,6 +2445,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			if u, found := getUser(tx, sess.runnerID); found {
 				verifyStamp(tx, &u, &n.VerifiedTeam, &n.VerifiedBy, &n.VerifiedAt)
 			}
+			n.UpdatedBy = sess.runnerID
 			var e error
 			n, e = putNeedSplit(tx, n)
 			return e
@@ -2793,6 +2708,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 			if e := apply(tx, s, &n); e != nil {
 				return e
 			}
+			n.UpdatedBy = s.runnerID
 			return putNeed(b, &n)
 		})
 		if c.fail(w, err) {
@@ -3131,7 +3047,7 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 					}
 					n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName, n.SupplierID, n.SupplierRequestedAt = "", "", "", "", "", ""
 					n.SupplyAskedAt, n.SupplyOffers, n.OpenOffers = "", nil, nil
-					n.VerifiedTeam, n.VerifiedBy, n.CreatedBy, n.CreatedByName = "", "", "", ""
+					n.VerifiedTeam, n.VerifiedBy, n.CreatedBy, n.CreatedByName, n.UpdatedBy = "", "", "", "", ""
 					if !reveal {
 						n.Packing, n.Media = nil, nil
 					} else {
@@ -3183,4 +3099,124 @@ func main() {
 	fmt.Printf("listening on %s, database %s\n", addr, path)
 	server := &http.Server{Addr: addr, Handler: a.routes(), ReadHeaderTimeout: 5 * time.Second}
 	log.Fatal(server.ListenAndServe())
+}
+
+// patchNeed aplica un cambio de administración o de un agente (by; nil = administración) a una necesidad. Lo usan
+// PATCH /api/admin/needs/{id} y, al aceptarse, una solicitud de cambio (changes.go).
+func (a *App) patchNeed(tx *bolt.Tx, id string, f map[string]json.RawMessage, by *User) (CampNeed, error) {
+	var n CampNeed
+	err := func() error {
+		b := tx.Bucket(needsBucket)
+		v := b.Get([]byte(id))
+		if v == nil {
+			return errMissing
+		}
+		if e := json.Unmarshal(v, &n); e != nil {
+			return e
+		}
+		runnerBefore, orig := n.RunnerID, n
+		if _, yes := f["need"]; yes {
+			if text := fieldText(f, "need"); text != n.Need {
+				n.Need, n.RevisedAt = text, nowStamp()
+			}
+		}
+		removed := false
+		if _, yes := f["status"]; yes {
+			status := fieldText(f, "status")
+			removed = status == "DELETED" && n.Status != "DELETED"
+			if status == "COMPLETED" && n.Status != "COMPLETED" {
+				n.CompletedAt = nowStamp()
+			} else if status != "COMPLETED" {
+				n.CompletedAt = ""
+			}
+			if status == "IN_PROGRESS" && n.Status != "IN_PROGRESS" {
+				n.EnRouteAt = nowStamp()
+			} else if status == "OPEN" {
+				n.EnRouteAt = ""
+			}
+			n.Status = status
+		}
+		if _, yes := f["urgency"]; yes {
+			n.Urgency = fieldText(f, "urgency")
+		}
+		n.Urgency = normalizeUrgency(n.Urgency)
+		if _, yes := f["kind"]; yes {
+			if !validKind(fieldText(f, "kind")) {
+				return errInvalid
+			}
+			// Al cambiar de tipo se suelta la asignación del otro equipo.
+			if kind := storedKind(fieldText(f, "kind")); kind != n.Kind {
+				n.Kind, n.RunnerID, n.BuilderID = kind, "", ""
+			}
+		}
+		if _, yes := f["runnerId"]; yes {
+			n.RunnerID = fieldText(f, "runnerId")
+		}
+		if _, yes := f["builderId"]; yes {
+			n.BuilderID = fieldText(f, "builderId")
+		}
+		if field, _ := applyService(&n, f); field != "" {
+			return errInvalid
+		}
+		if n.Need == "" || !validStatus(n.Status) || !validUrgency(n.Urgency) || !validAssignee(tx, n) {
+			return errInvalid
+		}
+		// Otro runner en una necesidad que ya lleva alguien: el run de ese runner no se toca; lo pedido va al run
+		// propio del otro (el que ya tenga abierto o en camino en este grupo, o uno nuevo).
+		if n.Kind == orig.Kind && otherRunner(orig, n.RunnerID) && n.Status != "DELETED" {
+			run, has, e := runOf(tx, orig, n.RunnerID)
+			if e != nil {
+				return e
+			}
+			if !has {
+				if run, e = newRun(tx, orig, n.RunnerID, n.Status); e != nil {
+					return e
+				}
+			} else {
+				before := run.Status
+				run.Status = n.Status
+				if run.Status == "OPEN" {
+					run.Status = "IN_PROGRESS"
+				}
+				if run.Status == "COMPLETED" && before != "COMPLETED" {
+					run.CompletedAt = nowStamp()
+				}
+			}
+			if run.Need != n.Need {
+				run.Need, run.RevisedAt = n.Need, nowStamp()
+			}
+			run.Urgency = n.Urgency
+			n, removed = run, false
+			runnerBefore = n.RunnerID
+		}
+		// Quien no es el runner cambia lo que pide su carrera: el run sigue igual y lo agregado queda como otra necesidad.
+		var extra *CampNeed
+		if n.ID == orig.ID && n.Need != orig.Need && orig.Kind == "" && orig.RunnerID != "" && n.RunnerID == orig.RunnerID && (orig.Status == "IN_PROGRESS" || orig.Status == "COMPLETED") {
+			if by == nil || by.ID != orig.RunnerID {
+				byID, byName := actorOf(by)
+				var e error
+				if extra, e = editOfRun(orig, n.Need, byID, byName); e != nil {
+					return e
+				}
+				n.Need, n.RevisedAt = orig.Need, orig.RevisedAt
+				verifyStamp(tx, by, &extra.VerifiedTeam, &extra.VerifiedBy, &extra.VerifiedAt)
+				if e := putNeed(b, extra); e != nil {
+					return e
+				}
+			}
+		}
+		enRouteOnAssign(&n, runnerBefore)
+		// «Ya no necesita nada» (quitar la necesidad) confirma el estado del punto: cuenta como un checkup.
+		if removed {
+			if e := markCheckup(tx, n.CampID, true); e != nil {
+				return e
+			}
+		}
+		verifyStamp(tx, by, &n.VerifiedTeam, &n.VerifiedBy, &n.VerifiedAt)
+		if by != nil {
+			n.UpdatedBy = by.ID
+		}
+		return putNeed(b, &n)
+	}()
+	return n, err
 }

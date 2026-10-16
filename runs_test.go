@@ -14,8 +14,9 @@ func TestSeveralRunnersKeepTheirOwnRuns(t *testing.T) {
 	fufo := user(`{"name":"Fufo","telephone":"6999-1111","roles":["runner"],"accessCode":"FUFO12"}`)
 	ana := user(`{"name":"Ana","telephone":"6999-2222","roles":["runner"],"accessCode":"ANA123"}`)
 	zoe := user(`{"name":"Zoe","telephone":"6999-3333","roles":["runner"]}`)
-	user(`{"name":"Gus","telephone":"6999-4444","roles":["agent"],"accessCode":"GUS123"}`)
-	s.team("Norte", fufo, ana)
+	gus := user(`{"name":"Gus","telephone":"6999-4444","roles":["agent"],"accessCode":"GUS123"}`)
+	// Gus is on Fufo's team, so his edits apply directly (agents from elsewhere send a request: changes_test.go).
+	s.team("Norte", fufo, ana, gus)
 	need := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua, Arroz","urgency":"normal","runnerId":"`+fufo+`"}`, 201)["id"].(string)
 	fufoC := s.viewerCookie("FUFO12")
 	if w := s.as(fufoC, "POST", "/api/full/needs/"+need+"/packing", `{"items":[{"item":"Agua 5 gal","quantity":3}]}`); w.Code != 200 {

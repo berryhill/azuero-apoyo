@@ -865,5 +865,43 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flushQueue(); });
     setInterval(() => { if (qSend && qLoad().some(x => !x.error)) flushQueue(); }, 60000);
   }
-  window.PointForm = {needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
+  // Solicitudes de cambio (changes.go): lo que un agente de otro equipo (o sin equipo) propone cambiar en una necesidad
+  // que tú actualizaste por última vez; tú estuviste ahí, así que aceptas o rechazas. showSent: también las que enviaste
+  // (Command). load() devuelve {forMe, sent}; decide(id, 'accept'|'reject').
+  function changeRequests(box, {load, decide, after, showSent} = {}) {
+    if (!box) return {refresh() {}};
+    if (!document.getElementById('crqStyle')) {
+      const st = document.createElement('style');
+      st.id = 'crqStyle';
+      st.textContent = '.crqbox{margin:10px 0;display:grid;gap:8px}.crqbox[hidden]{display:none}.crqbox h3{margin:0;font-size:15px;color:#173c46}.crqbox h3 b{background:#ed7654;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px}.crq-help{margin:0;font-size:12px;color:#4b6670;line-height:1.4}.crq{border:1.5px solid #f0b9a8;background:#fff8f5;border-radius:11px;padding:10px 12px;font-size:13px;color:#173542}.crq.sent{border-color:#d5e0e2;background:#f7faf9}.crq.sent.accepted{border-color:#9fd3b5}.crq.sent.rejected{border-color:#e7b0b0}.crq-who{font-size:12px;color:#4b6670}.crq-need{font-weight:750;margin:3px 0}.crq ul{margin:4px 0 0;padding-left:18px}.crq li{margin:2px 0;overflow-wrap:anywhere}.crq s{color:#8a9aa0}.crq-acts{display:flex;gap:8px;margin-top:8px}.crq-acts button{flex:1;border:0;border-radius:9px;padding:10px;font:inherit;font-weight:800;cursor:pointer}.crq-yes{background:#19745f;color:#fff}.crq-no{background:#fff;color:#a83c1f;border:1.5px solid #e7b0b0!important}.crq-sent summary{cursor:pointer;font-weight:750;font-size:13px;color:#126e7c;padding:4px 0}.crq-sent .crq{margin-top:6px}';
+      document.head.appendChild(st);
+    }
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    let data = {forMe: [], sent: []}, sentOpen = false;
+    const line = c => `<li><b>${esc(c.label)}:</b> <s>${esc(c.before || '—')}</s> → <b>${esc(c.after || '—')}</b></li>`;
+    const where = r => esc([r.campCode, r.campArea].filter(Boolean).join(' · '));
+    function draw() {
+      const forMe = data.forMe || [], sent = showSent ? data.sent || [] : [];
+      box.hidden = !forMe.length && !sent.length;
+      const waiting = sent.filter(r => r.status === 'pending').length;
+      box.innerHTML = (forMe.length ? `<h3>📝 Cambios propuestos <b>${forMe.length}</b></h3><p class="crq-help">Alguien de otro equipo propone cambiar algo que tú actualizaste. Tú estuviste ahí: acepta solo si es correcto.</p>` +
+        forMe.map(r => `<div class="crq" data-crq="${esc(r.id)}"><div class="crq-who"><b>${esc(r.fromName)}</b> · ${r.fromTeam ? 'Equipo ' + esc(r.fromTeam) : 'sin equipo'} · ${where(r)}</div><div class="crq-need">${esc(r.need)}</div><ul>${(r.changes || []).map(line).join('')}</ul><div class="crq-acts"><button type="button" class="crq-yes" data-crq-yes>✓ Aceptar</button><button type="button" class="crq-no" data-crq-no>✗ Rechazar</button></div></div>`).join('') : '') +
+        (sent.length ? `<details class="crq-sent"${sentOpen ? ' open' : ''}><summary>📤 Cambios que pediste${waiting ? ` · ${waiting} esperando respuesta` : ''}</summary>` +
+        sent.map(r => `<div class="crq sent ${esc(r.status)}"><div class="crq-who">${({pending: '⏳ Esperando a', accepted: '✓ Lo aceptó', rejected: '✗ Lo rechazó'})[r.status] || esc(r.status)} <b>${esc(r.toName)}</b> · ${where(r)}</div><div class="crq-need">${esc(r.need)}</div><ul>${(r.changes || []).map(line).join('')}</ul></div>`).join('') + '</details>' : '');
+    }
+    box.addEventListener('toggle', e => { if (e.target.matches?.('.crq-sent')) sentOpen = e.target.open; }, true);
+    box.addEventListener('click', async e => {
+      const yes = e.target.closest('[data-crq-yes]'), no = e.target.closest('[data-crq-no]');
+      if (!yes && !no) return;
+      const card = e.target.closest('[data-crq]'), btns = card.querySelectorAll('button');
+      btns.forEach(b => b.disabled = true);
+      try { await decide(card.dataset.crq, yes ? 'accept' : 'reject'); await refresh(); if (after) after(!!yes); }
+      catch (err) { alert('No se pudo: ' + err.message); btns.forEach(b => b.disabled = false); }
+    });
+    async function refresh() { try { data = await load(); draw(); } catch {} }
+    refresh();
+    setInterval(() => { if (!document.hidden) refresh(); }, 30000);
+    return {refresh};
+  }
+  window.PointForm = {changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
 })();

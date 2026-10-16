@@ -159,10 +159,12 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 					return e
 				}
 				n = run
+				n.UpdatedBy = me.ID
 				return putNeed(tx.Bucket(needsBucket), &n)
 			}
 			before := n.RunnerID
 			n.RunnerID = runnerID
+			n.UpdatedBy = me.ID
 			enRouteOnAssign(&n, before)
 			return putNeed(tx.Bucket(needsBucket), &n)
 		})
