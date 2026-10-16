@@ -159,9 +159,9 @@ const historyDays, historyMax = 30, 60
 
 type supplierRun struct {
 	runnerNeed
-	// «Por surtir»: última actualización de la necesidad (needActivity); ordena la lista y se muestra «hace …».
+	// «Puntos con necesidades»: última actualización de la necesidad (needActivity); ordena la lista y se muestra «hace …».
 	ActivityAt string `json:"activityAt,omitempty"`
-	// «Por surtir» y «¡A empacar!», solo para quien es de un equipo: quién agregó la necesidad (o el punto) y su teléfono.
+	// «Puntos con necesidades» y «Empacando», solo para quien es de un equipo: quién agregó la necesidad (o el punto) y su teléfono.
 	AddedByName  string `json:"addedByName,omitempty"`
 	AddedByPhone string `json:"addedByPhone,omitempty"`
 	RunnerName       string `json:"runnerName,omitempty"`
@@ -524,7 +524,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			}
 			return runs[i].EnRouteAt > runs[j].EnRouteAt
 		})
-		// «Por surtir»: la necesidad actualizada más recientemente primero (crear, editar, cambiar urgencia, soltar…).
+		// «Puntos con necesidades»: la necesidad actualizada más recientemente primero (crear, editar, cambiar urgencia, soltar…).
 		sort.SliceStable(open, func(i, j int) bool { return open[i].ActivityAt > open[j].ActivityAt })
 		sort.SliceStable(runners, func(i, j int) bool { return runnerNameKey(runners[i].Name) < runnerNameKey(runners[j].Name) })
 		// Historial: lo último entregado primero.

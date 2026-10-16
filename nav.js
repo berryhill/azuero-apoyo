@@ -17,6 +17,8 @@
 html:has(dialog[open]),html:has(.modalbg.open){overflow:hidden}html:has(dialog[open]) body,html:has(.modalbg.open) body{overflow:hidden}dialog[open],.modalbg.open,.modalbg.open .modal{overscroll-behavior:contain}
 .telnum{border:0;background:none;padding:0;color:#126e7c;font:inherit;font-weight:750;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;white-space:nowrap}.telnum:hover{color:#10263a}
 .navtelpop{position:absolute;z-index:4000;min-width:210px;background:#fff;border:1px solid #cad9d9;border-radius:12px;box-shadow:0 12px 30px #17354233;padding:10px 12px;font-family:Inter,system-ui,sans-serif;color:#173c46}.ntp-h{font-weight:800;font-size:14px}.ntp-num{font-size:17px;font-weight:800;margin:4px 0 8px;letter-spacing:.02em}.ntp-acts{display:flex;gap:8px}.ntp-acts a{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:9px;font-weight:800;font-size:13px;text-decoration:none}.ntp-call{background:#19745f;color:#fff}.ntp-wa{background:#25d366;color:#08331b}.ntp-copy{display:block;width:100%;margin-top:6px;padding:6px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#36505a;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.navtip{position:fixed;z-index:4100;background:#fff;color:#173542;border:1px solid #cad9d9;border-radius:14px;box-shadow:0 14px 34px #17354240;padding:12px 14px;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}.navtip-t{display:block;font-size:15px;margin-bottom:4px}.navtip-b p{margin:0 0 6px}.navtip-b ol{margin:4px 0 6px;padding-left:20px}.navtip-b li{margin:2px 0}.navtip-a{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}.navtip-a button{border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#35505e;font:inherit;font-size:13px;font-weight:700;padding:7px 10px;cursor:pointer}.navtip-a .ok{background:#126e7c;border-color:#126e7c;color:#fff}
+.swipe-l{animation:navSwipeL .22s ease-out}.swipe-r{animation:navSwipeR .22s ease-out}@keyframes navSwipeL{from{transform:translateX(28px);opacity:.35}}@keyframes navSwipeR{from{transform:translateX(-28px);opacity:.35}}@media (prefers-reduced-motion:reduce){.swipe-l,.swipe-r{animation:none}}
 .appconfirm{border:0;border-radius:16px;padding:0;width:min(380px,calc(92vw / var(--text-zoom,1)));box-shadow:0 20px 60px #10263a66;font-family:Inter,system-ui,sans-serif}.appconfirm::backdrop{background:#10263ab8}.appconfirm form{margin:0;padding:22px}.appconfirm h2{margin:0;font-size:19px;line-height:1.3;color:#152b3a}.appconfirm p{margin:8px 0 0;color:#667982;font-size:13px;line-height:1.45}.appconfirm p:empty{display:none}
 .textsize{position:relative;margin-left:8px;flex:none}.textsize>button{height:28px;padding:0 8px;border:1px solid #47657a;border-radius:8px;background:none;color:#c8d6db;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}.textsize>button:hover,.textsize>button[aria-expanded="true"]{background:#ffffff1a;color:#fff}
 .textsize-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:3100;display:flex;align-items:center;gap:6px;background:#fff;border-radius:12px;padding:7px;box-shadow:0 10px 26px #0005}.textsize-pop[hidden]{display:none}.textsize-pop button{width:40px;height:36px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#173c46;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.textsize-pop button:disabled{opacity:.4;cursor:default}.textsize-pop span{min-width:46px;text-align:center;font:750 13px Inter,system-ui,sans-serif;color:#36505a}
@@ -504,9 +506,9 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   // Nombre corto para encabezados: nombre + primeras letras del apellido («Arianne Ori…»).
   const shortName = n => { const w = String(n || '').trim().split(/\s+/).filter(Boolean); return w.length < 2 ? w.join('') : w[0] + ' ' + (w[1].length > 3 ? w[1].slice(0, 3) + '…' : w[1]); };
   const drawAll = () => { draw(); drawMobileBar(); };
-  // Entorno de desarrollo (localhost, red local, *.local): franja ámbar arriba, «DEV» en la esquina y «DEV ·» en el
-  // título de la pestaña, para no confundirlo con el sitio público. admin.html lleva la misma copia (no carga nav.js).
-  const DEV_HOST=/^(localhost|127\.|0\.0\.0\.0$|::1$|\[::1\]$|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|\.(local|localhost|test)$/;function devMark(){if(!DEV_HOST.test(location.hostname)||document.querySelector('.devstripe'))return;document.head.insertAdjacentHTML('beforeend','<style>.devstripe{position:fixed;top:0;left:0;right:0;height:4px;z-index:99990;pointer-events:none;background:repeating-linear-gradient(-45deg,#ffb300 0 8px,#10263a 8px 16px)}.devpill{position:fixed;top:4px;left:4px;z-index:99991;padding:1px 6px;border-radius:0 0 6px 6px;background:#ffb300;color:#10263a;font:900 10px/1.4 system-ui,sans-serif;letter-spacing:.08em;pointer-events:auto;cursor:help;box-shadow:0 1px 3px #0005}</style>');document.body.insertAdjacentHTML('afterbegin','<div class="devstripe" aria-hidden="true"></div><span class="devpill" title="Entorno de desarrollo: '+location.host+'. No es el sitio público.">DEV</span>');if(!document.title.startsWith('DEV · '))document.title='DEV · '+document.title}
+  // Entorno de desarrollo (localhost, red local, *.local, túnel ngrok a la máquina local): franja ámbar arriba, «DEV» en la esquina y «DEV ·» en el
+  // título de la pestaña, para no confundirlo con el sitio público. admin.html también carga nav.js.
+  const DEV_HOST=/^(localhost|127\.|0\.0\.0\.0$|::1$|\[::1\]$|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|\.(local|localhost|test)$|\.ngrok(-free)?\.(app|dev|io)$/;function devMark(){if(!DEV_HOST.test(location.hostname)||document.querySelector('.devstripe'))return;document.head.insertAdjacentHTML('beforeend','<style>.devstripe{position:fixed;top:0;left:0;right:0;height:4px;z-index:99990;pointer-events:none;background:repeating-linear-gradient(-45deg,#ffb300 0 8px,#10263a 8px 16px)}.devpill{position:fixed;top:4px;left:4px;z-index:99991;padding:1px 6px;border-radius:0 0 6px 6px;background:#ffb300;color:#10263a;font:900 10px/1.4 system-ui,sans-serif;letter-spacing:.08em;pointer-events:auto;cursor:help;box-shadow:0 1px 3px #0005}</style>');document.body.insertAdjacentHTML('afterbegin','<div class="devstripe" aria-hidden="true"></div><span class="devpill" title="Entorno de desarrollo: '+location.host+'. No es el sitio público.">DEV</span>');if(!document.title.startsWith('DEV · '))document.title='DEV · '+document.title}
   // «Buscar» del encabezado: una ✕ adentro borra lo escrito, y lo escrito se guarda por pestaña y por página, así que al
   // volver (Atrás, o desde el menú de páginas) la búsqueda sigue puesta. Al restaurar, en el teléfono se deja abierta la
   // barra de búsqueda.
@@ -617,7 +619,62 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (!d.open) { d.showModal(); window.history.pushState({gs: 1}, ''); gs.pushed = true; }
     gsDraw(); await gsLoad(); gsDraw(); input.focus();
   }
-  window.AppNav = {draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
+  // Ayuda de una pestaña o pantalla: nota junto a lo que se tocó, con «No mostrar de nuevo» (recordado en este
+  // teléfono). again=true (tocar la pestaña en la que ya estás, o ❓) la muestra aunque se haya ocultado.
+  const tipHidden = key => { try { return localStorage.getItem('tip:' + key) === '1'; } catch { return false; } };
+  const closeTip = () => document.querySelectorAll('.navtip').forEach(x => x.remove());
+  function tip(anchor, key, title, html, again) {
+    closeTip();
+    if (!anchor || (!again && tipHidden(key))) return;
+    const d = document.createElement('div');
+    d.className = 'navtip'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', title);
+    d.innerHTML = `<b class="navtip-t">${title}</b><div class="navtip-b">${html}</div><div class="navtip-a"><button type="button" data-tip="never">No mostrar de nuevo</button><button type="button" class="ok" data-tip="ok">Entendido</button></div>`;
+    (anchor.closest('dialog') || document.body).appendChild(d);
+    const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight, w = Math.min(340, vw - 24), r = anchor.getBoundingClientRect();
+    d.style.width = w + 'px';
+    d.style.left = Math.max(12, Math.min(vw - w - 12, r.left + r.width / 2 - w / 2)) + 'px';
+    const below = r.bottom + 8, h = d.offsetHeight;
+    d.style.top = (below + h > vh - 8 && r.top - h - 8 > 8 ? r.top - h - 8 : Math.max(8, Math.min(below, vh - h - 8))) + 'px';
+    d.onclick = e => {
+      const b = e.target.closest('[data-tip]'); if (!b) return;
+      if (b.dataset.tip === 'never') try { localStorage.setItem('tip:' + key, '1'); } catch {}
+      closeTip();
+    };
+    setTimeout(() => document.addEventListener('pointerdown', function out(e) {
+      if (e.target.closest('.navtip')) return;
+      document.removeEventListener('pointerdown', out, true); closeTip();
+    }, true), 0);
+  }
+  // Deslizar a los lados sobre la lista (teléfono) pasa a la pestaña siguiente / anterior de tabs (las visibles), como
+  // tocarla. No cuenta si el gesto empieza en un campo, un mapa, un diálogo o algo que se desplaza a los lados.
+  function swipeTabs(area, tabs) {
+    if (!area || !tabs) return;
+    let x0 = 0, y0 = 0, t0 = 0, on = false;
+    area.addEventListener('touchstart', e => {
+      on = false;
+      if (e.touches.length !== 1 || !matchMedia('(max-width:760px)').matches) return;
+      const t = e.target;
+      if (t.closest('input,textarea,select,.leaflet-container,dialog,[data-noswipe]')) return;
+      for (let el = t; el && el !== area; el = el.parentElement) if (el.scrollWidth > el.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(el).overflowX)) return;
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); on = true;
+    }, {passive: true});
+    area.addEventListener('touchend', e => {
+      if (!on) return; on = false;
+      const c = e.changedTouches[0], dx = c.clientX - x0, dy = c.clientY - y0;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.7 || Date.now() - t0 > 800) return;
+      const list = [...tabs.querySelectorAll('[role=tab]')].filter(b => b.offsetParent !== null && !b.disabled);
+      const i = list.findIndex(b => b.getAttribute('aria-selected') === 'true');
+      const next = list[i + (dx < 0 ? 1 : -1)];
+      if (i < 0 || !next) return;
+      next.click();
+      next.scrollIntoView({block: 'nearest', inline: 'nearest'});
+      area.classList.remove('swipe-l', 'swipe-r'); void area.offsetWidth; area.classList.add(dx < 0 ? 'swipe-l' : 'swipe-r');
+    }, {passive: true});
+  }
+  // Toda página con pestañas (#mainTabs) y su lista (#feed o #list): deslizar cambia de pestaña en el teléfono.
+  const wireSwipe = () => swipeTabs(document.getElementById('feed') || document.getElementById('list'), document.getElementById('mainTabs'));
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireSwipe); else wireSwipe();
+  window.AppNav = {tip, swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
   mountSearch();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); mountSearch(); document.querySelector('header input[type=search]')?._tsSync?.(); }); else { draw(); mountTextSize(); mountMobileBar(); document.querySelector('header input[type=search]')?._tsSync?.(); }

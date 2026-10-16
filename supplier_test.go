@@ -132,7 +132,7 @@ func TestSupplyRequestsRunnersAndDispatchesItsOwnRuns(t *testing.T) {
 	if w := rc.call("POST", "/api/runner/needs/"+water+"/take?supplier=nope", ``); w.Code != 409 {
 		t.Fatalf("only a center that offered: %d", w.Code)
 	}
-	// The runner picks Julie: linked to her, gone from the offers, in her «¡A empacar!»; the other center doesn't see it.
+	// The runner picks Julie: linked to her, gone from the offers, in her «Empacando»; the other center doesn't see it.
 	if w := rc.call("POST", "/api/runner/needs/"+water+"/take?supplier="+julieID, ``); w.Code != 200 {
 		t.Fatalf("accept: %d %s", w.Code, w.Body.String())
 	}
@@ -624,7 +624,7 @@ func TestSupplyCentersRenameArchiveAndOldRequests(t *testing.T) {
 	}
 }
 
-// «Por surtir» lists the most recently updated need first (not urgency, not the oldest), so a need someone just
+// «Puntos con necesidades» lists the most recently updated need first (not urgency, not the oldest), so a need someone just
 // changed rises to the top.
 func TestSupplyOpenNewestUpdateFirst(t *testing.T) {
 	s := newServiceHarness(t)
@@ -651,11 +651,11 @@ func TestSupplyOpenNewestUpdateFirst(t *testing.T) {
 		}
 	}
 	if strings.Join(got, "|") != "Carpas|Pañales|Agua" {
-		t.Fatalf("Por surtir order: %q", got)
+		t.Fatalf("Puntos con necesidades order: %q", got)
 	}
 }
 
-// «Por surtir»: «Agregado por» (who added the need, or the point) with their phone, only for people on a team.
+// «Puntos con necesidades»: «Agregado por» (who added the need, or the point) with their phone, only for people on a team.
 func TestSupplyOpenAddedByOnlyForTeams(t *testing.T) {
 	s := newServiceHarness(t)
 	julie := s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)["id"].(string)
