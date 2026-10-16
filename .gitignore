@@ -16,3 +16,4 @@ __pycache__/
 *.db-*
 /seed.json
 /password
+/tmp

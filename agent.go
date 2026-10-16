@@ -28,6 +28,7 @@ var agentAllowed = []string{
 	"POST /api/admin/camps/{id}/publish",
 	"GET /api/admin/camps/{id}/needs",
 	"GET /api/admin/camps/{id}/trail",
+	"POST /api/admin/camps/{id}/services",
 	"GET /api/admin/needs",
 	"POST /api/admin/camps/{id}/needs",
 	"PATCH /api/admin/needs/{id}",

@@ -219,13 +219,6 @@ func publicNeedText(n CampNeed, tv *teamView) string {
 }
 
 // Scout (scout.html): los puntos que agregó quien entró con código o alguien de su equipo, con su estado.
-type scoutPoint struct {
-	Point
-	AddedByMe   bool   `json:"addedByMe,omitempty"`
-	AddedByMate string `json:"addedByMate,omitempty"`
-	PointStatus string `json:"pointStatus"`
-}
-
 func (a *App) campLogRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/camps/{id}/log", func(w http.ResponseWriter, r *http.Request) {
 		list, err := a.campLog(r.PathValue("id"), "")
@@ -243,48 +236,6 @@ func (a *App) campLogRoutes(mux *http.ServeMux) {
 		if serviceError(w, err) {
 			return
 		}
-		response(w, 200, list)
-	})
-	mux.HandleFunc("GET /api/full/scout", func(w http.ResponseWriter, r *http.Request) {
-		u, ok := a.viewer(w, r)
-		if !ok {
-			return
-		}
-		list := []scoutPoint{}
-		err := a.db.View(func(tx *bolt.Tx) error {
-			team := teamOf(tx, u.ID)
-			return tx.Bucket(submissions).ForEach(func(_, v []byte) error {
-				var p Point
-				if json.Unmarshal(v, &p) != nil || p.AddedBy == "" || p.MergedInto != "" {
-					return nil
-				}
-				mine := p.AddedBy == u.ID
-				if !mine && (team == "" || teamOf(tx, p.AddedBy) != team) {
-					return nil
-				}
-				if p.Status != "approved" && p.Status != "pending" {
-					return nil
-				}
-				if p.Status == "approved" {
-					p.CampStatus, p.HighestUrgency, _ = aggregateCamp(tx, p.ID)
-				}
-				status := p.Status
-				if p.HeldBy != "" && p.HeldUntil > nowStamp() {
-					status = "held"
-				}
-				sp := scoutPoint{Point: publicPoint(p), AddedByMe: mine, PointStatus: status}
-				sp.HeldUntil = p.HeldUntil
-				if !mine {
-					sp.AddedByMate = p.AddedByName
-				}
-				list = append(list, sp)
-				return nil
-			})
-		})
-		if serviceError(w, err) {
-			return
-		}
-		sort.SliceStable(list, func(i, j int) bool { return list[i].Created > list[j].Created })
 		response(w, 200, list)
 	})
 }

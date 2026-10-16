@@ -54,7 +54,7 @@ func (a *App) fullNeed(tx *bolt.Tx, id, me string) (CampNeed, error) {
 	if e := json.Unmarshal(v, &n); e != nil {
 		return n, e
 	}
-	if !a.campExists(tx, n.CampID) || isRepair(n) || n.Status == "DELETED" {
+	if !a.campExists(tx, n.CampID) || isRepair(n) || isMealKind(n) || n.Status == "DELETED" {
 		return n, errMissing
 	}
 	if newTeamView(tx, me).hidden(n) {

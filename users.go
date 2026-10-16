@@ -33,7 +33,7 @@ const (
 	roleAdmin = "admin"
 )
 
-var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier, roleTeamManager, roleAdmin}
+var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier, roleCook, roleTeamManager, roleAdmin}
 
 type User struct {
 	ID        string `json:"id"`
@@ -45,6 +45,8 @@ type User struct {
 	Disabled bool     `json:"disabled,omitempty"`
 	// Supply: nombre del centro de acopio donde está (texto por ahora, p. ej. «Villa Marina»); lo ven los corredores.
 	SupplyCenter string `json:"supplyCenter,omitempty"`
+	// Cocina (meals.go): nombre de la cocina donde prepara; lista compartida como los centros de acopio.
+	Kitchen string `json:"kitchen,omitempty"`
 	// HMAC del código de acceso normalizado: con él se entra (búsqueda y unicidad).
 	CodeHash string `json:"codeHash,omitempty"`
 	// El código tal cual, para que administración lo pueda ver (👁) en Usuarios. Nunca va en la lista ni en otras respuestas;

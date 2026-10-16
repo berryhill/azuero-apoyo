@@ -24,9 +24,11 @@ html:has(dialog[open]),html:has(.modalbg.open){overflow:hidden}html:has(dialog[o
 html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1))}
 .appnav-list .appnav-admin{margin-left:10px;border:1px dashed #ffb4a366;font-size:12px!important;opacity:.7;color:#ffb4a3!important}.appnav-list .appnav-admin:hover{opacity:1}
 .madmin{display:flex;align-items:center;justify-content:center;gap:6px;margin:14px auto 0;padding:6px 12px;width:max-content;border:1px dashed #ffb4a366;border-radius:8px;color:#ffb4a3;font:700 12px Inter,system-ui,sans-serif;text-decoration:none;opacity:.75}
+.tswrap{position:relative;display:block}.tswrap:focus-within{border-color:#ec7651;background:#203c54}.tswrap .tsinput{display:block;width:100%;margin:0;padding:0 26px 0 0;border:0;background:none;color:inherit;font:inherit;outline:none}.tswrap .tsinput::placeholder{color:#9fb6c2}.tsbox{position:relative}.tsbox input{padding-right:34px!important}.tsinput::-webkit-search-cancel-button,.tsbox input::-webkit-search-cancel-button{display:none}
+.tsclear{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#ffffff26;color:#fff;font:800 12px Inter,system-ui,sans-serif;cursor:pointer}.tsclear:hover{background:#ffffff40}.tsclear[hidden]{display:none}
 .mbar,.msheet{display:none}
 @media(max-width:760px){.top:has(>.mbar)>.appnav,.top:has(>.mbar) .textsize,.top:has(>.mbar)>.topright{display:none!important}.top:has(>.mbar) .brand{display:none!important}.top:has(>.mbar){gap:10px}
-.mbar{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.mlinks{flex:1;min-width:0;display:flex;gap:3px;overflow:hidden;background:#ffffff12;border-radius:11px;padding:3px}.mlinks a{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:9px;color:#c8d6db;text-decoration:none;font:800 14px Inter,system-ui,sans-serif;white-space:nowrap}.mlinks a[aria-current="page"]{background:#fff;color:#10263a}.mlinks .mi{display:inline-flex}.mbar .mtitle{display:none}.mbar.compact .mlinks a:not([aria-current]) .ml{display:none}.mbar.tight .mlinks{display:none}.mbar.tight .mtitle{display:flex}.mtitle{flex:1;min-width:0;align-items:center;gap:7px;margin:0;padding:8px 10px;border:0;border-radius:11px;background:none;color:#fff;font:800 17px Inter,system-ui,sans-serif;text-align:left;white-space:nowrap;overflow:hidden}.mtitle .mtl{min-width:0;overflow:hidden;text-overflow:ellipsis}.mtitle:not(:disabled){background:#ffffff12;cursor:pointer}.mtitle:disabled{opacity:1;cursor:default}.mtitle .chev{margin-left:auto;padding-left:4px;font-size:12px;opacity:.85}.mtitle[aria-expanded="true"]{background:#fff;color:#10263a}
+.mbar{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.mlinks{flex:1;min-width:0;display:flex;gap:3px;overflow:hidden;background:#ffffff12;border-radius:11px;padding:3px}.mlinks a{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:9px;color:#c8d6db;text-decoration:none;font:800 14px Inter,system-ui,sans-serif;white-space:nowrap}.mlinks a[aria-current="page"]{background:#fff;color:#10263a}.mlinks .mi{display:inline-flex}.mbar .mtitle{display:none}.mbar.tight .mlinks{display:none}.mbar.tight .mtitle{display:flex}.mtitle{flex:1;min-width:0;align-items:center;gap:7px;margin:0;padding:8px 10px;border:0;border-radius:11px;background:none;color:#fff;font:800 17px Inter,system-ui,sans-serif;text-align:left;white-space:nowrap;overflow:hidden}.mtitle .mtl{min-width:0;overflow:hidden;text-overflow:ellipsis}.mtitle:not(:disabled){background:#ffffff12;cursor:pointer}.mtitle:disabled{opacity:1;cursor:default}.mtitle .chev{margin-left:auto;padding-left:4px;font-size:12px;opacity:.85}.mtitle[aria-expanded="true"]{background:#fff;color:#10263a}
 .mdrop{position:absolute;top:100%;left:8px;right:8px;z-index:3001;display:flex;flex-direction:column;gap:2px;padding:6px;background:#10263a;border-radius:0 0 14px 14px;box-shadow:0 16px 34px #0008}.mdrop[hidden]{display:none}.mdrop a{display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:10px;color:#e3ecef;text-decoration:none;font:800 16px Inter,system-ui,sans-serif}.mdrop a[aria-current="page"]{background:#fff;color:#10263a}.mdrop .ml{display:inline!important}
 .mmenu.me{border-radius:50%;background:#ffd166;border-color:#ffd166;color:#10263a;box-shadow:0 0 0 2px #10263a,0 0 0 3px #ffd16699}.minit{font:900 15px/1 Inter,system-ui,sans-serif;letter-spacing:.02em}.mmenu.me[aria-expanded="true"]{background:#fff;border-color:#fff}}
 .madd,.mmenu,.msearchbtn{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:12px;border:0;cursor:pointer;text-decoration:none}.madd{background:#ed7654;color:#fff}.madd[hidden]{display:none}.mmenu,.msearchbtn{background:#ffffff14;border:1px solid #47657a;color:#fff}.msearchbtn[aria-expanded="true"]{background:#fff;color:#10263a}.madd.text{width:auto;padding:0 14px;font:800 15px Inter,system-ui,sans-serif;white-space:nowrap}.top:has(>.mbar){flex-wrap:wrap;height:auto;min-height:62px;align-content:center}@media(max-width:760px){.top:has(>.mbar) .topsearch{display:none!important}}.top.msearch .topsearch{display:block!important;flex:1 0 100%;order:9;max-width:none;margin:0 0 10px}body:has(.top>.mbar) .addbar{display:none!important}.msuser .msoft{color:#c8d6db}.mlogin{display:none}.mbar.public .mlinks,.mbar.public .mtitle,.mbar.public .msearchbtn{display:none!important}.mbar.public .madd{order:-1}.mbar.public .mlogin{display:inline-flex;align-items:center;height:42px;margin-left:auto;padding:0 14px;border:1px solid #ffffff55;border-radius:12px;background:none;color:#fff;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.top.msearch:has(.mbar.public) .topsearch{display:none!important}.msuser .mgo{background:#ed7654;border-color:#ed7654;color:#fff}.mmenu[aria-expanded="true"]{background:#fff;color:#10263a}
@@ -39,7 +41,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   const style = document.createElement('style');
   style.textContent = css;
   document.head.appendChild(style);
-  const panelUrl = {runner: '/runner.html', builder: '/builder.html', agent: '/command.html', donations: '/donations.html', supplier: '/supplier.html', teammanager: '/team.html'};
+  const panelUrl = {runner: '/runner.html', builder: '/builder.html', agent: '/command.html', donations: '/donations.html', supplier: '/supplier.html', cook: '/cook.html', teammanager: '/team.html'};
   const has = (u, role) => (u.roles || []).includes(role) || (u.panels || []).some(p => p.url === panelUrl[role]);
   // Agentes sin rol de runner entran al panel de runners solo para las listas de empaque.
   const pages = [
@@ -50,6 +52,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     ['/builder.html', '🔨', () => 'Constructores', u => has(u, 'builder')],
     ['/command.html', '🧑‍💻', () => 'Command', u => has(u, 'agent')],
     ['/supplier.html', '📦', () => 'Supply', u => has(u, 'supplier')],
+    ['/cook.html', '🍳', () => 'Cocina', u => has(u, 'cook')],
     ['/donations.html', '🎁', () => 'Donaciones', u => has(u, 'donations')],
     ['/team.html', '👥', () => 'Mi equipo', u => has(u, 'teammanager'), 'menu'],
   ];
@@ -253,17 +256,12 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     madd.hidden = !add;
     if (add) { const raw = add.textContent.trim(), plus = raw.startsWith('+'), label = raw.replace(/^\+\s*/, ''); madd.classList.toggle('text', !plus); madd.innerHTML = plus ? svg('<path d="M12 5v14M5 12h14"/>') : esc(raw); madd.title = label; madd.setAttribute('aria-label', label); }
   }
-  // Las páginas van en la barra si caben; si no, primero solo íconos (menos la actual) y, si aún no caben, se pliegan en
-  // un botón con la página actual y ▾ que abre la lista (así ＋ y el menú siempre quedan a la vista a la derecha).
+  // En el teléfono las páginas van siempre plegadas, en todas las páginas por igual (aunque sean pocas): un botón con
+  // la página actual y ▾ que abre la lista; así ＋ y el menú siempre quedan a la vista a la derecha.
   function fitMobileBar() {
     const bar = document.getElementById('mBar'), links = document.getElementById('mLinks');
     if (!bar || !links) return;
-    bar.classList.remove('compact', 'tight');
-    if (links.children.length && getComputedStyle(bar).display !== 'none') {
-      const over = () => links.scrollWidth > links.clientWidth + 1;
-      if (over()) bar.classList.add('compact');
-      if (over()) { bar.classList.remove('compact'); bar.classList.add('tight'); }
-    } else if (!links.children.length) bar.classList.add('tight');
+    bar.classList.add('tight');
     drawTitle();
   }
   function drawTitle() {
@@ -285,8 +283,28 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   }
   // Con sesión, el botón del menú muestra las iniciales de quien entró (MS, AO): sirve también para saber quién es.
   const initialsOf = name => String(name || '').split(/\s+/).filter(w => /^\p{L}/u.test(w)).slice(0, 2).map(w => w[0].toLocaleUpperCase('es')).join('');
+  // Páginas sin botón de salir propio (Scout, Cocina, Mi equipo, ficha del punto): con sesión de código, el menú ☰
+  // ofrece «Salir» igual (sharedLogout).
+  const sharedOut = () => !document.getElementById('logout') && !document.getElementById('codeLogout') && !!user();
+  // Salir es global: en cualquier página cierra TODAS las sesiones de este navegador (cada panel tiene la suya: si
+  // quedara una, al volver al inicio la sesión general te haría entrar de nuevo), también la de administración, y
+  // termina en el inicio.
+  const CODE_LOGOUTS = ['/api/full/logout', '/api/runner/logout', '/api/builder/logout', '/api/agent/logout', '/api/supplier/logout', '/api/cook/logout', '/api/desk/logout'];
+  async function endSessions() {
+    // La sesión de administración (si este navegador la tiene abierta) también: pide su token y la cierra.
+    const adminOut = fetch('/api/admin/session', {credentials: 'same-origin', cache: 'no-store'}).then(r => r.ok ? r.json() : null).then(b => b?.csrf && fetch('/api/admin/logout', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': b.csrf}, body: '{}'})).catch(() => {});
+    await Promise.all([adminOut, ...CODE_LOGOUTS.map(u => fetch(u, {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: '{}'}).catch(() => {}))]);
+    adminOK = false;
+    try { ['codeUser', 'runnerCode', 'runnerName', 'runnerTelephone', 'builderCode', 'builderName', 'builderTelephone', 'agentCode'].forEach(k => localStorage.removeItem(k)); } catch {}
+  }
+  async function logoutAll() { await endSessions(); location.href = '/'; }
+  async function sharedLogout() {
+    if (!await confirm('¿Cerrar sesión?', {yes: 'Sí, salir', detail: 'Tendrás que volver a entrar con tu código de acceso.'})) return;
+    await logoutAll();
+  }
   function signedName() {
     const out = document.getElementById('logout') || document.getElementById('codeLogout');
+    if (sharedOut()) return user()?.name || '';
     if (!out || out.closest('[hidden]')) return '';
     return document.getElementById('whoName')?.title || document.getElementById('whoName')?.textContent?.trim() || user()?.name || '';
   }
@@ -306,11 +324,11 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (open) {
       const u = user(), here = location.pathname === '/index.html' ? '/' : location.pathname, out = document.getElementById('logout') || document.getElementById('codeLogout');
       const name = document.getElementById('whoName')?.title || u?.name || '';
-      const signedIn = !!out && !out.closest('[hidden]'), login = !signedIn && document.getElementById('loginBtn'), copyId = signedIn && document.getElementById('copyMyId');
+      const signedIn = !!out && !out.closest('[hidden]') || sharedOut(), login = !signedIn && document.getElementById('loginBtn'), copyId = signedIn && document.getElementById('copyMyId');
       const list = u ? pages.filter(([url, , , ok]) => url === here || ok(u)) : [];
       const outLabel = out && out.textContent.trim() !== '✕' ? out.textContent.trim() : 'Salir';
       // Roles de quien entró (chips bajo su nombre) y las páginas de poco uso (Mi equipo), solo en este menú.
-      const roleNames = {runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', teammanager: 'Team manager', admin: 'Admin'};
+      const roleNames = {runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', cook: 'Cocina', teammanager: 'Team manager', admin: 'Admin'};
       const roleChips = signedIn && u?.roles?.length ? `<span class="msroles">${u.roles.map(r => `<span class="msrole">${esc(roleNames[r] || r)}</span>`).join('')}</span>` : '';
       const menuOnly = signedIn && u ? pages.filter(([url, , , ok, where]) => where === 'menu' && url !== here && ok(u)).map(([url, icon, label]) => `<nav class="mpages" aria-label="Más"><a href="${url}"><span aria-hidden="true">${icon}</span>${esc(label(u))}</a></nav>`).join('') : '';
       sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${roleChips}</b>${copyId ? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${menuOnly}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}<div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>${(adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? '<a href="/admin.html" class="madmin" data-admin-link><span aria-hidden="true">🔒</span> Administración</a>' : ''}`;
@@ -328,14 +346,14 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (e.target.closest('#mMenu')) { showSheet(sheet.hidden); return; }
     const size = e.target.closest('[data-msize]');
     if (size) { zoom = sizes[Math.min(sizes.length - 1, Math.max(0, sizes.indexOf(zoom) + Number(size.dataset.msize)))]; try { localStorage.setItem('textZoom', String(zoom)); } catch {} applySize(); showSheet(true); return; }
-    if (e.target.closest('[data-m="logout"]')) { showSheet(false); (document.getElementById('logout') || document.getElementById('codeLogout'))?.click(); return; }
+    if (e.target.closest('[data-m="logout"]')) { showSheet(false); const out = document.getElementById('logout') || document.getElementById('codeLogout'); if (out) out.click(); else sharedLogout(); return; }
     if (e.target.closest('#mLogin')) { showSheet(false); document.getElementById('loginBtn')?.click(); return; }
     if (e.target.closest('[data-m="login"]')) { showSheet(false); document.getElementById('loginBtn')?.click(); return; }
     const cid = e.target.closest('[data-m="copyid"]');
     if (cid) { document.getElementById('copyMyId')?.click(); cid.textContent = 'ID copiado'; return; }
     if (e.target.closest('#mAdd')) { showSheet(false); document.querySelector('.top .topright .add')?.click(); return; }
     const sb = e.target.closest('#mSearch');
-    if (sb) { const top = document.querySelector('header.top'), open = !top.classList.contains('msearch'); top.classList.toggle('msearch', open); sb.setAttribute('aria-expanded', String(open)); showSheet(false); if (open) top.querySelector('.topsearch')?.focus(); return; }
+    if (sb) { const top = document.querySelector('header.top'), open = !top.classList.contains('msearch'); top.classList.toggle('msearch', open); sb.setAttribute('aria-expanded', String(open)); showSheet(false); if (open) top.querySelector('input[type=search]')?.focus(); return; }
     if (!sheet.hidden && (!sheet.contains(e.target) || e.target.closest('a'))) showSheet(false);
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { showSheet(false); showDrop(false); } });
@@ -472,9 +490,51 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   // Entorno de desarrollo (localhost, red local, *.local): franja ámbar arriba, «DEV» en la esquina y «DEV ·» en el
   // título de la pestaña, para no confundirlo con el sitio público. admin.html lleva la misma copia (no carga nav.js).
   const DEV_HOST=/^(localhost|127\.|0\.0\.0\.0$|::1$|\[::1\]$|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|\.(local|localhost|test)$/;function devMark(){if(!DEV_HOST.test(location.hostname)||document.querySelector('.devstripe'))return;document.head.insertAdjacentHTML('beforeend','<style>.devstripe{position:fixed;top:0;left:0;right:0;height:4px;z-index:99990;pointer-events:none;background:repeating-linear-gradient(-45deg,#ffb300 0 8px,#10263a 8px 16px)}.devpill{position:fixed;top:4px;left:4px;z-index:99991;padding:1px 6px;border-radius:0 0 6px 6px;background:#ffb300;color:#10263a;font:900 10px/1.4 system-ui,sans-serif;letter-spacing:.08em;pointer-events:auto;cursor:help;box-shadow:0 1px 3px #0005}</style>');document.body.insertAdjacentHTML('afterbegin','<div class="devstripe" aria-hidden="true"></div><span class="devpill" title="Entorno de desarrollo: '+location.host+'. No es el sitio público.">DEV</span>');if(!document.title.startsWith('DEV · '))document.title='DEV · '+document.title}
-  window.AppNav = {draw: drawAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
+  // «Buscar» del encabezado: una ✕ adentro borra lo escrito, y lo escrito se guarda por pestaña y por página, así que al
+  // volver (Atrás, o desde el menú de páginas) la búsqueda sigue puesta. Al restaurar, en el teléfono se deja abierta la
+  // barra de búsqueda.
+  function mountSearch() {
+    const input = document.querySelector('header input[type=search]');
+    if (!input || input.dataset.tsReady) return;
+    input.dataset.tsReady = '1';
+    let box = input.parentElement;
+    if (input.classList.contains('topsearch')) {
+      box = document.createElement('span');
+      box.className = 'topsearch tswrap';
+      input.classList.remove('topsearch');
+      input.classList.add('tsinput');
+      input.before(box);
+      box.appendChild(input);
+    } else box.classList.add('tsbox');
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'tsclear';
+    x.setAttribute('aria-label', 'Borrar búsqueda');
+    x.title = 'Borrar búsqueda';
+    x.textContent = '✕';
+    box.appendChild(x);
+    const here = location.pathname === '/index.html' ? '/' : location.pathname, key = 'search:' + here;
+    const sync = () => { x.hidden = !input.value; try { input.value ? sessionStorage.setItem(key, input.value) : sessionStorage.removeItem(key); } catch {} };
+    input.addEventListener('input', sync);
+    x.onclick = () => { input.value = ''; input.dispatchEvent(new Event('input', {bubbles: true})); input.focus(); };
+    let saved = '';
+    try { saved = sessionStorage.getItem(key) || ''; } catch {}
+    if (saved && !input.value) {
+      input.value = saved;
+      // Después de que la página conectó su búsqueda: el aviso «input» vuelve a filtrar con lo restaurado.
+      const fire = () => setTimeout(() => {
+        input.dispatchEvent(new Event('input', {bubbles: true}));
+        const top = input.closest('header.top'), sb = document.getElementById('mSearch');
+        if (top && sb) { top.classList.add('msearch'); sb.setAttribute('aria-expanded', 'true'); }
+      });
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fire); else fire();
+    }
+    sync();
+  }
+  window.AppNav = {draw: drawAll, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); }); else { draw(); mountTextSize(); mountMobileBar(); }
+  mountSearch();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); mountSearch(); }); else { draw(); mountTextSize(); mountMobileBar(); }
   // Entrar o salir en otra pestaña actualiza esta.
   addEventListener('storage', e => { if (e.key === 'codeUser' || e.key === null) draw(); if (e.key === 'textZoom' || e.key === null) { zoom = sizes.includes(savedSize()) ? savedSize() : 1; applySize(); } });
 })();

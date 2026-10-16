@@ -282,6 +282,19 @@ type CampNeed struct {
 	// Quien agregó esta necesidad al cambiar lo que pedía la carrera de un runner (runs.go); privado.
 	CreatedBy     string `json:"createdBy,omitempty"`
 	CreatedByName string `json:"createdByName,omitempty"`
+	// Comidas preparadas (meals.go): Kind «meal» es el pedido de un punto y «mealrun» la entrega de un runner (SameAs = el
+	// pedido). La cocina que lo toma (CookID), la hora de recogida, si pide conductores a todos (DriversAskedAt) o a
+	// runners elegidos que aún no aceptan (Invites). ServiceLogged: el pedido ya quedó anotado en los servicios del punto.
+	MealPeople     int      `json:"mealPeople,omitempty"`
+	MealType       string   `json:"mealType,omitempty"`
+	CookID         string   `json:"cookId,omitempty"`
+	CookTakenAt    string   `json:"cookTakenAt,omitempty"`
+	PickupAt       string   `json:"pickupAt,omitempty"`
+	DriversAskedAt string   `json:"driversAskedAt,omitempty"`
+	Invites        []string `json:"invites,omitempty"`
+	ServiceLogged  bool     `json:"serviceLogged,omitempty"`
+	// Servicios (Kind «service»): cada vez que se dio, con cuánto y quién (meals.go, logService).
+	ServiceLog []ServiceEntry `json:"serviceLog,omitempty"`
 	// Quien la actualizó por última vez (runner que la tomó, completó o soltó; agente que la editó; quien aceptó una
 	// solicitud de cambio). Un agente de otro equipo no la cambia sin su visto bueno (changes.go). Privado.
 	UpdatedBy string `json:"updatedBy,omitempty"`
@@ -318,6 +331,7 @@ type App struct {
 	agentSessions    map[string]runnerSession
 	deskSessions     map[string]runnerSession
 	supplierSessions map[string]runnerSession
+	cookSessions     map[string]runnerSession
 	attempts         map[string]attempt
 	// Códigos de acceso incorrectos por IP de quien visita (ver signInWithCode).
 	codeAttempts map[string]attempt
@@ -462,7 +476,7 @@ func openApp(path, static string) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &App{db: db, static: static, sessions: map[string]session{}, runnerSessions: map[string]runnerSession{}, builderSessions: map[string]runnerSession{}, viewerSessions: map[string]runnerSession{}, agentSessions: map[string]runnerSession{}, deskSessions: map[string]runnerSession{}, supplierSessions: map[string]runnerSession{}, attempts: map[string]attempt{}, codeAttempts: map[string]attempt{}, lastSeen: map[string]time.Time{}, locations: map[string]liveLocation{}, router: newRouter(), media: newMediaStore(path)}
+	a := &App{db: db, static: static, sessions: map[string]session{}, runnerSessions: map[string]runnerSession{}, builderSessions: map[string]runnerSession{}, viewerSessions: map[string]runnerSession{}, agentSessions: map[string]runnerSession{}, deskSessions: map[string]runnerSession{}, supplierSessions: map[string]runnerSession{}, cookSessions: map[string]runnerSession{}, attempts: map[string]attempt{}, codeAttempts: map[string]attempt{}, lastSeen: map[string]time.Time{}, locations: map[string]liveLocation{}, router: newRouter(), media: newMediaStore(path)}
 	err = db.Update(func(tx *bolt.Tx) error {
 		if _, e := tx.CreateBucketIfNotExists(submissions); e != nil {
 			return e
@@ -486,6 +500,9 @@ func openApp(path, static string) (*App, error) {
 			return e
 		}
 		if e := ensureAudit(tx); e != nil {
+			return e
+		}
+		if e := ensureKitchens(tx); e != nil {
 			return e
 		}
 		b, e := tx.CreateBucketIfNotExists(meta)
@@ -519,7 +536,7 @@ func openApp(path, static string) (*App, error) {
 
 // migrate pone al día los datos guardados (al arrancar y después de importar un respaldo, que puede ser más viejo).
 func (a *App) migrate() error {
-	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateOpenRequests, migrateNeedUrgency, ensureDonations, ensureSupplyCenters, ensureTeamInvites, ensureChangeRequests, ensureAudit} {
+	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateOpenRequests, migrateNeedUrgency, ensureDonations, ensureSupplyCenters, ensureTeamInvites, ensureChangeRequests, ensureAudit, ensureKitchens} {
 		if err := a.db.Update(step); err != nil {
 			return err
 		}
@@ -1544,7 +1561,7 @@ func (a *App) routes() http.Handler {
 		switch r.URL.Path {
 		case "/", "/index.html":
 			name = "index.html"
-		case "/admin.html", "/donations.html", "/supplier.html", "/signup.html", "/team.html", "/camp.html", "/scout.html", "/runner.html", "/builder.html", "/command.html", "/pointform.js", "/nav.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
+		case "/admin.html", "/donations.html", "/supplier.html", "/signup.html", "/team.html", "/camp.html", "/scout.html", "/cook.html", "/runner.html", "/builder.html", "/command.html", "/pointform.js", "/nav.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
 			name = strings.TrimPrefix(r.URL.Path, "/")
 		default:
 			http.NotFound(w, r)
@@ -2227,14 +2244,17 @@ type runnerNeed struct {
 	SupplyAskedAt string        `json:"supplyAskedAt,omitempty"`
 	SupplyOffers  []supplyOffer `json:"supplyOffers,omitempty"`
 	// Otros runners que llevan lo mismo al mismo punto (envíos hermanos).
-	Also        []alsoRun     `json:"also,omitempty"`
-	Packing     []PackingLine `json:"packing,omitempty"`
-	Media       []MediaItem   `json:"media,omitempty"`
-	Scope       string        `json:"scope,omitempty"`
-	Materials   []PackingLine `json:"materials,omitempty"`
-	Progress    int           `json:"progress,omitempty"`
-	Kind        string        `json:"kind,omitempty"`
-	RepeatDays  int           `json:"repeatDays,omitempty"`
+	Also       []alsoRun     `json:"also,omitempty"`
+	Packing    []PackingLine `json:"packing,omitempty"`
+	Media      []MediaItem   `json:"media,omitempty"`
+	Scope      string        `json:"scope,omitempty"`
+	Materials  []PackingLine `json:"materials,omitempty"`
+	Progress   int           `json:"progress,omitempty"`
+	Kind       string        `json:"kind,omitempty"`
+	RepeatDays int           `json:"repeatDays,omitempty"`
+	// Entrega de comida preparada: hora de recogida y la cocina (nombre y teléfono) donde se recoge.
+	PickupAt    string        `json:"pickupAt,omitempty"`
+	Cook        *supplierInfo `json:"cook,omitempty"`
 	Assessments []Assessment  `json:"assessments,omitempty"`
 	// assigned: la necesidad está asignada a quien consulta (puede armar su lista de empaque).
 	Assigned bool       `json:"assigned,omitempty"`
@@ -2343,6 +2363,9 @@ func userPanels(u User) []map[string]string {
 	if u.has(roleDonations) {
 		panels = append(panels, map[string]string{"label": "Donaciones", "url": "/donations.html"})
 	}
+	if u.has(roleCook) {
+		panels = append(panels, map[string]string{"label": "Cocina", "url": "/cook.html"})
+	}
 	if u.has(roleTeamManager) && u.TeamID != "" {
 		panels = append(panels, map[string]string{"label": "Mi equipo", "url": "/team.html"})
 	}
@@ -2398,6 +2421,10 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 		if item.has(roleAgent) {
 			a.startAgentSession(w, r, item.ID)
 			panels = append(panels, map[string]string{"label": "Command", "url": "/command.html"})
+		}
+		if item.has(roleCook) {
+			a.startCookSession(w, r, item.ID)
+			panels = append(panels, map[string]string{"label": "Cocina", "url": "/cook.html"})
 		}
 		if item.has(roleSupplier) {
 			a.startSupplierSession(w, r, item.ID)
@@ -2471,8 +2498,10 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.backupRoutes(mux)
 	a.fullNeedRoutes(mux)
 	a.changeRoutes(mux, runners, builders)
+	a.mealRoutes(mux, runners)
 	a.auditRoutes(mux)
 	a.campLogRoutes(mux)
+	a.scoutRoutes(mux)
 	a.teamRoutes(mux)
 	a.trackRoutes(mux)
 	a.agentRoutes(mux)
@@ -2682,7 +2711,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					return e
 				}
 				camp, ok := camps[n.CampID]
-				if !ok || isRepair(n) != c.repair {
+				if !ok || isRepair(n) != c.repair || n.Kind == kindMeal || n.Kind == kindMealRun && *c.assignee(&n) != s.runnerID {
 					return nil
 				}
 				if !c.repair {
@@ -2694,6 +2723,12 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 				item := runnerNeed{VerifiedTeam: n.VerifiedTeam, VerifiedBy: n.VerifiedBy, VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), OpenOffers: openOffersFor(tx, n), Supplier: supplierOf(tx, n.SupplierID), SupplyAskedAt: n.SupplyAskedAt, SupplyOffers: offersFor(tx, n), Also: alsoFor(tx, groups, n), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
 				if item.Assigned {
 					item.Media = n.Media
+				}
+				if n.Kind == kindMealRun {
+					item.PickupAt = n.PickupAt
+					if u, found := getUser(tx, n.CookID); found {
+						item.Cook = &supplierInfo{Name: u.Name, Phone: u.Telephone, Center: u.Kitchen}
+					}
 				} else if c.repair {
 					// Las fotos de evaluación las ven todos los constructores, para decidir si toman la obra.
 					item.Media = inspectMedia(n.Media)
@@ -2717,7 +2752,11 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 		if serviceError(w, err) {
 			return
 		}
+		// Lo más reciente primero (pedido nuevo o actualizado): es lo que sabemos que sigue vigente.
 		sort.SliceStable(available, func(i, j int) bool {
+			if ti, tj := latestOf(available[i].CreatedAt, available[i].RevisedAt), latestOf(available[j].CreatedAt, available[j].RevisedAt); ti != tj {
+				return ti > tj
+			}
 			if ri, rj := urgencyRank(available[i].Urgency), urgencyRank(available[j].Urgency); ri != rj {
 				return ri > rj
 			}
@@ -2775,7 +2814,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 				return errAgentNoRuns
 			}
 			who := c.assignee(n)
-			if n.Status != "OPEN" || *who != "" && *who != s.runnerID {
+			if n.Status != "OPEN" || *who != "" && *who != s.runnerID || isMealKind(*n) {
 				return c.taken
 			}
 			active := map[string]bool{}
@@ -2870,7 +2909,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 		response(w, 200, map[string]any{"ids": ids})
 	})
 	mux.HandleFunc("POST "+c.path+"/needs/{id}/complete", func(w http.ResponseWriter, r *http.Request) {
-		change(w, r, func(_ *bolt.Tx, s runnerSession, n *CampNeed) error {
+		change(w, r, func(tx *bolt.Tx, s runnerSession, n *CampNeed) error {
 			// Reenvío desde la pantalla sin conexión: si ya la completó esta misma persona, no es un error.
 			if *c.assignee(n) == s.runnerID && n.Status == "COMPLETED" {
 				return nil
@@ -2882,6 +2921,10 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 			if isRepair(*n) {
 				n.Progress, n.ProgressAt = 100, n.CompletedAt
 			}
+			// Entrega de comida: si era la última en camino, el pedido se completa y el punto anota el servicio.
+			if n.Kind == kindMealRun {
+				return mealRunDone(tx, *n)
+			}
 			return nil
 		})
 	})
@@ -2891,6 +2934,10 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 				return c.notYours
 			}
 			*c.assignee(n), n.Status, n.EnRouteAt, n.ReleasedAt, n.ReleasedBy = "", "OPEN", "", nowStamp(), s.runnerID
+			// Una entrega de comida que se suelta no queda abierta: la cocina pide otro conductor.
+			if n.Kind == kindMealRun {
+				n.Status = "DELETED"
+			}
 			return nil
 		})
 	})
@@ -3091,41 +3138,16 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 			if e := json.Unmarshal(v, &n); e != nil {
 				return e
 			}
-			if n.CampID == id && n.Status != "DELETED" && !(public && (isRepair(n) || serviceScheduled(n, time.Now()))) {
-				if public {
-					reserved := tv.hidden(n)
-					reveal := viewer != "" && !reserved
-					// Quien entró con código ve el nombre del conductor asignado y la lista de empaque (para asignar y empacar desde la ficha).
-					if reveal && n.RunnerID != "" {
-						if u, found := getUser(tx, n.RunnerID); found {
-							n.RunnerName = u.Name
-						}
-					}
-					n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName, n.SupplierID, n.SupplierRequestedAt = "", "", "", "", "", ""
-					n.SupplyAskedAt, n.SupplyOffers, n.OpenOffers = "", nil, nil
-					n.VerifiedTeam, n.VerifiedBy, n.CreatedBy, n.CreatedByName, n.UpdatedBy = "", "", "", "", ""
-					if !reveal {
-						n.Packing, n.Media = nil, nil
-					} else {
-						// Solo las fotos de partida, sin la clave de almacenamiento.
-						pickups := []MediaItem{}
-						for _, m := range n.Media {
-							if m.Stage == stagePickup {
-								m.StoredKey, m.AddedBy = "", ""
-								pickups = append(pickups, m)
-							}
-						}
-						n.Media = pickups
-					}
-					if n.Need, _ = splitRepair(n.Need); n.Need == "" {
-						return nil
-					}
-					if reserved {
-						n = CampNeed{ID: n.ID, CampID: n.CampID, Status: n.Status, Urgency: n.Urgency}
-					}
-				}
-				list = append(list, n)
+			if n.CampID != id || n.Status == "DELETED" {
+				return nil
 			}
+			if public {
+				var keep bool
+				if n, keep = viewerNeed(tx, tv, viewer, n); !keep {
+					return nil
+				}
+			}
+			list = append(list, n)
 			return nil
 		})
 	})
@@ -3134,6 +3156,50 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 	}
 	response(w, 200, list)
 }
+
+// viewerNeed: una necesidad tal como la ve quien mira (viewer vacío = público): sin reparaciones, runs de comida ni
+// servicios programados, sin IDs ni datos internos; la carrera de otro equipo solo con estado y urgencia.
+func viewerNeed(tx *bolt.Tx, tv *teamView, viewer string, n CampNeed) (CampNeed, bool) {
+	if isRepair(n) || n.Kind == kindMealRun || serviceScheduled(n, time.Now()) {
+		return n, false
+	}
+	reserved := tv.hidden(n)
+	reveal := viewer != "" && !reserved
+	// Quien entró con código ve el nombre del conductor asignado y la lista de empaque (para asignar y empacar desde la ficha).
+	if reveal && n.RunnerID != "" {
+		if u, found := getUser(tx, n.RunnerID); found {
+			n.RunnerName = u.Name
+		}
+	}
+	n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName, n.SupplierID, n.SupplierRequestedAt = "", "", "", "", "", ""
+	n.SupplyAskedAt, n.SupplyOffers, n.OpenOffers = "", nil, nil
+	n.VerifiedTeam, n.VerifiedBy, n.CreatedBy, n.CreatedByName, n.UpdatedBy = "", "", "", "", ""
+	n.CookID, n.Invites = "", nil
+	for i := range n.ServiceLog {
+		n.ServiceLog[i].ByID, n.ServiceLog[i].ByName = "", ""
+	}
+	if !reveal {
+		n.Packing, n.Media = nil, nil
+	} else {
+		// Solo las fotos de partida, sin la clave de almacenamiento.
+		pickups := []MediaItem{}
+		for _, m := range n.Media {
+			if m.Stage == stagePickup {
+				m.StoredKey, m.AddedBy = "", ""
+				pickups = append(pickups, m)
+			}
+		}
+		n.Media = pickups
+	}
+	if n.Need, _ = splitRepair(n.Need); n.Need == "" {
+		return n, false
+	}
+	if reserved {
+		n = CampNeed{ID: n.ID, CampID: n.CampID, Status: n.Status, Urgency: n.Urgency}
+	}
+	return n, true
+}
+
 func main() {
 	path := os.Getenv("DB_PATH")
 	if path == "" {

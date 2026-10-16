@@ -116,8 +116,12 @@ func (a *App) actorFor(r *http.Request) Actor {
 		return Actor{session("builder_session", a.builderSessions), "Constructores"}
 	case strings.HasPrefix(p, "/api/supplier/"):
 		return Actor{session("supplier_session", a.supplierSessions), "Supply"}
+	case strings.HasPrefix(p, "/api/cook/"):
+		return Actor{session("cook_session", a.cookSessions), "Cocina"}
 	case strings.HasPrefix(p, "/api/desk/"):
 		return Actor{session("desk_session", a.deskSessions), "Donaciones"}
+	case strings.HasPrefix(p, "/api/full/scout/"):
+		return Actor{session("viewer_session", a.viewerSessions), "Scout"}
 	case strings.HasPrefix(p, "/api/full/"):
 		return Actor{session("viewer_session", a.viewerSessions), "Inicio"}
 	}

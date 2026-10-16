@@ -237,7 +237,7 @@ func supplierOwns(n CampNeed, me string) bool {
 
 // supplierCanRequest: necesidad de suministros abierta, sin corredor, que no es un servicio programado.
 func supplierCanRequest(n CampNeed) bool {
-	return !isRepair(n) && n.Status == "OPEN" && n.RunnerID == "" && !serviceScheduled(n, time.Now())
+	return !isRepair(n) && !isMealKind(n) && n.Status == "OPEN" && n.RunnerID == "" && !serviceScheduled(n, time.Now())
 }
 
 // migrateOpenRequests: los pedidos de antes (un solo acopio por necesidad Abierta) pasan a ser una oferta de ese acopio.
@@ -395,7 +395,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				if e := json.Unmarshal(v, &n); e != nil {
 					return e
 				}
-				if n.Status == "IN_PROGRESS" && n.RunnerID != "" && !isRepair(n) {
+				if n.Status == "IN_PROGRESS" && n.RunnerID != "" && !isRepair(n) && !isMealKind(n) {
 					active[n.RunnerID]++
 				}
 				camp, ok := camps[n.CampID]
@@ -410,7 +410,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				}
 				asking := supplyAskOpen(n)
 				// En camino con otro acopio (o sin acopio): se puede mandar otro runner a lo mismo.
-				other := !isRepair(n) && n.Status == "IN_PROGRESS" && n.RunnerID != "" && n.SupplierID != me.ID && !asking
+				other := !isRepair(n) && !isMealKind(n) && n.Status == "IN_PROGRESS" && n.RunnerID != "" && n.SupplierID != me.ID && !asking
 				if !ok || !(supplierOwns(n, me.ID) || supplierCanRequest(n) || asking || other) {
 					return nil
 				}
@@ -1016,7 +1016,7 @@ func offersFor(tx *bolt.Tx, n CampNeed) []supplyOffer {
 
 // supplyAskOpen: el corredor pidió acopio y todavía no eligió uno.
 func supplyAskOpen(n CampNeed) bool {
-	return !isRepair(n) && n.Status == "IN_PROGRESS" && n.RunnerID != "" && n.SupplierID == "" && n.SupplyAskedAt != ""
+	return !isRepair(n) && !isMealKind(n) && n.Status == "IN_PROGRESS" && n.RunnerID != "" && n.SupplierID == "" && n.SupplyAskedAt != ""
 }
 
 func myOffer(n CampNeed, me string) *SupplyOffer {
@@ -1146,7 +1146,7 @@ func needGroups(tx *bolt.Tx) (map[string][]CampNeed, error) {
 func alsoFor(tx *bolt.Tx, groups map[string][]CampNeed, n CampNeed) []alsoRun {
 	var out []alsoRun
 	for _, o := range groups[groupOf(n)] {
-		if o.ID == n.ID {
+		if o.ID == n.ID || o.Kind == kindMeal {
 			continue
 		}
 		x := alsoRun{ID: o.ID, Status: o.Status, Dispatched: o.DispatchedAt != ""}

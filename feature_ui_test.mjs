@@ -138,18 +138,17 @@ test('public Buscar also takes Google Maps links or coordinates and drops a temp
   assert.equal(coordsFromMapLink('https://maps.app.goo.gl/abc'), null);
   assert.ok(isMapLink('https://maps.app.goo.gl/abc') && !isMapLink('Venao'));
   // A location or a !code never filters the list.
-  assert.match(template, /function searchQuery\(\)\{const v=\$\('#search'\)\.value\.trim\(\);return v\.startsWith\('!'\)\|\|coordsFromMapLink\(v\)\|\|isMapLink\(v\)\?'':v\.toLocaleLowerCase\(\)\}/);
+  assert.match(template, /function searchQuery\(\)\{const v=\$\('#search'\)\.value\.trim\(\);return coordsFromMapLink\(v\)\|\|isMapLink\(v\)\?'':v\.toLocaleLowerCase\(\)\}/);
   assert.match(template, /const q=searchQuery\(\);/);
   assert.match(template, /No es un punto registrado\. ¿Quieres registrarlo\?<\/p><div class="gpsactions"><button type="button" class="gpsadd" data-register="/);
   assert.match(template, /\+ Registrar punto aquí<\/button><a class="gpsopen" target="_blank"/);
   assert.match(template, /gps\.value='https:\/\/maps\.google\.com\/\?q='\+b\.dataset\.register/, 'Registrar opens the form with the GPS filled in');
   assert.match(template, /className:'verifyicon'/);
 });
-test('public Buscar: «!code» + Enter signs in with an access code, with no hint in the interface', () => {
-  assert.match(template, /if\(e\.key!=='Enter'\|\|!v\.startsWith\('!'\)\)return;/);
+test('public Buscar is only a search (no «!code» sign-in); signed-in name in the header', () => {
+  assert.doesNotMatch(template, /v\.startsWith\('!'\)/, 'access codes are not typed into Buscar anymore');
   assert.match(template, /fetch\('\/api\/session\/code',\{method:'POST'/);
-  assert.match(template, /\$\('#search'\)\.value='';/, 'the code is cleared from the box');
-  assert.doesNotMatch(template.match(/<input[^>]*id="search"[^>]*>/)[0], /placeholder="[^"]*(código|!)/i, 'the search placeholder does not reveal it');
+  assert.doesNotMatch(template.match(/<input[^>]*id="search"[^>]*>/)[0], /placeholder="[^"]*(código|!)/i);
   assert.match(template, /<span class="codeuser" id="codeUser" hidden><\/span>/);
   const show = template.match(/function showCodeUser\(\)[^\n]*/)[0];
   assert.match(show, /<button type="button" id="copyMyId" title="\$\{clean\(u\.name\)\} · copiar mi ID de usuario">\$\{clean\(window\.AppNav\?AppNav\.shortName\(u\.name\):u\.name\)\}<\/button><span class="idtip" id="idTip" role="status" hidden><\/span>/, 'short name («Ana Gon…»), no link; tapping it copies the user ID');
@@ -170,7 +169,7 @@ test('runner top nav links to the public Agregar punto form, which opens from #a
 });
 test('runner map pin popup shows the full need card with ¡Yo lo llevo! like the list', () => {
   const grab = re => runner.match(re)[0];
-  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/), grab(/function popupList[^\n]*/), grab(/function popupNeed[^\n]*/)].join('\n');
+  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function reporterIn[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/), grab(/function popupList[^\n]*/), grab(/function popupNeed[^\n]*/)].join('\n');
   // mine: carreras en curso; con 10 (el máximo) ya no se ofrece tomar otra.
   const make = (mine, available, agentMode = false) => new Function('mine', 'max', 'followup', 'available', 'apple', 'agentMode', `${src};return {popupNeed,popupList}`)(mine, 10, null, available, false, agentMode);
   const n = {id: 'n1', need: 'Agua <b>', urgency: 'urgente', camp: {id: 'c1', code: 'C-1', area: 'Cañas', coords: [7.4, -80.3]}};
@@ -249,7 +248,7 @@ test('camp needs show their creation time, or «Actualizado» once revised, in S
   assert.match(template, /title="\$\{clean\(needStamp\(at\)\)\}">\$\{clean\(agoEs\(at\)\)\}<\/small>/, 'just «hace 1 d»; the exact date on hover');
   assert.match(camp, /n\.revisedAt\?'Actualizado: '\+clean\(stamp\(n\.revisedAt\)\):'Creada: '\+\(n\.createdAt\?clean\(stamp\(n\.createdAt\)\)/);
   const grab = re => runner.match(re)[0];
-  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
+  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function reporterIn[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
   const needDetails = new Function('apple', 'AppNav', `${src};return needDetails`)(false, {phone: p => `[${p}]`});
   const camp1 = {id: 'c', code: 'C-1'};
   assert.match(needDetails({id: 'n', need: 'Agua', urgency: 'urgente', createdAt: '2026-10-01T12:00:00Z', camp: camp1}), /<small class="when" title="Reportada: Oct 1, 2026 [^"]+">hace \d+ d<\/small>/, 'just «hace 1 d» in the footer; what and the exact date on hover');
@@ -259,15 +258,15 @@ test('camp needs show their creation time, or «Actualizado» once revised, in S
 });
 test('runner need card lists the camp contact phones with copy / call / WhatsApp (shared nav.js phone)', () => {
   const grab = re => runner.match(re)[0];
-  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
+  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function reporterIn[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
   const needDetails = new Function('apple', 'AppNav', `${src};return needDetails`)(false, {phone: p => `[${p}]`});
   const html = needDetails({id: 'n', need: 'Agua', urgency: 'urgente', camp: {id: 'c', code: 'C-1', contacts: [{name: 'Ana', phone: '6555-1234'}, {phone: '+507 6000 0000'}]}});
   assert.match(html, /<li><svg[^]*?<\/svg><span>Ana \[6555-1234\]<\/span><\/li><li><svg[^]*?<\/svg><span>\[\+507 6000 0000\]<\/span><\/li>/, 'one icon line per contact');
   assert.match(needDetails({id: 'n', need: 'Agua', urgency: 'urgente', camp: {id: 'c', code: 'C-1'}}), /Sin teléfono registrado/);
-  // The coordinator is not repeated: the contact marked «(coordinador)» gets the Coord. tag and the separate line goes away.
+  // The reporter is not a contact line: their name is a tappable «📣 name» in the place line that opens their phone.
   const co = needDetails({id: 'n', need: 'Agua', urgency: 'urgente', camp: {id: 'c', code: 'C-1', coordinator: 'Sarah Spalding', contacts: [{name: 'Sarah Spalding (coordinador)', phone: '6629-6224'}]}});
-  assert.equal(co.match(/Sarah Spalding/g).length, 1);
-  assert.match(co, /Sarah Spalding <small class="role">Reportado por<\/small> \[6629-6224\]/);
+  assert.match(co, /<button type="button" class="reporter" data-reporter="6629-6224" data-rname="Sarah Spalding" title="Reportado por Sarah Spalding: ver teléfono">📣 Sarah Spalding<\/button>/);
+  assert.doesNotMatch(co, /<li>[^]*Sarah Spalding[^]*<\/li>|Sin teléfono registrado/, 'no contact line for the reporter');
   // Same phone as a contact: the reporter is named once, without repeating the number.
   assert.equal(needDetails({id: 'n', need: 'Agua', requesterName: 'Javier', requesterPhone: '6895-5161', camp: {id: 'c', code: 'C-1', contacts: [{name: 'Javier', phone: '6895 5161'}]}}).match(/6895/g).length, 1);
 });
@@ -977,7 +976,7 @@ test('public list shows reserved run details to a code-signed-in user, and falls
   assert.match(fn, /fetch\('\/api\/full'\+path/);
   assert.match(fn, /if\(r\.status===401&&await reloginWithCode\(\)\)r=await get\(\);if\(r\.status!==401\)return r;forgetCodeUser\(\)\}return fetch\('\/api'\+path/);
   assert.match(template, /showCodeUser\(\);refresh\(\);loadRunnersOnMap\(\)\}/, 'signing in reloads the list with details');
-  assert.match(template, /'\/api\/full\/logout'/);
+  assert.match(template, /AppNav\.endSessions\(\)/, 'signing out ends the viewer session too (global logout in nav.js)');
 });
 test('public coordinator filter only appears when signed in with an access code', () => {
   assert.match(template, /<span class="needlabel coordlabel">Reportado por<\/span><div class="coordwrap">/);
@@ -1092,7 +1091,7 @@ test('public header hides the «Registro ciudadano · corte…» note when signe
 test('runner header: ✕ to sign out (no «Cambiar nombre») and «Mapa público» link for code users', () => {
   assert.match(runner, /<button type="button" id="logout" title="Salir" aria-label="Salir">✕<\/button>/);
   assert.doesNotMatch(runner, /Cambiar nombre/);
-  assert.match(runner, /<\/div><input class="topsearch" id="search" type="search" placeholder="Buscar…" aria-label="Buscar puntos, zonas o necesidades" autocomplete="off"><nav class="appnav" id="appNav" hidden><\/nav><div class="topright">/, 'top navigation replaces «← Mapa público»');
+  assert.match(runner, /<\/div><nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="search" type="search" placeholder="Buscar…" aria-label="Buscar puntos, zonas o necesidades" autocomplete="off"><div class="topright">/, 'top navigation replaces «← Mapa público»');
   assert.match(runner, /function syncPublicNav\(\)\{window\.AppNav\?\.draw\(\);/);
   assert.equal((runner.match(/syncPublicNav\(\)/g) || []).length, 4, 'defined, after sign-in or session check, and after sign-out');
 });
@@ -1186,7 +1185,7 @@ test('runner page: code users see the other live runners as orange trucks, like 
   assert.equal(runner.match(/const runnerTruck='[^']*'/)[0], template.match(/const runnerTruck='[^']*'/)[0], 'same truck as the public map');
   assert.match(runner, /setInterval\(loadTeam,15000\);/);
   assert.match(runner, /await refresh\(\);loadTeam\(\);return offerLive\(\)\}if\(await relogin\(\)\)\{await refresh\(\);loadTeam\(\);return offerLive\(\)\}/);
-  assert.match(runner, /render\(\);loadTeam\(\);\$\('#gateForm'\)\.reset\(\);showGate\(\)\}/, 'signing out clears them');
+  assert.match(runner, /render\(\);loadTeam\(\);\$\('#gateForm'\)\.reset\(\);showGate\(\);await \(window\.AppNav\?AppNav\.logoutAll\(\):location\.assign\('\/'\)\)\}/, 'signing out clears them');
 });
 test('runner live location is shared with the team; code users see other runners as small orange trucks on the public map', () => {
   assert.match(runner, /function shareLocation\(p\)\{lastFix=p;if\(agentMode\|\|!csrf\)return;[^\n]*Date\.now\(\)-sharedAt<15000&&\(!map\|\|map\.distance\(sharedPos,here\)<50\)\)return;[^\n]*api\('\/api\/runner\/location','POST'/, 'every 15 s or after 50 m');
@@ -1206,7 +1205,7 @@ test('public map: code users turn location sharing on and off with a map button;
   assert.match(template, /lastFix=p;shareFromMap\(p\);/, 'the blue pin feeds sharing');
   assert.match(template, /setInterval\(\(\)=>\{if\(liveShare&&lastFix\)shareFromMap\(lastFix\)\},20000\)/, 'a phone standing still keeps re-sending its last position');
   assert.match(runner, /setInterval\(\(\)=>\{if\(watchId!==null&&lastFix\)shareLocation\(lastFix\)\},20000\)/, 'a runner standing still keeps re-sending too');
-  assert.match(template, /'Compartida con quienes entraron con código\.':'Solo visible en este dispositivo\.'/);
+  assert.match(template, /'Compartida solo con tu equipo\.':'Solo visible en este dispositivo\.'/);
   assert.match(template, /document\.body\.classList\.toggle\('signed-in',!!u\);if\(!u\)\{stopShare\(false\);[^}]*\}setShareButton\(\);/, 'signing out stops sharing');
   assert.match(template, /p\.state==='granted'\?startShare\(true\):localStorage\.removeItem\('mapLive'\)/, 'a reload resumes only without a permission prompt (or notice)');
   const calls = template.match(/startShare\(/g).length;
@@ -1311,7 +1310,7 @@ test('public narrow view: 📊 tab holds the totals, Lista keeps only filters; t
   assert.match(template, /<div class="sidehead"><button type="button" class="filtertoggle" id="filterToggle" aria-expanded="false" aria-controls="filterPanel" aria-label="Filtros">[^]*?<\/button><div class="filterpanel" id="filterPanel"><div class="stats pointstats">/, 'filters fold into one summary line; the list gets the space');
   assert.match(template, /\.filterpanel\{display:none;padding-top:12px\}\.filterpanel\.open,\.mobile-stats \.filterpanel\{display:block\}/, 'open on tap; always open in the stats view');
   assert.match(template, /<\/select><\/label><button type="button" class="filterdone" id="filterDone">Listo<\/button><\/div><p id="gpsMessage"/, 'messages stay visible outside the folded panel');
-  assert.match(template, /selectedCoordinator\?'Coord\. '\+coordLabel\(\):''/, 'the summary names the coordinator only when one is picked');
+  assert.match(template, /selectedCoordinator\?'Reportado por '\+coordLabel\(\):''/, 'the summary names the coordinator only when one is picked');
   assert.match(template, /\.filter\(Boolean\)\.join\(' · '\)\+` \(\$\{n\}\)`\}/, 'summary ends with the count in parentheses, no «Filtros» or «puntos» words');
   assert.match(template, /aria-controls="filterPanel" aria-label="Filtros"><svg class="ftitle"/);
   assert.match(template, /\.mobile-list \.pointstats\{display:none\}/, 'no totals in Lista on a phone');
@@ -1578,7 +1577,7 @@ test('shared top navigation (nav.js): Inicio and the panels of the signed-in cod
 test('command center (/command.html): admin-style rows, corner map, en-ruta monitor, view mode inside the row', () => {
   // Headers: just the logo, no «AZUERO / …» titles, on every page.
   for (const page of [template, runner, agent, readFileSync(new URL('./builder.html', import.meta.url), 'utf8'), admin]) assert.doesNotMatch(page.match(/<header[^]*?<\/header>/)[0], /AZUERO|topsmall/);
-  assert.match(agent, /<header class="top"><div class="brand"><span class="logo" title="Azuero Apoyo">✚<\/span><\/div><input class="topsearch" id="search"[^>]*><nav class="appnav"/);
+  assert.match(agent, /<header class="top"><div class="brand"><span class="logo" title="Azuero Apoyo">✚<\/span><\/div><nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="search"[^>]*>/);
   assert.match(agent, /<main class="board"><div class="boardmain">[^]*?<div class="feed" id="feed">[^]*?<aside class="mapcorner"><section class="mapwrap"><div id="map"/, 'rows first, small map in the top corner');
   assert.match(agent, /\.mapcorner\{position:sticky;top:84px\}/);
   assert.match(agent, /\.top\{position:sticky;top:0;z-index:1100\}/, 'header stays on top while scrolling (desktop)');
@@ -1591,7 +1590,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /fetch\('\/api\/session\/code',\{method:'POST'[^\n]*?body:JSON\.stringify\(\{accessCode\}\)[^\n]*?if\(!\(body\.roles\|\|\[\]\)\.includes\('agent'\)\)throw Error\('Tu código no tiene acceso al Centro de comando\.'\)/, 'one code login opens every panel of the user');
   assert.match(agent, /localStorage\.getItem\('agentCode'\)\|\|localStorage\.getItem\('runnerCode'\)\|\|localStorage\.getItem\('builderCode'\)/, 're-entry with a code saved by any page');
   // Header: shared nav, name copies the user ID with a tooltip, no ID footer.
-  assert.match(agent, /<nav class="appnav" id="appNav" hidden><\/nav><div class="topright"><div class="who" id="who" hidden><button type="button" id="whoName" title="Copiar mi ID de usuario"><\/button><span class="idtip" id="idTip" role="status" hidden><\/span>/);
+  assert.match(agent, /<input class="topsearch" id="search"[^>]*><div class="topright"><div class="who" id="who" hidden><button type="button" id="whoName" title="Copiar mi ID de usuario"><\/button><span class="idtip" id="idTip" role="status" hidden><\/span>/);
   assert.match(agent, /await navigator\.clipboard\.writeText\(userId\);text='ID copiado: '\+userId\.slice\(0,8\)\+'…'/);
   assert.doesNotMatch(agent, /id="idFoot"|← Mapa público/);
   assert.match(agent, /api\('\/api\/agent\/points'\),api\('\/api\/agent\/needs'\)/);
@@ -1652,8 +1651,8 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /if\(choice==='fine'\)for\(const n of openNeeds\)await send\('\/api\/agent\/needs\/'\+encodeURIComponent\(n\.id\),'PATCH',\{status:'DELETED'\}\);[^\n]*?if\(choice==='needs'\)needsAfterCheckup\(id\)/, '«Sí, necesitan cosas» records the checkup and opens the need window');
   assert.match(agent, /if\(pending\.length===1\)\{openNeedDialog\(pending\[0\],p\);return\}if\(!pending\.length\)\{openNeedDialog\(null,p\);return\}/);
   assert.match(agent, /function openEdit\(id\)\{if\(openId!==id\)toggleDetails\(id\);history\.pushState\(\{edit:1\},'','\?punto='\+encodeURIComponent\(id\)\+'&editar=1'\);mode='camp';/);
-  assert.match(agent, /function closeEdit\(\)\{mode='';if\(history\.state\?\.edit\)\{skipPop=true;history\.back\(\)\}else history\.replaceState\(null,'','\?punto='\+encodeURIComponent\(openId\)\);/);
-  assert.match(agent, /`<button type="button" class="sbback sbcancel" data-solo="cancel">Cancelar<\/button><span class="sbtitle">Editar · \$\{title\}<\/span><button type="submit" form="campForm" class="sbsave">Guardar<\/button>`:`<button type="button" class="sbback" data-solo="back">← Puntos<\/button><span class="sbtitle">\$\{title\}<\/span>`/);
+  assert.match(agent, /function closeEdit\(\)\{mode='';if\(backToScout\(\)\)return;if\(history\.state\?\.edit\)\{skipPop=true;history\.back\(\)\}else history\.replaceState\(null,'','\?punto='\+encodeURIComponent\(openId\)\);/);
+  assert.match(agent, /`<button type="button" class="sbback sbcancel" data-solo="cancel">Cancelar<\/button><span class="sbtitle">Editar · \$\{title\}<\/span><button type="submit" form="campForm" class="sbsave">Guardar<\/button>`:`<button type="button" class="sbback" data-solo="back">\$\{fromScout&&!history\.state\?\.pt\?'← Scout':'← Puntos'\}<\/button><span class="sbtitle">\$\{title\}<\/span>`/);
   assert.match(agent, /mode=openId&&q\.get\('editar'\)==='1'\?'camp':''/, 'Back / Forward restore edit mode from the address');
   assert.match(agent, /closeEdit\(\);await after\('Punto actualizado\.'\)/);
   assert.match(agent, /\.row\.editing>:not\(\.rowdetail\)\{display:none\}\.row\.editing \.rowdetail>:not\(\.campedit\)\{display:none\}/, 'edit mode shows only the form');
@@ -1736,7 +1735,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /<\/ol><\/section><section class="routemon gpsmon" aria-label="Puntos sin GPS">[^\n]*<ol id="gpsList">/);
   assert.match(agent, /points\.filter\(p=>\['approved','pending'\]\.includes\(p\.status\)&&!hasCoords\(p\)\)\.sort\(\(a,b\)=>\(pendingNeeds\(a\)\.length\?0:1\)-\(pendingNeeds\(b\)\.length\?0:1\)/);
   assert.match(agent, /\$\('#gpsList'\)\.onclick=e=>\{[^\n]*openEdit\(b\.dataset\.mon\)\};/);
-  assert.match(agent, /history\.pushState\(null,'',open\?'\?punto='\+encodeURIComponent\(id\):location\.pathname\)/, 'deep link survives reload');
+  assert.match(agent, /history\.pushState\(\{pt:1\},'',open\?'\?punto='\+encodeURIComponent\(id\):location\.pathname\)/, 'deep link survives reload');
   assert.match(agent, /Búsqueda aproximada: no hay GPS registrado\./);
 });
 
@@ -1836,7 +1835,7 @@ test('runner: Ver en el mapa centers the point with a flag, opens its card, and 
   assert.match(runner, /function applyFocus\(\)\{[^\n]*map\.closePopup\(\);map\.setView\(pin\.getLatLng\(\),16\);/);
   assert.match(runner.match(/function applyFocus\(\)\{[^\n]*/)[0], /if\(n&&n\.camp\.id===focusCamp\)\{[^}]*pin\.openPopup\(\)\}/, 'chosen in the list: its card opens on the pin');
   assert.match(runner, /focused\?L\.marker\(camp\.coords,\{icon:L\.divIcon\(\{className:'',html:focusFlag,/, 'a flag instead of a bigger circle');
-  assert.match(runner, /\$\('#feed'\)\.onclick=async e=>\{const where=e\.target\.closest\('\[data-where\]'\);/, 'only the 📍 button goes to the map: tapping the card background does nothing (no stuck highlight)');
+  assert.match(runner, /\$\('#feed'\)\.onclick=async e=>\{[^\n]*?const where=e\.target\.closest\('\[data-where\]'\);/, 'only the 📍 button goes to the map: tapping the card background does nothing (no stuck highlight)');
   assert.doesNotMatch(runner, /const bg=!e\.target\.closest/);
   assert.match(runner, /highlightNeed=n\.id;if\(!hasCoords\(n\)\)\{focusCamp=null;render\(\);fitAllPins\(\);return\}focusCamp=n\.camp\.id;pendingFocus=true;/, 'picking a card without GPS removes the old flag');
   assert.match(runner, /function goToNeed\(id\)\{tabFor\(id\);highlightNeed=id;if\(!hasCoords\(findNeed\(id\)\|\|\{camp:\{\}\}\)\)\{focusCamp=null;requestAnimationFrame\(fitAllPins\)\}/);
@@ -1851,7 +1850,7 @@ test('run link: «Enlace para runner» in the command center opens runner.html o
 
 test('runner: «Mi recorrido» (only your runs and their route) and «Se necesita» (what else is open, team filter inside)', () => {
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
-  assert.match(runner, /<nav class="maintabs" id="mainTabs" role="tablist" aria-label="Vista"><button type="button" role="tab" data-main="mine" aria-selected="false" title="Mis carreras en camino"><svg class="walkico"[^]*?<\/svg> Yo <b id="cntMine"><\/b><\/button><button type="button" role="tab" data-main="needs" aria-selected="false" title="Necesidades por llevar"><span aria-hidden="true">🚩<\/span> Runs <b id="cntNeeds"><\/b><\/button><button type="button" role="tab" data-main="req"[^>]*><span aria-hidden="true">📦<\/span> Pedidos <b id="cntReq"><\/b><\/button><\/nav><div class="rfilter" id="teamFilter"><select id="teamSelect" class="rselect" aria-label="Filtro"><option value="0">Todas<\/option><option value="1">Solo mi equipo<\/option><\/select><\/div>/, 'a plain drop menu: Todas \/ Solo mi equipo');
+  assert.match(runner, /<nav class="maintabs" id="mainTabs" role="tablist" aria-label="Vista"><button type="button" role="tab" data-main="mine" aria-selected="false" title="Mis carreras en camino"><svg class="walkico"[^]*?<\/svg> Yo <b id="cntMine"><\/b><\/button><button type="button" role="tab" data-main="needs" aria-selected="false" title="Necesidades por llevar"><span aria-hidden="true">🚩<\/span> Runs <b id="cntNeeds"><\/b><\/button><button type="button" role="tab" data-main="req"[^>]*><span aria-hidden="true">📦<\/span> Pedidos <b id="cntReq"><\/b><\/button><button type="button" role="tab" data-main="meals"[^>]*><span aria-hidden="true">🍲<\/span> Comidas <b id="cntMeals"><\/b><\/button><\/nav><div class="rfilter" id="teamFilter"><select id="teamSelect" class="rselect" aria-label="Filtro"><option value="0">Todas<\/option><option value="1">Solo mi equipo<\/option><\/select><\/div>/, 'a plain drop menu: Todas \/ Solo mi equipo');
   const tabNow = new Function('mine', 'mainTab', `return (${runner.match(/const tabNow=([^\n;]*);/)[1]})()`);
   assert.equal(tabNow([{id: 'a'}], ''), 'mine', 'opens on your route when you have one');
   assert.equal(tabNow([], ''), 'needs');
@@ -1891,7 +1890,17 @@ test('phone header (nav.js, panels): logo · page name · «+» page action · �
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
   assert.match(nav, /bar\.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"><\/nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled><\/button>\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"[^`]*` : ''\}<button type="button" class="madd" id="mAdd" hidden><\/button>\$\{document\.getElementById\('loginBtn'\) \? '<button type="button" class="mlogin" id="mLogin">Inicia sesión<\/button>' : ''\}<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">/, 'pages · 🔍 (public page) · action · ☰');
   assert.match(nav, /if \(!top \|\| !document\.getElementById\('appNav'\) \|\| document\.getElementById\('mBar'\)\) return;/, 'panels and the public map share the same phone header');
-  assert.match(nav, /if \(over\(\)\) bar\.classList\.add\('compact'\);\s*if \(over\(\)\) \{ bar\.classList\.remove\('compact'\); bar\.classList\.add\('tight'\); \}/, 'pages in the bar if they fit; icons only; then a dropdown');
+  assert.match(nav, /function fitMobileBar\(\) \{[^}]*?bar\.classList\.add\('tight'\);\s*drawTitle\(\);/, 'on phones the pages are always folded into «current page ▾», on every page, even when few');
+  assert.doesNotMatch(nav, /over\(\)|\.mbar\.compact/, 'no inline pill row of pages on phones');
+  assert.match(nav, /async function sharedLogout\(\) \{[^]*?await logoutAll\(\);/, 'pages without their own «Salir» get one in ☰');
+  assert.match(nav, /async function logoutAll\(\) \{ await endSessions\(\); location\.href = '\/'; \}/, 'logout ends on the home page');
+  for (const u of ['full', 'runner', 'builder', 'agent', 'supplier', 'cook', 'desk']) assert.match(nav, new RegExp(`'/api/${u}/logout'`), 'global logout ends the ' + u + ' session');
+  assert.match(nav, /fetch\('\/api\/admin\/logout', \{method: 'POST'[^}]*'X-CSRF-Token': b\.csrf\}/, 'and the admin session');
+  assert.match(template, /await \(window\.AppNav\?AppNav\.endSessions\(\):Promise\.resolve\(\)\);forgetCodeUser\(\);/, 'home ✕ logout is global too');
+  for (const page of ['admin.html', 'builder.html', 'command.html', 'donations.html', 'runner.html', 'signup.html', 'supplier.html']) assert.match(readFileSync(new URL('./' + page, import.meta.url), 'utf8'), /\$\('#logout'\)\.onclick=async\(\)=>\{[^\n]*?await \(window\.AppNav\?AppNav\.logoutAll\(\):location\.assign\('\/'\)\)\}/, page + ': logging out is global and goes to the home page');
+  assert.match(nav, /x\.setAttribute\('aria-label', 'Borrar búsqueda'\);[^]*?x\.onclick = \(\) => \{ input\.value = ''; input\.dispatchEvent\(new Event\('input', \{bubbles: true\}\)\);/, 'Buscar has a ✕ that clears it');
+  assert.match(nav, /key = 'search:' \+ here;[^]*?sessionStorage\.setItem\(key, input\.value\)[^]*?saved = sessionStorage\.getItem\(key\)/, 'the search is kept per tab and page, coming back by Back or the page menu');
+  for (const page of ['index.html', 'scout.html', 'runner.html', 'builder.html', 'supplier.html', 'command.html', 'cook.html', 'donations.html', 'team.html', 'signup.html', 'camp.html']) assert.match(readFileSync(new URL('./' + page, import.meta.url), 'utf8'), /<header class="top[^"]*"[^>]*>[^]*?<nav class="appnav" id="appNav" hidden><\/nav>/, page + ' uses the shared header (same phone bar)');
   assert.match(nav, /const pick = bar\.classList\.contains\('tight'\) && links\.children\.length > 1;/, 'when they do not fit: «current page ▾» opens the list');
   assert.match(nav, /drop\.innerHTML = pick \? links\.innerHTML : '';/);
   assert.match(nav, /\.mbar\.tight \.mtitle\{display:flex\}/);
@@ -1899,7 +1908,7 @@ test('phone header (nav.js, panels): logo · page name · «+» page action · �
   assert.match(nav, /body:has\(\.top>\.mbar\) \.addbar\{display:none!important\}/, 'the public page drops its second row');
   assert.match(nav, /\.top:has\(>\.mbar\)>\.appnav,\.top:has\(>\.mbar\) \.textsize,\.top:has\(>\.mbar\)>\.topright\{display:none!important\}/, 'on a phone the separate pieces fold into the menu');
   assert.match(nav, /<div class="msuser"><b>\$\{esc\(name\)\}\$\{roleChips\}<\/b>\$\{copyId \? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID<\/button>' : ''\}<button type="button" data-m="logout">/);
-  assert.match(nav, /if \(e\.target\.closest\('\[data-m="logout"\]'\)\) \{ showSheet\(false\); \(document\.getElementById\('logout'\) \|\| document\.getElementById\('codeLogout'\)\)\?\.click\(\); return; \}/, 'Salir uses the page\'s own sign-out (with its confirmation)');
+  assert.match(nav, /if \(e\.target\.closest\('\[data-m="logout"\]'\)\) \{ showSheet\(false\); const out = document\.getElementById\('logout'\) \|\| document\.getElementById\('codeLogout'\); if \(out\) out\.click\(\); else sharedLogout\(\); return; \}/, 'Salir uses the page\'s own sign-out (with its confirmation)');
   assert.match(nav, /<div class="msize"><span class="lbl">Tamaño del texto<\/span>/);
   assert.match(nav, /\.mbar,\.msheet\{display:none\}/, 'computer header unchanged');
 });
@@ -2281,7 +2290,7 @@ test('Supply ↔ Runners: Supply asks for a runner («📣 Pedidos» for runners
   assert.match(runner, /data-take="\$\{id\}" data-from="\$\{clean\(o\.supplierId\)\}"/);
   assert.match(runner, /'\/take'\+\(from\?'\?supplier='\+encodeURIComponent\(from\):''\)/);
   assert.match(runner, /function supplierLine\(n,asking\)\{const x=n\.supplier;[^\n]*\$\{asking\?'Pide':'Recoger en acopio'\}: <b>\$\{clean\(x\.center\|\|'Centro de acopio'\)\}<\/b> · \$\{clean\(x\.name\)\}/);
-  assert.match(runner, /\$\{supplierLine\(n,false\)\}\$\{alsoLine\(n\)\}\$\{supplyAskBox\(n\)\}\$\{n\.dispatchedAt\?/, 'pickup line on the «Yo» card');
+  assert.match(runner, /\$\{n\.kind==='mealrun'\?mealLine\(n\):supplierLine\(n,false\)\}\$\{alsoLine\(n\)\}\$\{supplyAskBox\(n\)\}\$\{n\.dispatchedAt\?/, 'pickup line on the «Yo» card');
   const tabNow = new Function('mine', 'mainTab', `return (${runner.match(/const tabNow=([^\n;]*);/)[1]})()`);
   assert.equal(tabNow([], 'req'), 'req');
   // Supply: three tabs, center name, request/cancel, in-person assign with a runner picker.
@@ -2322,7 +2331,7 @@ test('Runners ask supply centers; Supply answers «Puedo surtirla» / «No puedo
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
   const page = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
   const box = runner.match(/function supplyAskBox\(n\)\{[^\n]*/)[0];
-  assert.match(box, /if\(n\.supplier\)return '';/, 'only runs without a supply center');
+  assert.match(box, /if\(n\.supplier\|\|n\.kind==='mealrun'\)return '';/, 'only runs without a supply center');
   assert.match(box, /data-supplyask="\$\{id\}">📣 Pedir a acopios<\/button>/);
   assert.match(box, /acopios pueden'\} surtirla: elige el más cercano/);
   assert.match(box, /data-choose="\$\{id\}" data-supplier="\$\{clean\(o\.supplierId\)\}">Elegir<\/button>/);
@@ -2431,7 +2440,7 @@ test('«Mi equipo» (team.html): invite links (one use, expiring), members with 
   assert.match(signup, /fetch\('\/api\/full\/invites\/accept',\{method:'POST'/);
   assert.match(signup, /showDone\(user\);await acceptInvite\(\);return\}showEnter\(\)/, 'already signed in: joins right away');
   assert.match(signup, /showDone\(await signIn\(code\),code\);await acceptInvite\(\)/, 'new account: joins after creating it');
-  assert.match(page, /const ROLE_ICONS=\{runner:'🏃',builder:'🔨',agent:'🧑‍💻',donations:'🎁',supplier:'📦',teammanager:'👥',admin:'🔒'\}/, 'role chips carry the page icons');
+  assert.match(page, /const ROLE_ICONS=\{runner:'🏃',builder:'🔨',agent:'🧑‍💻',donations:'🎁',supplier:'📦',teammanager:'👥',cook:'🍳',admin:'🔒'\}/, 'role chips carry the page icons');
   assert.ok((page.match(/clean\(roleLabel\(r\)\)/g) || []).length === 2, 'icons on member chips and in the roles dialog');
   assert.match(page, /<input type="search" class="msearch" id="memberSearch"/);
   assert.match(page, /\$\('#memberSearch'\)\.oninput=renderMembers;/, 'filters as you type');
@@ -2555,7 +2564,7 @@ test('phone menu button shows the signed-in person\'s initials; Comando always h
 
 test('Comando: Buscar in the header (🔍 on phones, like Runners); totals with icons in the «Puntos» tab', () => {
   const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
-  assert.match(cmd, /<header class="top"><div class="brand">[^]*?<\/div><input class="topsearch" id="search" type="search" placeholder="Buscar…"/);
+  assert.match(cmd, /<header class="top"><div class="brand">[^]*?<\/div><nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="search" type="search" placeholder="Buscar…"/);
   assert.doesNotMatch(cmd, /<input class="search" id="search"/, 'no second search box in the list');
   assert.match(cmd, /const counts=`<span class="tcnt" title="[^\n]*?">\$\{icoPinS\}/);
   assert.match(cmd, /\$\{pending\?`<span class="tcnt pend" title="\$\{pending\} por revisar">\$\{icoReviewS\}\$\{pending\}<\/span>`:''\}/);
@@ -2621,7 +2630,8 @@ test('«Reportado por» (megaphone) replaces «Coordinador» in labels; the stor
   assert.match(pointformSrc, /input\('coordinatorPhone', 'Teléfono de quien reporta'/);
   assert.doesNotMatch(pub, /Personas del grupo/, 'no redundant title');
   assert.match(pub, /<p class="pf-hint"><b>Al menos un contacto con teléfono es obligatorio\.<\/b><\/p><div class="pf-members"><\/div><button type="button" class="pf-addmember">＋ Agregar otro contacto<\/button>/);
-  for (const page of ['runner.html', 'supplier.html', 'builder.html']) assert.match(readFileSync(new URL('./' + page, import.meta.url), 'utf8'), /<small class="role">Reportado por<\/small>/, page);
+  for (const page of ['supplier.html', 'builder.html']) assert.match(readFileSync(new URL('./' + page, import.meta.url), 'utf8'), /<small class="role">Reportado por<\/small>/, page);
+  assert.match(readFileSync(new URL('./runner.html', import.meta.url), 'utf8'), /title="Reportado por \$\{n\}: ver teléfono"/, 'Runners: the reporter is the tappable name');
   assert.match(runner, /<small class="role">Pidió<\/small> \$\{clean\(n\.requesterName\)\}/, 'whoever asked for a need');
   assert.doesNotMatch(admin, /coordinator:'Coordinador'/);
   assert.match(admin, /\['Coordinador','coordinator'\]/, 'the CSV column keeps its name, so old exports still import');
@@ -2652,7 +2662,7 @@ test('admin Usuarios: tabs Usuarios / Equipos, live refresh every 10 s, and «�
   assert.match(admin, /<div class="adstep"><span class="stepn">1<\/span><span class="stepl">Equipo<\/span><div id="adTeamWrap"><\/div><\/div><div class="adstep"><span class="stepn">2<\/span><span class="stepl">Roles<\/span>[^]*?<span class="stepn">3<\/span><span class="stepl">Guardar<\/span>/, 'steps 1, 2, 3 in the window');
   assert.match(admin, /busy=userFormOpen\(\)\|\|renamingTeam\|\|\$\('#adDlg'\)\.open\|\|/, 'no refresh while the window is open');
   assert.match(admin, /if\(seenUsers\)for\(const u of users\)if\(!seenUsers\.has\(u\.id\)\)freshIds\.set\(u\.id,now\)/, 'newcomers since the page opened are highlighted');
-  assert.match(admin, /const roleNames=\{runner:'Runner',builder:'Constructor',agent:'Agente',donations:'Donaciones',supplier:'Supply',teammanager:'Team manager',admin:'Admin'\};/);
+  assert.match(admin, /const roleNames=\{runner:'Runner',builder:'Constructor',agent:'Agente',donations:'Donaciones',supplier:'Supply',teammanager:'Team manager',cook:'Cocina',admin:'Admin'\};/);
 });
 
 test('admin Equipos tab: a card per team with its Team managers, members (☆ Hacer team manager / Quitar) and an add-member search', () => {
@@ -2718,7 +2728,7 @@ test('admin «🔗 Invitaciones» tab: create invites there and monitor all of t
 });
 
 test('admin: roles carry their page icon everywhere; the assign window offers «⊘ Sin equipo» to take someone out of a team', () => {
-  assert.match(admin, /const ROLE_ICONS=\{runner:'🏃',builder:'🔨',agent:'🧑‍💻',donations:'🎁',supplier:'📦',teammanager:'👥',admin:'🔒'\},roleLabel=r=>`\$\{ROLE_ICONS\[r\]\?ROLE_ICONS\[r\]\+' ':''\}\$\{roleNames\[r\]\|\|r\}`;/);
+  assert.match(admin, /const ROLE_ICONS=\{runner:'🏃',builder:'🔨',agent:'🧑‍💻',donations:'🎁',supplier:'📦',teammanager:'👥',cook:'🍳',admin:'🔒'\},roleLabel=r=>`\$\{ROLE_ICONS\[r\]\?ROLE_ICONS\[r\]\+' ':''\}\$\{roleNames\[r\]\|\|r\}`;/);
   const roleLabel = new Function(`const roleNames={runner:'Runner'};${admin.match(/const ROLE_ICONS=[^\n]*/)[0]};return roleLabel`)();
   assert.equal(roleLabel('runner'), '🏃 Runner', 'no recursion');
   assert.doesNotMatch(admin, /roleNames\[r\]\|\|r\)\.join/, 'role lists use roleLabel');
@@ -2729,7 +2739,7 @@ test('admin: roles carry their page icon everywhere; the assign window offers «
 
 test('home: runner actions (conductor, empaque, foto de partida) only for the Runner role; on phones, non-runners get no list and map taps open nothing', () => {
   assert.match(template, /function canRun\(\)\{try\{return\(JSON\.parse\(localStorage\.getItem\('codeUser'\)\|\|'null'\)\?\.roles\|\|\[\]\)\.includes\('runner'\)/);
-  assert.match(template, /\$\{canRun\(\)\?`<div class="teamacts"><button type="button" data-assign-need=/);
+  assert.match(template, /\$\{canRun\(\)&&n\.kind!=='meal'\?`<div class="teamacts"><button type="button" data-assign-need=/);
   assert.match(template, /n\.runnerName&&canRun\(\)\?` · <button type="button" class="unassign"/);
   assert.match(template, /m\.on\('click',\(\)=>\{if\(!phoneLocked\(\)\)show\(r\)\}\)/);
   assert.match(template, /function mobileView\(view\)\{if\(view==='list'&&phoneLocked\(\)\)view='stats';/);
@@ -2797,17 +2807,46 @@ test('«🕓 Historial de cambios» on a point in admin and Command; builders an
 test('camp page «🕓 Actividad del punto» (public log, teammates by name) and the «🧭 Scout» page (my and my team\'s points, list and map)', () => {
   const camp = readFileSync(new URL('./camp.html', import.meta.url), 'utf8');
   const scout = readFileSync(new URL('./scout.html', import.meta.url), 'utf8');
+  const cmdPage = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
   const go = readFileSync(new URL('./main.go', import.meta.url), 'utf8');
   const docker = readFileSync(new URL('./Dockerfile', import.meta.url), 'utf8');
   assert.match(camp, /<section id="campLog"><h2>🕓 Actividad del punto<\/h2>/);
   assert.match(camp, /get\('\/api\/full\/camps\/'\+encodeURIComponent\(id\)\+'\/log'\)/);
   assert.match(camp, /if\(!r\|\|!r\.ok\)r=await get\('\/api\/camps\/'\+encodeURIComponent\(id\)\+'\/log'\)/);
-  assert.match(camp, /Por privacidad no se muestran nombres ni teléfonos/);
+  assert.doesNotMatch(camp, /Por privacidad no se muestran/);
   assert.match(scout, /fetch\('\/api\/full\/scout'/);
-  assert.match(scout, /data-tab="list" class="on">☰ Lista<\/button><button type="button" data-tab="map">🗺️ Mapa<\/button>/);
-  assert.match(scout, /\['all',`Todos \$\{all\}`\],\['mine',`Míos \$\{mine\}`\],\['team',`Equipo \$\{all-mine\}`\]/);
-  assert.match(scout, /<a class="btn" href="\/\?agregar=1">\+ Agregar punto<\/a>/);
+  assert.match(scout, /<nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="find" type="search" placeholder="Buscar…"/, 'search in the header after the nav, like Runners');
+  assert.match(scout, /<main class="app" id="app" hidden><section class="mapwrap"><div id="map"[^>]*><\/div>[^]*?<section class="side">/, 'map left, list right, like Supply');
+  assert.match(scout, /<button type="button" data-view="list" class="active">[^]*?<span>Lista<\/span><\/button><button type="button" data-view="map">/);
+  assert.doesNotMatch(scout.slice(scout.indexOf('<main class="app"')), /<h1>/, 'no page title (only on the sign-in card)');
+  assert.match(scout, /<select class="whosel" id="who" aria-label="Qué puntos ver"><option value="all">Todos los puntos<\/option><option value="mine">Creados por mí<\/option><option value="team">Creados por mi equipo<\/option><\/select>/, 'filter is a dropdown');
+  assert.match(scout, /data-update="\$\{clean\(p\.id\)\}">📝 Actualizar necesidades<\/button>/, 'the card action is «Actualizar necesidades»');
+  assert.match(scout, /\$\{myTeam\?`<button type="button" class="btn small" data-update=/, 'only people on a team update needs');
+  assert.match(scout, /Va en camino: se puede cambiar, no quitar\./);
+  assert.match(scout, /data-check="\$\{clean\(p\.id\)\}">🔍 Corroborar<\/button>/, 'points «Por revisar» get «Corroborar»');
+  assert.match(scout, /function renderView\(id\)[^]*?🔍 Corroborar punto[^]*?Necesidades reportadas/, '«Corroborar» opens the point in view mode');
+  assert.doesNotMatch(scout, /id="checkDialog"/, 'the point view is a screen, not a modal');
+  assert.match(scout, /<section class="pview" id="pview" hidden><\/section>/);
+  assert.match(scout, /history\.pushState\(\{pv:1\},'','\?punto='\+encodeURIComponent\(id\)\)/, 'the view has its own address');
+  assert.match(scout, /function leaveView\(\)\{if\(history\.state\?\.pv\)history\.back\(\)/, '«‹ Volver» goes back in history');
+  assert.match(scout, /addEventListener\('popstate',route\)/);
+  assert.match(scout, /\$\{peopleLine\(p\)\}\$\{contactsHtml\(p\)\}/, 'cards list contacts (sent only to team members)');
+  assert.match(scout, /<a class="btn small" href="tel:\$\{clean\(d\)\}">📞 Llamar<\/a><a class="btn small wa"[^>]*href="https:\/\/wa\.me\/\$\{clean\(wa\)\}">💬 WhatsApp<\/a>/, 'tapping a number offers Llamar / WhatsApp');
+  assert.match(cmdPage, /function backToScout\(\)\{if\(!fromScout\|\|history\.state\?\.edit\|\|history\.state\?\.pt/, 'Command opened from Scout goes back to Scout');
+  assert.match(cmdPage, /function closeEdit\(\)\{mode='';if\(backToScout\(\)\)return;/);
+  assert.match(cmdPage, /sessionStorage\.setItem\('scoutNotice'/);
+  assert.match(scout, /Búsqueda aproximada: no hay GPS registrado\./, 'a place-name search with no GPS is labeled approximate');
+  assert.match(scout, /<button type="button" class="btn small ghost" data-check="\$\{clean\(p\.id\)\}">Ver más<\/button>/, 'published points get «Ver más» (view mode)');
+  assert.match(scout, /\$\{pending\?'🔍 Corroborar punto':'📋 Ver punto'\}/);
+  assert.match(camp, /<main><a class="backlink" href="\/" data-back>← Inicio<\/a>/, 'camp page back links know where you came from');
+  assert.match(camp, /if\(a&&cameFrom&&history\.length>1[^]*?history\.back\(\)/, 'back goes through history, keeping the list');
+  assert.match(camp, /'\/scout\.html':'Scout'/);
+  assert.match(scout, /\$\{canEdit\?`<a class="btn small" href="\/command\.html\?punto=\$\{encodeURIComponent\(p\.id\)\}&editar=1">✏️ Editar<\/a>`:''\}/, '«Editar» opens the point in edit mode in Command, agents only');
+  assert.match(scout, /<ul class="nl">\$\{needs\.map\(needRow\)\.join\(''\)\}<\/ul>/, 'each card lists its active needs like Runners');
+  assert.match(scout, /send\('\/api\/full\/scout\/needs\/'\+encodeURIComponent\(rm\.dataset\.remove\),'PATCH',\{status:'DELETED'\}\)/);
+  assert.match(scout, /send\('\/api\/full\/scout\/camps\/'\+encodeURIComponent\(editing\)\+'\/needs','POST',\{need,urgency\}\)/);
+  assert.match(scout, /<a class="add" href="\/\?agregar=1">\+ Agregar punto<\/a>/);
   assert.match(template, /get\('agregar'\)\)\{history\.replaceState\(null,'',location\.pathname\);setTimeout\(\(\)=>\$\('#addBtn'\)\.click\(\),300\)\}/);
   assert.match(nav, /\['\/scout\.html', '🧭', \(\) => 'Scout', u => !!u\]/);
   assert.match(go, /"\/camp\.html", "\/scout\.html",/);
@@ -2818,7 +2857,7 @@ test('tabs look the same everywhere: view switchers as Runners/Supply pills, sec
   const pill = /background:#e9f0f0;[^}]*\}[^]*?\.active\{background:#173c46;border-color:#173c46;color:#fff;box-shadow:0 2px 8px #17354240\}/;
   for (const f of ['index.html', 'builder.html', 'runner.html', 'supplier.html']) assert.match(readFileSync(new URL('./' + f, import.meta.url), 'utf8'), pill, f);
   assert.match(readFileSync(new URL('./command.html', import.meta.url), 'utf8'), /\.cmdtabs button\[aria-pressed=true\]\{background:#173c46;border-color:#173c46;color:#fff;box-shadow:0 2px 8px #17354240\}/);
-  assert.match(readFileSync(new URL('./scout.html', import.meta.url), 'utf8'), /\.tabs button\.on\{background:#173c46;border-color:#173c46;color:#fff;box-shadow:0 2px 8px #17354240\}/);
+  assert.match(readFileSync(new URL('./scout.html', import.meta.url), 'utf8'), /\.mobile-nav button\.active\{background:#173c46;border-color:#173c46;color:#fff;box-shadow:0 2px 8px #17354240\}/);
   for (const f of ['runner.html', 'builder.html', 'supplier.html']) assert.match(readFileSync(new URL('./' + f, import.meta.url), 'utf8'), /@media\(max-width:760px\)\{#mainTabs button:not\(\.histtab\)\{display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1\.15\}/, f);
   const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
   assert.match(admin, /\.utabs \[data-utab\]\[aria-selected="true"\] small:not\(:empty\)\{background:#ed7654;color:#fff\}/);
@@ -2897,4 +2936,46 @@ test('Usuarios «📊 En vivo» box (right column on wide screens, top on phones
   assert.match(admin, /waiting=allNeeds\.filter\(n=>n\.status==='OPEN'&&!n\.runnerId&&!n\.kind\)\.length,gps=act\.filter\(u=>u\.sharing\)\.length/);
   assert.match(admin, /#dashboard\.users-mode #operations>\.ustats\{grid-column:2;grid-row:1\/span 60;position:sticky/);
   assert.match(users, /u\.Sharing = sharing && time\.Since\(loc\.At\) < locationTTL/, 'only yes/no, never the position');
+});
+
+test('prepared meals: «🍲 Pedir comida preparada» (team only) on the home point; Cocina page (take, platos, foto, conductores); Runners «🍲 Comidas»; services on the point page and in Command', () => {
+  const cook = readFileSync(new URL('./cook.html', import.meta.url), 'utf8');
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  const camp = readFileSync(new URL('./camp.html', import.meta.url), 'utf8');
+  const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  const go = readFileSync(new URL('./main.go', import.meta.url), 'utf8');
+  const docker = readFileSync(new URL('./Dockerfile', import.meta.url), 'utf8');
+  assert.match(template, /\$\{r\.id&&codeMe\(\)\?\.team\?'<button type="button" class="add mealreq" data-meal-req>🍲 Pedir comida preparada<\/button>':''\}/, 'only for people on a team');
+  assert.match(template, /<input name="people" type="number" inputmode="numeric" min="1" max="5000" required/);
+  assert.match(template, /\[\['desayuno','🍳 Desayuno'\],\['almuerzo','🍛 Almuerzo'\],\['cena','🍲 Cena'\]\]/);
+  for (const re of [/\/api\/cook\/tickets'/, /data-take="\$\{clean\(t\.id\)\}">🍳 Tomar este pedido/, /data-ask="\$\{id\}">📣 Pedir conductores/, /data-invite="\$\{id\}">Asignar/, /🍳 La tiene <b>/, /type="time" data-time=/, /PointForm\.openPacking\(\{subtitle:/, /\/media\?stage=pickup'/]) assert.match(cook, re);
+  assert.match(runner, /data-main="meals"[^>]*><span aria-hidden="true">🍲<\/span> Comidas <b id="cntMeals"><\/b>/);
+  assert.match(runner, /data-meal-accept="\$\{id\}">✓ Acepto llevarla/);
+  assert.match(runner, /🍳 La cocina te lo pidió a ti/);
+  assert.match(camp, /<h2>🧾 Servicios recibidos<\/h2>/);
+  assert.match(cmd, /data-act="service">🧾 Registrar servicio<\/button>/);
+  assert.match(nav, /\['\/cook\.html', '🍳', \(\) => 'Cocina', u => has\(u, 'cook'\)\]/);
+  assert.match(go, /"\/scout\.html", "\/cook\.html",/);
+  assert.match(docker, /scout\.html cook\.html /);
+  assert.match(cook, /\['mine','🍳','Preparando'\],\['open','🍲','Pedidos'\]\]/, 'section tabs like Supply');
+  assert.match(cook, /data-view="hist" title="Historial"/);
+  assert.match(cook, /Historial · comidas que completaste \(7 días\)/);
+  assert.doesNotMatch(cook, /Otras cocinas/);
+  assert.match(cook, /api\('\/api\/cook\/kitchen','POST',\{kitchen:b\.dataset\.kitchen\}\)/, 'kitchen picker: pick from the shared list or type a new one');
+  assert.match(cook, /if\(e\.key!=='Enter'\)return;e\.preventDefault\(\);const b=\$\('#kitchenList \[data-kitchen\]'\);if\(b\)b\.click\(\)/, 'Enter picks or creates');
+  assert.match(cook, /\/api\/cook\/needs\/'\+encodeURIComponent\(id\)\+'\/take','POST',people\)/, 'a regular «Comida preparada» need becomes my meal ticket');
+  assert.match(cook, /localStorage\.setItem\('cookTeamOnly'/);
+});
+
+test('runner cards: no «Reportado por <phone>» line; the reporter name (in the text or «📣 name») opens their phone with «📞 Llamar» / «💬 WhatsApp»; no «sin GPS» text and a plain pin label (the crossed pin is only the top-right button)', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  assert.match(runner, /function reporterIn\(html,name,phone\)\{/);
+  assert.match(runner, /data-reporter="\$\{clean\(phone\)\}" data-rname="\$\{n\}"/);
+  assert.match(runner, /href="tel:\$\{clean\(d\)\}">📞 Llamar<\/a><a class="btn small wa" target="_blank" rel="noopener noreferrer" href="https:\/\/wa\.me\/\$\{clean\(wa\)\}">💬 WhatsApp/);
+  assert.match(runner, /<div class="grow">\$\{ico\('pin'\)\}<span class="gtext">\$\{place\|\|'<span class="muted">Sin indicaciones escritas<\/span>'\}<\/span><\/div>/);
+  assert.doesNotMatch(runner, /nogpstxt|Sin GPS ni indicaciones/);
+  assert.match(runner, /\.reporter\{display:inline-block;max-width:13em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap/, 'long names end in «…»');
+  const cook = readFileSync(new URL('./cook.html', import.meta.url), 'utf8');
+  assert.match(cook, /if\(await relogin\(\)\)\{showApp\(\);load\(\);return\}showGate\(\)/, 'Cocina signs back in with the remembered code (role added after signing in)');
 });

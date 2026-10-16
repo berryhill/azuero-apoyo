@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
 )
@@ -62,19 +63,31 @@ func TestCampLogAndScout(t *testing.T) {
 	if other := s.as(zedC, "GET", "/api/full/camps/"+camp+"/log", "").Body.String(); strings.Contains(other, "Fufo") || strings.Contains(other, "Ana") {
 		t.Fatalf("other team log: %s", other)
 	}
-	// Scout: Fufo and Ana see the Norte point (Ana sees who added it); Zed sees only his own.
+	// Scout: everyone sees every published point; the Norte point is «mine» for Fufo and «my team's» for Ana (with
+	// who added it); Zed sees it without either flag.
 	var mine []scoutPoint
-	json.Unmarshal(s.as(anaC, "GET", "/api/full/scout", "").Body.Bytes(), &mine)
-	if len(mine) != 1 || mine[0].ID != camp || mine[0].AddedByMate != "Fufo Pérez" || mine[0].AddedByMe || mine[0].PointStatus != "approved" {
-		t.Fatalf("Ana's scout: %+v", mine)
+	find := func(c *http.Cookie) scoutPoint {
+		mine = nil
+		json.Unmarshal(s.as(c, "GET", "/api/full/scout", "").Body.Bytes(), &mine)
+		if len(mine) != 3 {
+			t.Fatalf("all published points: %+v", mine)
+		}
+		for _, p := range mine {
+			if p.ID == camp {
+				return p
+			}
+		}
+		t.Fatal("Norte point missing")
+		return scoutPoint{}
 	}
-	json.Unmarshal(s.as(fufoC, "GET", "/api/full/scout", "").Body.Bytes(), &mine)
-	if len(mine) != 1 || !mine[0].AddedByMe {
-		t.Fatalf("Fufo's scout: %+v", mine)
+	if p := find(anaC); p.AddedByMate != "Fufo Pérez" || !p.AddedByTeam || p.AddedByMe || p.PointStatus != "approved" || len(p.ActiveNeeds) != 1 {
+		t.Fatalf("Ana's scout: %+v", p)
 	}
-	json.Unmarshal(s.as(zedC, "GET", "/api/full/scout", "").Body.Bytes(), &mine)
-	if len(mine) != 1 || mine[0].Area != "Otro" {
-		t.Fatalf("Zed's scout: %+v", mine)
+	if p := find(fufoC); !p.AddedByMe || p.AddedByTeam {
+		t.Fatalf("Fufo's scout: %+v", p)
+	}
+	if p := find(zedC); p.AddedByMe || p.AddedByTeam || p.AddedByMate != "" {
+		t.Fatalf("Zed's scout: %+v", p)
 	}
 	if w := s.call("GET", "/api/full/scout", "", false); w.Code != 401 {
 		t.Fatalf("scout needs a code session: %d", w.Code)
