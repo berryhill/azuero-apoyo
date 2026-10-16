@@ -148,7 +148,7 @@ func (a *App) packingRoutes(mux *http.ServeMux, runners *crew) {
 			return
 		}
 		var n CampNeed
-		err = a.db.Update(func(tx *bolt.Tx) error {
+		err = a.write(r, func(tx *bolt.Tx) error {
 			u, found := getUser(tx, s.runnerID)
 			if !found || u.Disabled || !(u.has(roleRunner) || s.agent && u.has(roleAgent)) {
 				return errUserDisabled
@@ -211,7 +211,7 @@ func (a *App) packingRoutes(mux *http.ServeMux, runners *crew) {
 			return
 		}
 		var n CampNeed
-		err = a.db.Update(func(tx *bolt.Tx) error {
+		err = a.write(r, func(tx *bolt.Tx) error {
 			v := tx.Bucket(needsBucket).Get([]byte(r.PathValue("id")))
 			if v == nil {
 				return errMissing

@@ -523,7 +523,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		var can, withdraw bool
 		json.Unmarshal(f["can"], &can)
 		json.Unmarshal(f["withdraw"], &withdraw)
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(needsBucket)
 			v := b.Get([]byte(r.PathValue("id")))
 			if v == nil {
@@ -568,7 +568,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return
 		}
 		center := strings.Join(strings.Fields(fieldText(f, "center")), " ")
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			u, found := getUser(tx, me.ID)
 			if !found {
 				return errMissing
@@ -579,6 +579,11 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				if v := b.Get([]byte(foldText(center))); v != nil {
 					center = string(v)
 				} else if e := b.Put([]byte(foldText(center)), []byte(center)); e != nil {
+					return e
+				}
+			}
+			if u.SupplyCenter != center {
+				if e := logAudit(tx, AuditEntry{Kind: "acopio", Ref: u.ID, CampID: centersTrail, Label: u.Name, Action: "cambió", Changes: []ChangeLine{{"Su centro de acopio", u.SupplyCenter, center}}}); e != nil {
 					return e
 				}
 			}
@@ -611,7 +616,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			archive = &v
 		}
 		var centers, archived []string
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			switch {
 			case to != "":
 				if e := renameCenter(tx, center, to); e != nil {
@@ -648,6 +653,16 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			default:
 				return errNoCenter
 			}
+			line := ChangeLine{"Nombre", center, to}
+			switch {
+			case to == "" && *archive:
+				line = ChangeLine{"Archivado", center, "sí"}
+			case to == "":
+				line = ChangeLine{"Recuperado", center, "sí"}
+			}
+			if e := logAudit(tx, AuditEntry{Kind: "acopio", Ref: foldText(center), CampID: centersTrail, Label: center, Action: "cambió", Changes: []ChangeLine{line}}); e != nil {
+				return e
+			}
 			var e error
 			centers, e = supplyCenters(tx)
 			archived = archivedCenters(tx)
@@ -678,7 +693,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return
 		}
 		var n CampNeed
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(needsBucket)
 			v := b.Get([]byte(r.PathValue("id")))
 			if v == nil {
@@ -725,7 +740,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		}
 		runnerID := fieldText(f, "runnerId")
 		var copy CampNeed
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(needsBucket)
 			v := b.Get([]byte(r.PathValue("id")))
 			if v == nil {
@@ -797,7 +812,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		}
 		runnerID := fieldText(f, "runnerId")
 		var n CampNeed
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			runner, found := getUser(tx, runnerID)
 			if !found || runner.Disabled || !runner.has(roleRunner) {
 				return userFieldError{"runnerId", "Elige un runner activo."}
@@ -871,7 +886,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return
 		}
 		var n CampNeed
-		err = a.db.Update(func(tx *bolt.Tx) error {
+		err = a.write(r, func(tx *bolt.Tx) error {
 			v := tx.Bucket(needsBucket).Get([]byte(r.PathValue("id")))
 			if v == nil {
 				return errMissing
@@ -936,7 +951,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return
 		}
 		var n CampNeed
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(needsBucket)
 			v := b.Get([]byte(r.PathValue("id")))
 			if v == nil {
@@ -1032,7 +1047,7 @@ func (a *App) supplyAskRoutes(mux *http.ServeMux, runners *crew) {
 			return
 		}
 		var n CampNeed
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(needsBucket)
 			v := b.Get([]byte(r.PathValue("id")))
 			if v == nil {

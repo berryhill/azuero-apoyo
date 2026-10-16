@@ -133,7 +133,7 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 		runnerID := fieldText(f, "runnerId")
 		var n CampNeed
 		var name string
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			var e error
 			if n, e = a.fullNeed(tx, r.PathValue("id"), me.ID); e != nil {
 				return e
@@ -220,7 +220,7 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 			return
 		}
 		var n CampNeed
-		err = a.db.Update(func(tx *bolt.Tx) error {
+		err = a.write(r, func(tx *bolt.Tx) error {
 			var e error
 			if n, e = a.fullNeed(tx, r.PathValue("id"), u.ID); e != nil {
 				return e

@@ -222,7 +222,7 @@ func (a *App) repairRoutes(mux *http.ServeMux, builders *crew) {
 			}
 		}
 		var n CampNeed
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			u, found := getUser(tx, s.runnerID)
 			if !found || u.Disabled || !u.has(roleBuilder) {
 				return errUserDisabled
@@ -281,7 +281,7 @@ func (a *App) repairRoutes(mux *http.ServeMux, builders *crew) {
 			return
 		}
 		var saved Assessment
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			u, found := getUser(tx, s.runnerID)
 			if !found || u.Disabled || !u.has(roleBuilder) {
 				return errUserDisabled

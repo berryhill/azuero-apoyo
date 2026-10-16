@@ -215,7 +215,7 @@ func (a *App) teamRoutes(mux *http.ServeMux) {
 			return
 		}
 		t.UpdatedAt = t.CreatedAt
-		if serviceError(w, a.db.Update(func(tx *bolt.Tx) error { return putJSON(tx.Bucket(teamsBucket), t.ID, t) })) {
+		if serviceError(w, a.write(r, func(tx *bolt.Tx) error { return putJSON(tx.Bucket(teamsBucket), t.ID, t) })) {
 			return
 		}
 		response(w, 201, adminTeam{Team: t})
@@ -233,7 +233,7 @@ func (a *App) teamRoutes(mux *http.ServeMux) {
 			return
 		}
 		var t Team
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			var found bool
 			if t, found = getTeam(tx, r.PathValue("id")); !found {
 				return errMissing

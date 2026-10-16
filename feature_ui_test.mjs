@@ -657,7 +657,7 @@ test('admin punto view ends with a collapsed Changelog card of Personas and the 
   assert.match(html, /Personas:<\/b> 10<small>Desde D0 hasta T1/);
   assert.match(html, /Personas del grupo \(1\):<\/b> Ana · 6000-1111<small>Desde D0 hasta T2/);
   // Último bloque de la página del punto, fuera de «Datos del punto», y se abre plegado.
-  assert.match(admin, /<\/form><\/details><details id="campChangelog"><\/details><\/section>/);
+  assert.match(admin, /<\/form><\/details><details id="campChangelog"><\/details><details id="campTrail" data-trail="">/);
   assert.doesNotMatch(admin, /historyHtml|Historial de personas/);
   assert.match(admin, /\$\('#campChangelog'\)\.innerHTML=changelogHtml\(p\)/);
   assert.match(admin, /\$\('#campChangelog'\)\.open=false;/);
@@ -2772,6 +2772,7 @@ test('change requests: agents from another team send «Cambios propuestos» to w
   assert.match(cmd, /showSent:true,load:async\(\)=>\{const r=await fetch\('\/api\/agent\/change-requests'/);
   assert.match(cmd, /if\(r\.status===202&&body\.request\)askedOwner=body\.request/);
   assert.match(cmd, /📝 Cambio enviado a \$\{askedOwner\.toName\}/);
+  assert.match(cmd, /askedOwner\.kind==='punto'\?'este punto':'esta necesidad'/);
 });
 
 test('home: signed-out visitors see «🙌 ¿Quieres ayudar?» above the Resumen; «Crear mi cuenta» opens Login on the new-account form', () => {
@@ -2780,4 +2781,21 @@ test('home: signed-out visitors see «🙌 ¿Quieres ayudar?» above the Resumen
   assert.match(template, /<b>🙌 ¿Quieres ayudar\?<\/b>/);
   assert.match(template, /data-join="new">Crear mi cuenta<\/button><button type="button" class="joinlink" data-join="code">Ya tengo código/);
   assert.match(template, /openLogin\(\);setTimeout\(\(\)=>\$\(b\.dataset\.join==='new'\?'#loginForm \[name=name\]'/);
+});
+
+test('«🕓 Historial de cambios» on a point in admin and Command; builders answer change requests too', () => {
+  const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  const adm = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
+  const bld = readFileSync(new URL('./builder.html', import.meta.url), 'utf8');
+  const pf = readFileSync(new URL('./pointform.js', import.meta.url), 'utf8');
+  assert.match(pf, /function trailHtml\(list\)/);
+  assert.match(pf, /function watchTrails\(urlFor\)/);
+  assert.match(pf, /details\[data-trail\]/);
+  assert.match(cmd, /<details class="dlog" data-trail="\$\{clean\(p\.id\)\}"><summary>🕓 Historial de cambios<\/summary><div class="trail"><\/div><\/details>/);
+  assert.match(cmd, /PointForm\.watchTrails\(id=>'\/api\/agent\/camps\/'\+encodeURIComponent\(id\)\+'\/trail'\)/);
+  assert.match(adm, /<details id="campTrail" data-trail=""><summary>🕓 Historial de cambios<\/summary><div class="trail"><\/div><\/details>/);
+  assert.match(adm, /\$\('#campTrail'\)\.dataset\.trail=p\.id;/);
+  assert.match(adm, /PointForm\.watchTrails\(id=>'\/api\/admin\/camps\/'\+encodeURIComponent\(id\)\+'\/trail'\)/);
+  assert.match(bld, /<div class="crqbox" id="changeReqs" hidden><\/div>/);
+  assert.match(bld, /fetch\('\/api\/builder\/change-requests'/);
 });

@@ -85,6 +85,9 @@ type Point struct {
 	// Usuario con código de acceso que publicó el punto (ID y nombre completo); lo fija el servidor y solo lo ve administración.
 	AddedBy     string `json:"addedBy,omitempty"`
 	AddedByName string `json:"addedByName,omitempty"`
+	// Quien editó el punto por última vez desde Command (o aceptó una solicitud de cambio); privado. Un agente de otro
+	// equipo no lo cambia sin su visto bueno (changes.go).
+	UpdatedBy string `json:"updatedBy,omitempty"`
 	// Identificador que pone el navegador al crear el punto (cola sin conexión): reenviar el mismo no crea un duplicado.
 	ClientRef string `json:"clientRef,omitempty"`
 	// «Verificado por equipo»: la última vez que alguien de un equipo creó o actualizó esto (revisión más a fondo). Equipo
@@ -402,7 +405,7 @@ func publicPoint(p Point) Point {
 	p.ClientRef = ""
 	p.HeldBy = ""
 	p.Needs, _ = splitRepair(p.Needs)
-	p.AddedBy, p.AddedByName = "", ""
+	p.AddedBy, p.AddedByName, p.UpdatedBy = "", "", ""
 	p.VerifiedTeam, p.VerifiedBy = "", ""
 	p.Members = nil
 	p.History = nil
@@ -482,6 +485,9 @@ func openApp(path, static string) (*App, error) {
 		if e := ensureChangeRequests(tx); e != nil {
 			return e
 		}
+		if e := ensureAudit(tx); e != nil {
+			return e
+		}
 		b, e := tx.CreateBucketIfNotExists(meta)
 		if e != nil {
 			return e
@@ -513,7 +519,7 @@ func openApp(path, static string) (*App, error) {
 
 // migrate pone al día los datos guardados (al arrancar y después de importar un respaldo, que puede ser más viejo).
 func (a *App) migrate() error {
-	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateOpenRequests, migrateNeedUrgency, ensureDonations, ensureSupplyCenters, ensureTeamInvites, ensureChangeRequests} {
+	for _, step := range []func(*bolt.Tx) error{migrateUsers, migrateTeams, seedPackingItems, splitLegacyRepairs, migrateOpenRequests, migrateNeedUrgency, ensureDonations, ensureSupplyCenters, ensureTeamInvites, ensureChangeRequests, ensureAudit} {
 		if err := a.db.Update(step); err != nil {
 			return err
 		}
@@ -720,7 +726,15 @@ func putNeed(b *bolt.Bucket, n *CampNeed) error {
 		n.SupplyAskedAt, n.SupplyOffers = "", nil
 	}
 	rescheduleService(n)
-	return putJSON(b, n.ID, n)
+	data, e := json.Marshal(n)
+	if e != nil {
+		return e
+	}
+	label := n.Need
+	if len([]rune(label)) > 80 {
+		label = string([]rune(label)[:80]) + "…"
+	}
+	return auditPut(b, "necesidad", n.ID, n.CampID, label, data)
 }
 
 func putJSON(b *bolt.Bucket, key string, value any) error {
@@ -1146,7 +1160,7 @@ func (a *App) routes() http.Handler {
 		}
 		errUnknownUser := errors.New("unknown user")
 		var already *Point
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(submissions)
 			// Reenvío desde la cola sin conexión: si ya llegó, se responde con el punto guardado.
 			if p.ClientRef != "" {
@@ -1196,7 +1210,7 @@ func (a *App) routes() http.Handler {
 					return err
 				}
 			}
-			if e := b.Put([]byte(p.ID), data); e != nil || !publish {
+			if e := putPoint(b, []byte(p.ID), data); e != nil || !publish {
 				return e
 			}
 			return needFromPoint(tx, p)
@@ -1356,7 +1370,7 @@ func (a *App) routes() http.Handler {
 		}
 		added := 0
 		updated := 0
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(submissions)
 			for _, p := range rows {
 				key := []byte("seed:" + strings.ToLower(strings.TrimSpace(p.Code)))
@@ -1381,7 +1395,7 @@ func (a *App) routes() http.Handler {
 						return e
 					}
 					if string(data) != string(old) {
-						if e = b.Put(key, data); e != nil {
+						if e = putPoint(b, key, data); e != nil {
 							return e
 						}
 						updated++
@@ -1397,7 +1411,7 @@ func (a *App) routes() http.Handler {
 				if e != nil {
 					return e
 				}
-				if e = b.Put(key, data); e != nil {
+				if e = putPoint(b, key, data); e != nil {
 					return e
 				}
 				added++
@@ -1423,7 +1437,7 @@ func (a *App) routes() http.Handler {
 			fail(w, 400, "invalid decision")
 			return
 		}
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(submissions)
 			v := b.Get([]byte(in.ID))
 			if v == nil {
@@ -1460,7 +1474,7 @@ func (a *App) routes() http.Handler {
 				p.LastCheckup = p.Decided
 			}
 			data, _ := json.Marshal(p)
-			if e := b.Put([]byte(in.ID), data); e != nil || !firstApproval {
+			if e := putPoint(b, []byte(in.ID), data); e != nil || !firstApproval {
 				return e
 			}
 			return needFromPoint(tx, p)
@@ -1494,7 +1508,7 @@ func (a *App) routes() http.Handler {
 			fail(w, 500, "hash error")
 			return
 		}
-		if err = a.db.Update(func(tx *bolt.Tx) error { return tx.Bucket(meta).Put([]byte("password_hash"), hash) }); err != nil {
+		if err = a.write(r, func(tx *bolt.Tx) error { return tx.Bucket(meta).Put([]byte("password_hash"), hash) }); err != nil {
 			fail(w, 500, "database error")
 			return
 		}
@@ -1579,7 +1593,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 				return
 			}
 			u := User{ID: randomToken(), Name: name, Telephone: telephone, Roles: []string{role}, CreatedAt: nowStamp()}
-			if a.db.Update(func(tx *bolt.Tx) error { return putJSON(tx.Bucket(usersBucket), u.ID, u) }) != nil {
+			if a.write(r, func(tx *bolt.Tx) error { return putJSON(tx.Bucket(usersBucket), u.ID, u) }) != nil {
 				fail(w, 500, "database error")
 				return
 			}
@@ -1595,7 +1609,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			}
 			id := r.PathValue("id")
 			var item User
-			err := a.db.Update(func(tx *bolt.Tx) error {
+			err := a.write(r, func(tx *bolt.Tx) error {
 				var found bool
 				if item, found = getUser(tx, id); !found || !item.has(role) {
 					return errMissing
@@ -1673,7 +1687,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			failField(w, 400, "requesterPhone", "Escribe tu número de teléfono (7 dígitos o más).")
 			return
 		}
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			if !a.campExists(tx, n.CampID) {
 				return errMissing
 			}
@@ -1717,7 +1731,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		if n.Status == "IN_PROGRESS" {
 			n.EnRouteAt = n.CreatedAt
 		}
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			if !a.campExists(tx, n.CampID) {
 				return errMissing
 			}
@@ -1744,7 +1758,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		var n CampNeed
 		id := r.PathValue("id")
 		var req *ChangeRequest
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			// Un agente que no es del equipo de quien actualizó la necesidad por última vez no la pisa: se le pide a esa persona.
 			if by := agentBy(r); by != nil {
 				var e error
@@ -1753,7 +1767,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 				}
 			}
 			var e error
-			n, e = a.patchNeed(tx, id, f, agentBy(r))
+			n, e = a.patchNeed(tx, id, f, agentBy(r), "")
 			return e
 		})
 		if runError(w, err) {
@@ -1779,41 +1793,68 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		}
 		id := r.PathValue("id")
 		var p Point
-		err := a.db.Update(func(tx *bolt.Tx) error {
-			b := tx.Bucket(submissions)
-			v := b.Get([]byte(id))
-			if v == nil {
-				return errMissing
+		var req *ChangeRequest
+		err := a.write(r, func(tx *bolt.Tx) error {
+			// Un agente de otro equipo (o sin equipo) no pisa un punto que actualizó otra persona: se lo pide (changes.go).
+			if by := agentBy(r); by != nil {
+				var e error
+				if req, e = a.askPointOwner(tx, id, f, *by); e != nil || req != nil {
+					return e
+				}
 			}
-			if e := json.Unmarshal(v, &p); e != nil {
-				return e
-			}
-			// También los por revisar, para corregirlos antes de aprobarlos; siguen ocultos al público hasta la aprobación.
-			if p.Status != "approved" && p.Status != "pending" {
-				return errMissing
-			}
-			if e := applyCampFields(&p, f); e != nil {
-				return e
-			}
-			if p.Status == "approved" {
-				p.LastCheckup = nowStamp()
-			}
-			verifyStamp(tx, agentBy(r), &p.VerifiedTeam, &p.VerifiedBy, &p.VerifiedAt)
-			return putJSON(b, id, p)
+			var e error
+			p, e = a.patchCamp(tx, id, f, agentBy(r), "")
+			return e
 		})
 		if serviceError(w, err) {
+			return
+		}
+		if req != nil {
+			response(w, 202, map[string]any{"request": req})
 			return
 		}
 		response(w, 200, p)
 	})
 }
 
+// patchCamp aplica una edición de administración o de un agente (by; nil = administración) a un punto aprobado o por
+// revisar. La usan PATCH /api/admin/camps/{id} y, al aceptarse, una solicitud de cambio.
+func (a *App) patchCamp(tx *bolt.Tx, id string, f map[string]json.RawMessage, by *User, owner string) (Point, error) {
+	var p Point
+	b := tx.Bucket(submissions)
+	v := b.Get([]byte(id))
+	if v == nil {
+		return p, errMissing
+	}
+	if e := json.Unmarshal(v, &p); e != nil {
+		return p, e
+	}
+	// También los por revisar, para corregirlos antes de aprobarlos; siguen ocultos al público hasta la aprobación.
+	if p.Status != "approved" && p.Status != "pending" {
+		return p, errMissing
+	}
+	if e := applyCampFields(&p, f); e != nil {
+		return p, e
+	}
+	if p.Status == "approved" {
+		p.LastCheckup = nowStamp()
+	}
+	verifyStamp(tx, by, &p.VerifiedTeam, &p.VerifiedBy, &p.VerifiedAt)
+	if by != nil {
+		p.UpdatedBy = by.ID
+	}
+	if owner != "" {
+		p.UpdatedBy = owner
+	}
+	return p, putPointJSON(b, p)
+}
+
 // Campos editables de un punto aprobado y su largo máximo (0 = sin límite de texto o de solo lectura).
-var campFields = map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": noteLimit, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "needStatuses": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "families": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200, "members": 0, "coordinatorPhone": 40, "mergedInto": 0, "lastCheckup": 0, "history": 0, "checkups": 0, "clientRef": 0}
+var campFields = map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": noteLimit, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "needStatuses": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "families": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200, "members": 0, "coordinatorPhone": 40, "mergedInto": 0, "lastCheckup": 0, "history": 0, "checkups": 0, "clientRef": 0, "updatedBy": 0}
 
 // campFieldError rechaza campos de solo lectura y coordenadas fuera de Panamá.
 func campFieldError(f map[string]json.RawMessage) (string, string) {
-	for _, key := range []string{"source", "status", "id", "created", "decided", "campStatus", "highestUrgency", "needStatuses", "mergedInto", "lastCheckup", "history", "checkups", "clientRef"} {
+	for _, key := range []string{"source", "status", "id", "created", "decided", "campStatus", "highestUrgency", "needStatuses", "mergedInto", "lastCheckup", "history", "checkups", "clientRef", "updatedBy"} {
 		if _, yes := f[key]; yes {
 			return key, "read-only field"
 		}
@@ -1986,7 +2027,7 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 			return
 		}
 		var target Point
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(submissions)
 			var src Point
 			v := b.Get([]byte(id))
@@ -1996,6 +2037,12 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 			v = b.Get([]byte(in.TargetID))
 			if v == nil || json.Unmarshal(v, &target) != nil || target.Status != "approved" {
 				return fmt.Errorf("%w: el punto destino no está aprobado", errMissing)
+			}
+			// Fusionar cambia el punto aprobado: un agente de otro equipo no lo hace sobre un punto de otra persona o equipo.
+			if by := agentBy(r); by != nil {
+				if owner := whoDecides(tx, *by, target.UpdatedBy, target.AddedBy); owner != nil {
+					return teamDataError{owner.Name}
+				}
 			}
 			if e := applyCampFields(&target, in.Fields); e != nil {
 				return e
@@ -2009,14 +2056,14 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 				return fmt.Errorf("%w: la nota privada quedaría demasiado larga; recórtala antes de fusionar", errInvalid)
 			}
 			target.LastCheckup = now.Format(time.RFC3339)
-			if e := putJSON(b, target.ID, target); e != nil {
+			if e := putPointJSON(b, target); e != nil {
 				return e
 			}
 			if e := mergeNeeds(tx, target.ID, in.Needs); e != nil {
 				return e
 			}
 			src.Status, src.Decided, src.MergedInto = "rejected", now.Format(time.RFC3339), target.ID
-			return putJSON(b, src.ID, src)
+			return putPointJSON(b, src)
 		})
 		if serviceError(w, err) {
 			return
@@ -2029,14 +2076,18 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 			return
 		}
 		var p Point
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(submissions)
 			v := b.Get([]byte(r.PathValue("id")))
 			if v == nil || json.Unmarshal(v, &p) != nil {
 				return errMissing
 			}
+			// «Publicar ahora» lo decide el equipo que lo retiene (o administración).
+			if by := agentBy(r); by != nil && p.HeldBy != "" && teamOf(tx, by.ID) != p.HeldBy {
+				return teamDataError{"otro equipo"}
+			}
 			p.HeldBy, p.HeldUntil = "", ""
-			return putJSON(b, p.ID, p)
+			return putPointJSON(b, p)
 		})
 		if serviceError(w, err) {
 			return
@@ -2048,7 +2099,7 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 			return
 		}
 		var p Point
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(submissions)
 			v := b.Get([]byte(r.PathValue("id")))
 			if v == nil || json.Unmarshal(v, &p) != nil || p.Status != "approved" {
@@ -2081,14 +2132,14 @@ func markCheckup(tx *bolt.Tx, campID string, merge bool) error {
 	if last, e := time.Parse(time.RFC3339, p.LastCheckup); merge && e == nil && time.Since(last) < time.Minute && len(p.Checkups) > 0 {
 		p.LastCheckup = now
 		p.Checkups[len(p.Checkups)-1] = now
-		return putJSON(b, p.ID, p)
+		return putPointJSON(b, p)
 	}
 	p.LastCheckup = now
 	p.Checkups = append(p.Checkups, p.LastCheckup)
 	if len(p.Checkups) > checkupLimit {
 		p.Checkups = p.Checkups[len(p.Checkups)-checkupLimit:]
 	}
-	return putJSON(b, p.ID, p)
+	return putPointJSON(b, p)
 }
 
 // Corredores: sesión solo con nombre, separada del panel. Solo ven datos públicos del punto.
@@ -2419,7 +2470,8 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.settingsRoutes(mux)
 	a.backupRoutes(mux)
 	a.fullNeedRoutes(mux)
-	a.changeRoutes(mux, runners)
+	a.changeRoutes(mux, runners, builders)
+	a.auditRoutes(mux)
 	a.teamRoutes(mux)
 	a.trackRoutes(mux)
 	a.agentRoutes(mux)
@@ -2438,7 +2490,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 			fail(w, 400, "Describe la necesidad y elige una urgencia válida.")
 			return
 		}
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			if !a.campExists(tx, n.CampID) {
 				return errMissing
 			}
@@ -2509,7 +2561,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 			return
 		}
 		var item User
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(usersBucket)
 			key := runnerNameKey(name)
 			// Se prefiere un usuario activo con este rol y nombre; uno desactivado no puede volver a registrarse.
@@ -2693,7 +2745,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 			return
 		}
 		var n CampNeed
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(needsBucket)
 			v := b.Get([]byte(r.PathValue("id")))
 			if v == nil {
@@ -2783,7 +2835,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 			failField(w, 400, "ids", "Orden inválido.")
 			return
 		}
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			u, found := getUser(tx, s.runnerID)
 			if !found {
 				return errMissing
@@ -2919,7 +2971,7 @@ func (a *App) boletinRoutes(mux *http.ServeMux) {
 			return
 		}
 		b := Boletin{Cut: nowStamp(), Donor: fieldText(f, "donor"), Points: []BoletinPoint{}}
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			reserved, e := reservedNeedItems(newTeamView(tx, ""))
 			if e != nil {
 				return e
@@ -3011,7 +3063,10 @@ func serviceError(w http.ResponseWriter, err error) bool {
 	if err == nil {
 		return false
 	}
-	if errors.Is(err, errMissing) {
+	var td teamDataError
+	if errors.As(err, &td) {
+		fail(w, 403, err.Error())
+	} else if errors.Is(err, errMissing) {
 		fail(w, 404, err.Error())
 	} else if errors.Is(err, errInvalid) {
 		fail(w, 400, err.Error())
@@ -3103,7 +3158,7 @@ func main() {
 
 // patchNeed aplica un cambio de administración o de un agente (by; nil = administración) a una necesidad. Lo usan
 // PATCH /api/admin/needs/{id} y, al aceptarse, una solicitud de cambio (changes.go).
-func (a *App) patchNeed(tx *bolt.Tx, id string, f map[string]json.RawMessage, by *User) (CampNeed, error) {
+func (a *App) patchNeed(tx *bolt.Tx, id string, f map[string]json.RawMessage, by *User, owner string) (CampNeed, error) {
 	var n CampNeed
 	err := func() error {
 		b := tx.Bucket(needsBucket)
@@ -3215,6 +3270,9 @@ func (a *App) patchNeed(tx *bolt.Tx, id string, f map[string]json.RawMessage, by
 		verifyStamp(tx, by, &n.VerifiedTeam, &n.VerifiedBy, &n.VerifiedAt)
 		if by != nil {
 			n.UpdatedBy = by.ID
+		}
+		if owner != "" {
+			n.UpdatedBy = owner
 		}
 		return putNeed(b, &n)
 	}()

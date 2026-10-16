@@ -27,6 +27,7 @@ var agentAllowed = []string{
 	"POST /api/admin/camps/{id}/checkup",
 	"POST /api/admin/camps/{id}/publish",
 	"GET /api/admin/camps/{id}/needs",
+	"GET /api/admin/camps/{id}/trail",
 	"GET /api/admin/needs",
 	"POST /api/admin/camps/{id}/needs",
 	"PATCH /api/admin/needs/{id}",
@@ -191,7 +192,7 @@ func (a *App) agentRoutes(mux *http.ServeMux) {
 		}
 		var u User
 		status := 201
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			var taken *User
 			eachUser(tx, func(other User) error {
 				if taken == nil && phoneDigits(other.Telephone) == phoneDigits(phone) {

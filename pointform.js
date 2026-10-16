@@ -903,5 +903,35 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     setInterval(() => { if (!document.hidden) refresh(); }, 30000);
     return {refresh};
   }
-  window.PointForm = {changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
+  // Historial de cambios (audit.go): cada cambio de un punto y de sus necesidades (runs, empaque, fotos, despacho,
+  // acopio) con quién lo hizo, su equipo, desde qué página y cuándo, del más reciente al más antiguo. Un <details
+  // data-trail="ID del punto"> con un <div class="trail"> se llena al abrirlo; urlFor(id) da la dirección según el panel.
+  function trailHtml(list) {
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    const cut = v => { v = String(v ?? ''); return v.length > 240 ? v.slice(0, 240) + '…' : v; };
+    const when = t => { const d = new Date(t); return isNaN(d) ? '' : d.toLocaleString('es-PA', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'}); };
+    if (!list || !list.length) return '<p class="tr-none">Sin cambios registrados todavía.</p>';
+    return '<ol class="trlist">' + list.map(e => `<li class="tr-${e.kind === 'punto' ? 'point' : e.kind === 'acopio' ? 'center' : 'need'}"><div class="tr-head"><b>${esc(e.byName)}</b>${e.byTeam ? ` · Equipo ${esc(e.byTeam)}` : e.byId && e.byId !== 'admin' ? ' · sin equipo' : ''}${e.via ? ` · ${esc(e.via)}` : ''} · <time datetime="${esc(e.at)}">${esc(when(e.at))}</time></div><div class="tr-what">${e.kind === 'punto' ? '📍 Punto' : e.kind === 'acopio' ? '🏬 Acopio' : '📦 ' + esc(cut(e.label))} · ${e.action === 'creó' ? 'creado' : 'cambio'}</div><ul>${(e.changes || []).map(c => `<li><b>${esc(c.label)}:</b> ${c.before ? `<s>${esc(cut(c.before))}</s> → ` : ''}${c.after ? esc(cut(c.after)) : '<i>(vacío)</i>'}</li>`).join('')}</ul></li>`).join('') + '</ol>';
+  }
+  function watchTrails(urlFor) {
+    if (!document.getElementById('trailStyle')) {
+      const st = document.createElement('style');
+      st.id = 'trailStyle';
+      st.textContent = '.trlist{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px;font-size:13px;color:#173542}.trlist>li{border-left:3px solid #126e7c;background:#f7faf9;border-radius:0 9px 9px 0;padding:7px 10px}.trlist>li.tr-point{border-left-color:#ed7654}.trlist>li.tr-center{border-left-color:#7b3fbf}.tr-head{font-size:12px;color:#4b6670}.tr-head b{color:#173542}.tr-what{font-weight:750;margin:2px 0}.trlist ul{margin:2px 0 0;padding-left:18px}.trlist ul li{overflow-wrap:anywhere;margin:1px 0}.trlist s{color:#8a9aa0}.tr-none{color:#4b6670;font-size:13px}';
+      document.head.appendChild(st);
+    }
+    document.addEventListener('toggle', async e => {
+      const d = e.target;
+      if (!d.matches?.('details[data-trail]') || !d.open || !d.dataset.trail) return;
+      const box = d.querySelector('.trail');
+      if (!box) return;
+      box.textContent = 'Cargando…';
+      try {
+        const r = await fetch(urlFor(d.dataset.trail), {credentials: 'same-origin', cache: 'no-store'});
+        if (!r.ok) throw Error();
+        box.innerHTML = trailHtml(await r.json());
+      } catch { box.textContent = 'No se pudo cargar el historial.'; }
+    }, true);
+  }
+  window.PointForm = {trailHtml, watchTrails, changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
 })();

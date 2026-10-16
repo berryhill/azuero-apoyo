@@ -342,7 +342,7 @@ func (a *App) receiveMedia(w http.ResponseWriter, r *http.Request, byID, byName 
 		return
 	}
 	var n CampNeed
-	err := a.db.Update(func(tx *bolt.Tx) error {
+	err := a.write(r, func(tx *bolt.Tx) error {
 		b := tx.Bucket(needsBucket)
 		v := b.Get([]byte(needID))
 		if v == nil {
@@ -472,7 +472,7 @@ func (a *App) mediaRoutes(mux *http.ServeMux, runners *crew) {
 			return
 		}
 		var item MediaItem
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(needsBucket)
 			var n CampNeed
 			v := b.Get([]byte(r.PathValue("id")))
@@ -481,6 +481,9 @@ func (a *App) mediaRoutes(mux *http.ServeMux, runners *crew) {
 			}
 			for i := range n.Media {
 				if n.Media[i].ID == r.PathValue("media") {
+					if e := mediaGuard(tx, r, n.Media[i]); e != nil {
+						return e
+					}
 					n.Media[i].Stage = stage
 					item = n.Media[i]
 					return putNeed(b, &n)
@@ -498,7 +501,7 @@ func (a *App) mediaRoutes(mux *http.ServeMux, runners *crew) {
 			return
 		}
 		var removed MediaItem
-		err := a.db.Update(func(tx *bolt.Tx) error {
+		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(needsBucket)
 			var n CampNeed
 			v := b.Get([]byte(r.PathValue("id")))
@@ -507,6 +510,9 @@ func (a *App) mediaRoutes(mux *http.ServeMux, runners *crew) {
 			}
 			for i, m := range n.Media {
 				if m.ID == r.PathValue("media") {
+					if e := mediaGuard(tx, r, m); e != nil {
+						return e
+					}
 					removed = m
 					n.Media = append(n.Media[:i], n.Media[i+1:]...)
 					return putNeed(b, &n)
