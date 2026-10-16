@@ -9,7 +9,12 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-15**
-- Home: runner actions on a point (assign/change/remove «conductor», «📦 Agregar a lista de empaque», «📷 Foto de
+- Manual checked against how runs work now: Command «¿quién la suplió?» and the need editor, admin, Runners «No
+  puedo continuar», privacy and technical notes (§6, §7, §10, §13, §15, §16).
+- Several runners on one need never overwrite each other: «🚚 Agregar otro conductor» (home) and choosing another
+  runner in admin/Command give the new runner their own linked run; edits by others to a runner's run become a new
+  open need (§6).
+- Home: runner actions on a point (assign, add another or remove «conductor», «📦 Agregar a lista de empaque», «📷 Foto de
   partida») are only for the Runner role. On phones, without that role there is no «Lista» and tapping a point on the
   map opens nothing (§14).
 - «Comando» is now **«Command»** with a 🧑‍💻 icon (the HQ where data is checked and managed) (§2, §10).
@@ -233,9 +238,25 @@ A need belongs to a point and says what is missing (item text: «Agua, Arroz, Ca
   show only «Verificado por un equipo», without names.
 - **Recurring services** (garbage, portable toilet, fumigation, medical round): repeat every N days; once completed
   they are scheduled and don't count as open until due.
-- **Several runners on the same need**: a supply center can send «otro runner» to a need that is already on the way.
-  This creates another run (a linked copy, `sameAs`) with its own runner, supply center, packing list, photos,
-  dispatch and «Completé», so every shipment is documented. Cards show «👥 También va: …».
+- **Several runners on the same need**: each runner always has a run of their own (a linked copy, `sameAs`) with its
+  own runner, supply center, packing list, photos, dispatch and «Completé», so every shipment is documented and no
+  one's run is overwritten. Cards show «👥 También va: …». A second run is created when:
+  - a supply center sends «otro runner» to a need that is already on the way;
+  - on the home page a runner taps **«🚚 Agregar otro conductor»** on a need someone already carries (picking a runner
+    who already carries it says «Ese runner ya lleva esta necesidad.»);
+  - admin or Command choose a different runner for a need that already has one (dispatch, the need editor, or «¿quién
+    la suplió?» after «Ya no necesita nada»). If that runner already has an open or on-the-way run of this need, the
+    change goes to their run (for example it is marked completed) instead of creating another.
+  The first runner's run is not changed. To take a runner off, use «Quitar conductor» (home) or «Sin asignar»
+  (admin/Command); that run goes back to «Abierta» as before.
+- **Editing someone else's run**: when admin or an agent who is not the runner changes what an on-the-way or completed
+  run asks for, the run keeps its text (what the runner is carrying). What was added becomes a **new open need** of the
+  same point, linked to the run and noted with who added it (private: `createdByName`, never public). Urgency and
+  state still change on the run. An edit that only removes things from a runner's run is refused with «Lo que lleva un
+  runner no se cambia desde aquí: solo se pueden agregar cosas, que quedan como otra necesidad.» (409). Open needs
+  without a runner are edited in place as before.
+- **Adding to someone else's run**: packing lines and departure photos are always added (never replace earlier ones)
+  and each one keeps who added it.
 - **Packing list**: what is loaded for that run (item × quantity). Private.
 - **Photos**: departure photos (when loading) and delivery photos (when completing). Private.
 
@@ -261,7 +282,11 @@ On phones, «Lista / Mapa» switch between the list and the map.
   contacts, and at the bottom share + the action. Tapping the card background does nothing (no highlight); a card you
   jump to from the map flashes briefly. With a supply center: «📦 Recoger en acopio: Villa Marina · Julie» plus phone.
 - **Packing list**, **📷 Foto de partida**, **✓ Completé** (the confirmation shows what is being delivered and allows
-  delivery photos) and «No puedo continuar» (the need goes back to open).
+  delivery photos) and «No puedo continuar» (the need goes back to open; its packing list and photos stay on it, each
+  with who added it, and the next runner who takes it sees them).
+- **Only open needs can be taken** in «Runs»: a need another runner already carries can't be taken here. A second
+  runner on the same need is added from the home page («🚚 Agregar otro conductor»), admin, Command or Supply, and gets
+  a run of their own (§6).
 - **After completing**: «📝 Actualizar necesidad» (opens the same need checklist to record what is still missing,
   including a house repair, which goes to Builders) or «✓ No necesitan nada más».
 - **Gold badge**: a card shows the gold «Equipo …» badge next to the point name when a team verified the point or that need.
@@ -380,7 +405,13 @@ In «Actualizar necesidad», **«Ya no necesita nada»** asks **«¿Alguien la s
 - «No, ya no la necesitan» removes the need (`DELETED`) and counts as a checkup on the point.
 - «Sí, la suplió alguien» asks for the Runner (or Constructor for a repair), required, and saves the need as
   `COMPLETED` under that person with the original items, like a finished run. A new name creates the runner with
-  their phone.
+  their phone. If another runner already has the need on the way, that run stays as it is and the person chosen gets
+  their own completed run, linked to it (§6).
+
+In the need editor (and «Despachar»), choosing a **different runner** for a need that already has one adds a run
+for that runner instead of replacing the first one; «Sin asignar» takes the runner off. Changing what an on-the-way or
+completed run asks for (when you are not its runner) keeps the run as it is and saves what you added as a new open
+need of the point, marked «Agregada por» you; removing items from a runner's run is refused (§6).
 
 **Filters**: status (Todos / Por revisar / Aprobados) and **«Agregado por»**: Todos, «Míos» (added by me) and «Equipo»
 (added by anyone on my team; only for agents on a team), each with its count. On phones the rest (area, need type,
@@ -426,7 +457,8 @@ Access: Donations role or admin.
 
 - **Points**: cards with counters, filters, «Agregado por» (added by), map on the right, point editor with its needs
   (list above the form) and services. Cards and needs show the gold «Verificado por equipo» badge with the team name;
-  editing a repair need shows its materials.
+  editing a repair need shows its materials. As in Command, choosing a different runner for a need that already has
+  one adds a run for that runner, and adding items to a runner's run saves them as a new open need (§6).
 - **Usuarios** (☰ menu) has four tabs, **«👤 Usuarios»**, **«👥 Equipos»**, **«📡 Registros en vivo»** and
   **«🔗 Invitaciones»** (the tab is kept in the link: `&tab=equipos` / `registros` / `invitaciones`; the live tab shows
   how many are waiting, Invitaciones how many are pending). Registros, Equipos and the searches show each person's
@@ -482,7 +514,7 @@ specific point):
 **Who can do what on the home page**
 
 - **Runner role (signed in with a code)**: the full home page. In a point's detail, «Necesidades por atender» shows the
-  team's open/en-camino needs with **«🚚 Asignar conductor / Cambiar conductor»**, «Quitar conductor», **«📦 Agregar a
+  team's open/en-camino needs with **«🚚 Asignar conductor / Agregar otro conductor»** (a second runner gets their own run, §6), «Quitar conductor», **«📦 Agregar a
   lista de empaque»** and **«📷 Foto de partida»** (team rules still apply: never another team's run).
 - **Other code users (agent, Supply, Constructor, Donaciones, Team manager without Runner)**: on a computer they see the
   same needs list, read-only (no buttons). The server refuses those actions with «Solo quien tiene el rol Runner puede
@@ -504,6 +536,9 @@ specific point):
 - Repair needs and their materials are never public.
 - A point held with «Nuestro equipo lo abastece» is hidden from the public and from other teams for 3 hours.
 - Code users see more (e.g. the runner's name on their team's needs).
+- Who added a need by changing someone's run is private: admin and Command show «Agregada por …» on that need; the
+  public, Runners and Supply don't.
+- When several runners carry the same need, the public sees each run as its own «En camino» need, without names.
 
 ---
 
@@ -515,6 +550,8 @@ specific point):
 - APIs: `/api/…` public, `/api/admin/…` (master password), `/api/runner/…`, `/api/builder/…`, `/api/agent/…`,
   `/api/supplier/…`, `/api/desk/…` (donations), `/api/full/…` (code session: full view, Mi equipo, invites). Each has
   its own session (path-scoped cookie) and a CSRF token on writes.
+- Several runners on one need (`runs.go`): each runner's run is its own record linked by `sameAs`; the server never
+  puts a different runner on a record that already has one.
 - Tests: `go test ./...`, `node --test feature_ui_test.mjs`, `python3 -m unittest ci_index_test.py`.
 - **Development marker**: when the site runs on localhost, a local-network address (10.x, 192.168.x, 172.16–31.x) or a
   `*.local` / `*.test` name, every page shows a thin amber-and-navy stripe at the top, a small «DEV» tag in the

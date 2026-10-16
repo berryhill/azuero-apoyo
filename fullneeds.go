@@ -66,7 +66,7 @@ func (a *App) fullNeed(tx *bolt.Tx, id, me string) (CampNeed, error) {
 	return n, nil
 }
 
-// fullNeedError: 403 si es de otro equipo, 409 si ya se cerró.
+// fullNeedError: 403 si es de otro equipo, 409 si ya se cerró o el runner ya lleva 10 runs.
 func fullNeedError(w http.ResponseWriter, err error) bool {
 	switch {
 	case errors.Is(err, errOtherTeam):
@@ -74,7 +74,7 @@ func fullNeedError(w http.ResponseWriter, err error) bool {
 	case errors.Is(err, errNeedClosed):
 		fail(w, 409, err.Error())
 	default:
-		return serviceError(w, err)
+		return runError(w, err)
 	}
 	return true
 }
@@ -119,8 +119,8 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 		}
 		response(w, 200, list)
 	})
-	// Asignar, cambiar o quitar el conductor: como en administración, al asignar una necesidad abierta pasa a «En ruta»
-	// y al quitarlo vuelve a «Abierta».
+	// Asignar o quitar el conductor: como en administración, al asignar una necesidad abierta pasa a «En ruta» y al
+	// quitarlo vuelve a «Abierta». Si ya la lleva otro runner, el nuevo se suma con su propio run (runs.go).
 	mux.HandleFunc("POST /api/full/needs/{id}/runner", func(w http.ResponseWriter, r *http.Request) {
 		me, ok := a.runnerViewer(w, r)
 		if !ok {
@@ -145,6 +145,21 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 					return errInvalid
 				}
 				name = u.Name
+			}
+			// Ya la lleva otro runner: se le suma el nuevo con su propio run; el del primero no cambia.
+			if otherRunner(n, runnerID) {
+				if _, has, e := runOf(tx, n, runnerID); e != nil || has {
+					if e == nil {
+						e = errAlreadyRunning
+					}
+					return e
+				}
+				run, e := newRun(tx, n, runnerID, "IN_PROGRESS")
+				if e != nil {
+					return e
+				}
+				n = run
+				return putNeed(tx.Bucket(needsBucket), &n)
 			}
 			before := n.RunnerID
 			n.RunnerID = runnerID

@@ -1331,7 +1331,7 @@ test('public detail for code users: each open/en camino need can get a conductor
   assert.match(draw, /filter\(n=>n\.status==='OPEN'\|\|n\.status==='IN_PROGRESS'\)/);
   assert.match(draw, /Conductor: <b>\$\{n\.runnerName\?clean\(n\.runnerName\):'sin asignar'\}<\/b>/);
   assert.match(draw, /PointForm\.packingHtml\(n\.packing\)/);
-  assert.match(draw, /data-assign-need="\$\{clean\(n\.id\)\}" aria-haspopup="listbox">🚚 \$\{n\.runnerName\?'Cambiar conductor':'Asignar conductor'\}<\/button><button type="button" data-pack-need="\$\{clean\(n\.id\)\}">📦 Agregar a lista de empaque<\/button>/);
+  assert.match(draw, /data-assign-need="\$\{clean\(n\.id\)\}" aria-haspopup="listbox">🚚 \$\{n\.runnerName\?'Agregar otro conductor':'Asignar conductor'\}<\/button><button type="button" data-pack-need="\$\{clean\(n\.id\)\}">📦 Agregar a lista de empaque<\/button>/);
   assert.match(template, /<div class="picker assignpick" id="assignPicker" hidden><input id="assignSearch" type="search" placeholder="Buscar conductor…"/);
   assert.ok(template.indexOf('id="assignPicker"') < template.indexOf('<script>'), 'markup exists before the script binds it');
   assert.match(template, /crewCache=\{at:Date\.now\(\),list:await fullGet\('\/api\/full\/crew'\)\}/, 'the server lists code users first');
@@ -2749,4 +2749,11 @@ test('home: runner actions (conductor, empaque, foto de partida) only for the Ru
   assert.match(nav, /dispatchEvent\(new Event\('accesschange'\)\)/);
   const go = readFileSync(new URL('./fullneeds.go', import.meta.url), 'utf8');
   for (const route of ['runner', 'media', 'packing']) assert.match(go, new RegExp(`POST /api/full/needs/\\{id\\}/${route}", func\\(w http.ResponseWriter, r \\*http.Request\\) \\{\\n\\t\\t(me|u), ok := a\\.runnerViewer`));
+});
+
+test('admin and Command show «Agregada por» on a need added by editing someone else\'s run', () => {
+  const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  const adm = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
+  assert.match(cmd, /n\.createdByName&&'Agregada por '\+n\.createdByName/);
+  assert.match(adm, /n\.createdByName\?'Agregada por '\+n\.createdByName:''/);
 });
