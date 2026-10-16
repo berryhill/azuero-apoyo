@@ -9,6 +9,15 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-15**
+- Home: runner actions on a point (assign/change/remove «conductor», «📦 Agregar a lista de empaque», «📷 Foto de
+  partida») are only for the Runner role. On phones, without that role there is no «Lista» and tapping a point on the
+  map opens nothing (§14).
+- «Comando» is now **«Command»** with a 🧑‍💻 icon (the HQ where data is checked and managed) (§2, §10).
+- Admin Registros en vivo: a simple list; tapping a person opens «Asignar a un equipo» (1 Equipo, 2 Roles, 3 Guardar).
+- Admin Usuarios: access codes shown instead of IDs, team buttons with initials, numbered steps 1-2-3, and a
+  «🔗 Invitaciones» tab to create invites and monitor them (pending, used, expired, revoked) with «Anular» (§13).
+- Admin: «📡 Registros en vivo» is its own tab with a filter; Equipos has a search; «🔗 Invitar a un equipo» makes a
+  one-use, 24 h link only that user ID can accept (§13).
 - Admin Usuarios: tabs «👤 Usuarios» / «👥 Equipos», live refresh every 10 s, «🆕 Recién registrados sin equipo» to
   assign team and roles in one step, team cards with Team manager and add-member search (§13).
 - «Coordinador» is now **«Reportado por»** (megaphone) on every screen; the data field is unchanged. Need requesters on
@@ -20,11 +29,11 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 - Supply: «🙋 ¡Yo abastezco!» replaces «Pedir runner»: several centers can offer the same need and the runner picks
   where to pick up in «Pedidos»; «Asignar a runner»; «Despachadas» moved into 🕓 Historial; rename/archive centers;
   team switch on the right; cards like Runners (map top right, people breakdown, contacts collapse after 2) (§7, §8).
-- Comando: «+ Agregar punto» opens the form inside Comando; «Creado por» is a full-name badge; person fields in the
+- Command: «+ Agregar punto» opens the form inside Command; «Creado por» is a full-name badge; person fields in the
   point form have icons (§5, §10).
 - Runners cards: map/Maps buttons top right, people breakdown before «Necesita», no tap-to-select highlight (§7).
 - Add point: team members are the coordinator by default (card with «Cambiar»); new «Familias» count (§5).
-- Comando: «Agregado por» filter (Todos / Míos / Equipo), «Filtros ▾» on phones, clearer rows with icons (§10).
+- Command: «Agregado por» filter (Todos / Míos / Equipo), «Filtros ▾» on phones, clearer rows with icons (§10).
 - **Live location is strictly team-only** on every page: runners without a code (no team) and other teams no longer
   appear on anyone's map, and Supply sees a runner's position only if they are on its team (§7, §8, §15).
 - Supply: «📍 Centro» is a button with a typeahead list (no always-open text box), «Solo mi equipo» switch on the same
@@ -33,7 +42,7 @@ This manual is updated with every new feature or behavior change (see "Keeping t
   🕓 history of delivered runs next to «Lista / Mapa» (§8).
 - Phone header: the menu button shows your initials when signed in; page links that don't fit collapse into a
   «current page ▾» dropdown; the header search box now also shows on desktop (§2).
-- Comando: Buscar in the header, «+ Agregar punto» always visible, totals with icons in the «Puntos» tab (§10).
+- Command: Buscar in the header, «+ Agregar punto» always visible, totals with icons in the «Puntos» tab (§10).
 - Runners: header search (🔍 on phones) filters the open tab and the map (§7).
 - Needs: options as tap buttons with icons for Agua, Alimentos, generator fuel, prepaid data card and cooking gas,
   with «Otra» to type another; the separate gasolina/diésel boxes became one fuel need; «Saneamiento / baño» removed
@@ -43,7 +52,7 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 - The same need checklist and need chips everywhere, including the home «Reportar necesidad» window and the public
   camp page (§6).
 - «Verificado por equipo» gold badge on points and needs created or updated by someone in a team (§6, §15).
-- Comando: «Ya no necesita nada» asks who fulfilled it and can complete the need for that runner (§10).
+- Command: «Ya no necesita nada» asks who fulfilled it and can complete the need for that runner (§10).
 - Mi equipo: role icons and a quick member search (§12).
 - Home on phones opens on «📊 Resumen» (§14).
 - Development environments (localhost, local network) show a «DEV» marker on every page (§16).
@@ -76,7 +85,7 @@ Everything the community reports is *reported* data, not verified, and the app p
 | `/runner.html` («Runners») | Runner role (and agents, for packing lists only) | Take runs, route, packing list, photos, complete. |
 | `/builder.html` («Constructores») | Builder role | Repair jobs: assess, take, progress, materials, photos. |
 | `/supplier.html` («Supply») | Supply role | Collection center: request runners, assign in person, answer runner requests, pack, dispatch. |
-| `/command.html` («Comando») | Agent role | Call center: points, needs, checkups, report needs. |
+| `/command.html` («Command») | Agent role | Call center: points, needs, checkups, report needs. |
 | `/donations.html` («Donaciones») | Donations role and admin | Donation tickets: offered → confirmed → at center → on the way → delivered. |
 | `/team.html` («Mi equipo») | Team manager role | Invite people to the team, see members, change their roles, remove them. Lives in the ☰ menu. |
 | `/admin.html` | Admin (master password) | Everything: review reports, points, needs, users, teams, backups, newsletter. |
@@ -95,7 +104,7 @@ menu shows the signed-in name and **roles**, «Copiar mi ID», «Salir» and tex
 | --- | --- | --- | --- |
 | `runner` | Runner | Runners | Takes and delivers runs. |
 | `builder` | Constructor | Constructores | Repair jobs. |
-| `agent` | Agente | Comando (and Runners for packing lists only) | Sees private point data. Admin-only to grant. |
+| `agent` | Agente | Command (and Runners for packing lists only) | Sees private point data. Admin-only to grant. |
 | `donations` | Donaciones | Donaciones | Sees donor contacts. Admin-only to grant. |
 | `supplier` | Supply | Supply | A collection center. |
 | `teammanager` | Team manager | Mi equipo | **Must belong to a team.** |
@@ -113,7 +122,7 @@ menu shows the signed-in name and **roles**, «Copiar mi ID», «Salir» and tex
 
 ## 4. Signing in and creating an account
 
-Every sign-in (home «Login», Runners, Constructores, Comando, Supply, `signup.html`) shows two groups side by side,
+Every sign-in (home «Login», Runners, Constructores, Command, Supply, `signup.html`) shows two groups side by side,
 with no hidden fields:
 
 - **«Ya tengo código»** (I have a code): access code + «Recordar mi código de acceso» + «Entrar».
@@ -154,7 +163,7 @@ opens empty fields to write someone else; «↺ Soy yo» puts them back. Without
 **«Nuestro equipo lo abastece»** (only for someone on a team adding a point): a switch at the end of the form. When on,
 the point is **not published for 3 hours**: the public map, the camp page, the Resumen, the newsletter and other
 teams' Runners and Supply don't see it (nor its needs); the team does, marked «🔒 Solo tu equipo». After 3 hours it
-publishes by itself; Comando and admin can publish it sooner with «🌐 Publicar ahora».
+publishes by itself; Command and admin can publish it sooner with «🌐 Publicar ahora».
 
 **States**
 
@@ -194,7 +203,7 @@ A need belongs to a point and says what is missing (item text: «Agua, Arroz, Ca
 | `COMPLETED` («Completada») | Delivered. |
 | `DELETED` | Removed (not shown). |
 
-- **Need checklist**: the same one everywhere a need is entered (home «¡Ayuda!» and «Reportar necesidad», Comando,
+- **Need checklist**: the same one everywhere a need is entered (home «¡Ayuda!» and «Reportar necesidad», Command,
   admin point and need editors, runner follow-up after a run). Grouped as «Agua y comida», «Refugio y cuidado»,
   «Energía y comunicación», «Casa» and «¿Algo más?» (Otros), two per row. Checking a need that has options makes it
   full width and shows its options as buttons to tap (one or several):
@@ -217,7 +226,7 @@ A need belongs to a point and says what is missing (item text: «Agua, Arroz, Ca
 - **«Verificado por equipo»** (gold award badge): a point or need created or updated by someone in a team is marked
   as checked more thoroughly. Stamped by the server when:
   - a code user in a team adds a point (home or panels);
-  - an agent in a team creates a point, edits a point, or creates/updates a need in Comando;
+  - an agent in a team creates a point, edits a point, or creates/updates a need in Command;
   - a runner in a team records a new need after completing a run.
   An update by someone without a team removes the mark (the data changed without a team check); edits by admin with
   the master password keep it. Panels with a session show the team, person and date («Equipo Norte»); public pages
@@ -349,7 +358,7 @@ Tabs «🔨 Mis obras» (my jobs) and «🚩 Obras» (jobs). Each repair job has
 (what's left), required materials, Before / Progress / Final photos and «✓ Obra terminada» (needs a final photo).
 **Assess** a job without taking it: work items (roof, walls, floor…), materials, days, people, notes and photos;
 assessments are visible to all builders. Repairs are never public; their materials are totaled in the Resumen.
-Repair needs can come from any form (public, runners, Comando, admin); when the reporter picked materials, the card
+Repair needs can come from any form (public, runners, Command, admin); when the reporter picked materials, the card
 shows them under the title as «PIDEN hojas de zinc · varilla …».
 
 ---
@@ -357,7 +366,7 @@ shows them under the title as «PIDEN hojas de zinc · varilla …».
 ## 10. Command (`command.html`, agents)
 
 **Buscar** is in the header (on phones, the 🔍 button), like Runners, and «+ Agregar punto» is always at the top right:
-it opens the same point form **right in Comando** (no trip to the home page; a team agent is the coordinator by
+it opens the same point form **right in Command** (no trip to the home page; a team agent is the coordinator by
 default) and publishes the point on «Guardar», opening it in the list.
 The totals are shown with icons: 📍 points (or «4/54» while searching or filtering) and 🕓 «por revisar»; on phones they
 are inside the «Puntos» tab. List of points with filters (state, area, need, urgent/open/on the way), a map, and an
@@ -418,27 +427,43 @@ Access: Donations role or admin.
 - **Points**: cards with counters, filters, «Agregado por» (added by), map on the right, point editor with its needs
   (list above the form) and services. Cards and needs show the gold «Verificado por equipo» badge with the team name;
   editing a repair need shows its materials.
-- **Usuarios** (☰ menu) has two tabs, **«👤 Usuarios»** and **«👥 Equipos»** (the tab is kept in the link:
-  `?view=usuarios&tab=equipos`). The page refreshes by itself **every 10 seconds** («● En vivo · hace N s»), except
+- **Usuarios** (☰ menu) has four tabs, **«👤 Usuarios»**, **«👥 Equipos»**, **«📡 Registros en vivo»** and
+  **«🔗 Invitaciones»** (the tab is kept in the link: `&tab=equipos` / `registros` / `invitaciones`; the live tab shows
+  how many are waiting, Invitaciones how many are pending). Registros, Equipos and the searches show each person's
+  **access code** («🔑 LUCIA777», loaded one by one like the 🔑 button) instead of the user ID, and searches match it.
+  **Choosing a team**: with fewer than 9 teams, one button per team with its **initials in a colored circle** («Or»
+  Oro, «UA» Unidos por Azuero), one tap; with more, a dropdown. The page refreshes by itself **every 10 seconds** («● En vivo · hace N s»), except
   while you are typing or editing a user; the browser tab title shows how many new people are waiting, e.g. «(2)».
-  - **«🆕 Recién registrados sin equipo»** (top of Usuarios): people who signed up in the last 3 days (e.g. with the
-    sign-up link) and have no team yet, newest first. Someone who appears while you watch is highlighted «NUEVO». Each
-    row shows the name, how long ago, the phone and the **user ID** (with «copiar»): ask the person for their ID
-    («Copiar mi ID» in their menu) to confirm which account is theirs. In the same row choose the **team** (it
-    remembers the last one you used), tap the **roles** (Runner, Constructor, Supply, Team manager, Agente,
-    Donaciones) and **«✓ Asignar»**: saved at once, without opening the user; the row shows «✓ En Oro · Runner,
-    Supply» for a moment. «Abrir» opens the full user.
+  - **«📡 Registros en vivo»**: a plain list of everyone who signed up in the last 3 days (e.g. with the sign-up link),
+    newest first, with its own filter (name, phone, code or team). Each person shows how long ago, phone, **access
+    code** (confirm it with the person) and their team, or **«Sin equipo»** in orange; someone who appears while you
+    watch is marked «NUEVO». The tab badge counts those without a team. **Tap a person** to open the **«Asignar a un
+    equipo»** window: **1 Equipo** (team buttons; it remembers the last one you used), **2 Roles** (Runner,
+    Constructor, Supply, Team manager, Agente, Donaciones), **3 «✓ Guardar»**. In step 1, **«⊘ Sin equipo»** takes the person out of their team (asks first; it also removes
+    Team manager, which needs a team). From there, «Abrir ficha completa»
+    opens the user, and «🔗 Mandarle una invitación en vez de asignar» opens Invitaciones with that person and team
+    ready. The list doesn't refresh while the window is open.
+  - **«🔗 Invitaciones»**: at the top, **«Nueva invitación a un equipo»** in three steps: **1 Persona** (by name, phone or
+    code), **2 Equipo**, **3 «Crear enlace»**: a **one-use link valid 24 hours that only that user ID can use** (the person opens it signed in
+    with their own code and joins the team; anyone else gets «Esta invitación es para otra persona» and the link is
+    not spent). «Copiar enlace» or «WhatsApp» (to their number). Team managers' own invites from «Mi equipo» stay open
+    to anyone. Below, **every team invite** (admin's and Team managers') with filters ⏳ Pendientes (default), ✓ Usadas,
+    ⌛ Vencidas, ✕ Anuladas, Todas and a search: team (initials), for whom (or «cualquiera»), who created it and when,
+    «vence en 5 h» or who used it and when. **«Anular»** stops a pending link (asks first). It refreshes with the page
+    every 10 seconds. A link can only be copied right after creating it (it is not stored).
   - The full list: search, «Solo con código», «Ver desactivados». Click headers to sort (click again to reverse; ▲▼
     shows direction): Usuario, Roles, Actividad, Creado (default: newest first). «Roles» filters with checkboxes
     (several at once; «Sin acceso» = no roles); «Equipo» filters by team. Empty fields are left blank. Bulk select to
     move to a team, deactivate or activate. View/copy each user's code (🔑), email, roles, team.
-  - **«👥 Equipos»**: create a team at the top; one **card per team** with its **★ Team manager** (red when the team
+  - **«👥 Equipos»**: create a team at the top; a **search** finds teams by name, or by a person (name, phone or ID),
+    showing only their teams with just those people («1 de 5 equipos»); one **card per team** with its **★ Team manager** (red when the team
     has none yet), then its members with their roles and ID. **«☆ Hacer team manager»** gives that role in one tap
     (that person then manages the team from «Mi equipo»: invites, roles); **«Quitar»** takes someone out of the team
     (and out of Team manager), after confirming. **«＋ Agregar miembro»** searches people with a code by name, phone or
     ID and adds them (asks before moving someone from another team). «Editar nombre» renames. Below, «Asignar en
     lote» keeps the table to assign many users at once.
-  - Role names shown in admin: Runner, Constructor, Agente, Donaciones, Supply, Team manager.
+  - Role names in admin always carry their page icon: 🏃 Runner, 🔨 Constructor, 🧑‍💻 Agente, 🎁 Donaciones, 📦 Supply,
+    👥 Team manager.
 - **Teams**, **newsletter** (boletín), **backup** (download; import only on test servers), **master password**.
 
 ---
@@ -454,6 +479,18 @@ specific point):
 - **Needs now**: urgent, to deliver (new in 24 h), on the way, completed.
 - **What's being asked for** (max 8 rows) and **Zones with needs**.
 
+**Who can do what on the home page**
+
+- **Runner role (signed in with a code)**: the full home page. In a point's detail, «Necesidades por atender» shows the
+  team's open/en-camino needs with **«🚚 Asignar conductor / Cambiar conductor»**, «Quitar conductor», **«📦 Agregar a
+  lista de empaque»** and **«📷 Foto de partida»** (team rules still apply: never another team's run).
+- **Other code users (agent, Supply, Constructor, Donaciones, Team manager without Runner)**: on a computer they see the
+  same needs list, read-only (no buttons). The server refuses those actions with «Solo quien tiene el rol Runner puede
+  asignar conductor, agregar empaque o fotos de partida.» (403).
+- **On phones, without the Runner role (including the public)**: only «📊 Resumen» and the map. There is no «Lista»
+  view, and tapping a point on the map opens nothing. A shared link to a specific point (`/?punto=…`) still opens it,
+  without the needs list. The view updates by itself when a role is added or removed (checked every 45 s).
+
 ---
 
 ## 15. Privacy
@@ -463,7 +500,7 @@ specific point):
 - **Private**: contacts and phones, notes, ID numbers, who carries each run, supply centers, packing lists, photos,
   donors, live locations (**own team only**, everywhere), repairs.
 - **«Verificado por equipo»**: public pages show only that a team verified it («Verificado por un equipo»); which team,
-  who and when are visible only in panels with a session (Comando, admin, Runners, Supply).
+  who and when are visible only in panels with a session (Command, admin, Runners, Supply).
 - Repair needs and their materials are never public.
 - A point held with «Nuestro equipo lo abastece» is hidden from the public and from other teams for 3 hours.
 - Code users see more (e.g. the runner's name on their team's needs).

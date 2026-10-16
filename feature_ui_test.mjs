@@ -464,7 +464,7 @@ test('builder page: own login with full name, repairs API only, several jobs at 
   assert.doesNotMatch(builder, /\/api\/runner\//);
   assert.doesNotMatch(builder, /href="\/#agregar"/);
   assert.match(builder, /data-complete="\$\{id\}">✓ Obra terminada<\/button>/);
-  assert.match(admin, /name="roles" value="builder"> Constructor</, 'builders are managed as users with the Constructor role');
+  assert.match(admin, /name="roles" value="builder"> 🔨 Constructor</, 'builders are managed as users with the Constructor role');
   assert.match(admin, /await create\(\{need:parts\.find\(s=>PointForm\.needBase\(s\)===repairNeedLabel\)\|\|repairNeedLabel,kind:'repair',/, 'the repair need keeps its materials');
 });
 test('runner need cards show needs as icon chips, with free text as plain chips', () => {
@@ -1326,7 +1326,7 @@ test('public narrow view: 📊 tab holds the totals, Lista keeps only filters; t
   assert.match(template, /localStorage\.setItem\('codeUser',JSON\.stringify\(\{id:body\.id,name:body\.name/);
 });
 test('public detail for code users: each open/en camino need can get a conductor and packing, like admin', () => {
-  assert.match(template, /\$\{r\.id&&codeMe\(\)\?'<div id="teamNeeds"><\/div>':''\}/, 'only with a code sign-in');
+  assert.match(template, /\$\{r\.id&&codeMe\(\)&&!phoneLocked\(\)\?'<div id="teamNeeds"><\/div>':''\}/, 'only with a code sign-in');
   const draw = template.match(/function drawTeamNeeds\(\)[^\n]*/)[0];
   assert.match(draw, /filter\(n=>n\.status==='OPEN'\|\|n\.status==='IN_PROGRESS'\)/);
   assert.match(draw, /Conductor: <b>\$\{n\.runnerName\?clean\(n\.runnerName\):'sin asignar'\}<\/b>/);
@@ -1348,7 +1348,7 @@ test('public detail: with needs to fulfil, the big buttons are Asignar conductor
   assert.match(template, /if\(!e\.target\.closest\('#reportNeed,\[data-report-need\]'\)\)return;/, 'both open the same form');
 });
 test('public detail: code users can remove the conductor (the need reopens)', () => {
-  assert.match(template, /\$\{n\.runnerName\?` · <button type="button" class="unassign" data-unassign-need="\$\{clean\(n\.id\)\}">Quitar conductor<\/button>`:''\}/);
+  assert.match(template, /\$\{n\.runnerName&&canRun\(\)\?` · <button type="button" class="unassign" data-unassign-need="\$\{clean\(n\.id\)\}">Quitar conductor<\/button>`:''\}/);
   assert.match(template, /async function unassign\(need\)\{if\(!confirm\('¿Quitar el conductor de esta necesidad\? Volverá a quedar abierta\.'\)\)return;try\{await fullJSON\('\/api\/full\/needs\/'\+encodeURIComponent\(need\)\+'\/runner',\{runnerId:''\}\)/);
 });
 test('public detail: Maps, Compartir and Reportar are small footer buttons; code users add a pickup photo; nothing of the team shows publicly', () => {
@@ -1361,7 +1361,7 @@ test('public detail: Maps, Compartir and Reportar are small footer buttons; code
   assert.match(template, /url='\/api\/full\/needs\/'\+encodeURIComponent\(id\)\+'\/media\?stage=pickup'/);
   assert.match(template, /PointForm\.mediaThumbs\(n\.media,m=>'\/api\/full\/media\/'/);
   // Team-only: the section exists only with a code sign-in, and signing out wipes what was loaded with it.
-  assert.match(template, /\$\{r\.id&&codeMe\(\)\?'<div id="teamNeeds"><\/div>':''\}/);
+  assert.match(template, /\$\{r\.id&&codeMe\(\)&&!phoneLocked\(\)\?'<div id="teamNeeds"><\/div>':''\}/);
   assert.match(template, /if\(!u\)\{stopShare\(false\);[^}]*campNeeds\.clear\(\);\$\('#teamNeeds'\)\?\.remove\(\);/);
   const draw = template.match(/function drawTeamNeeds\(\)[^\n]*/)[0];
   assert.match(draw, /^function drawTeamNeeds\(\)\{const box=\$\('#teamNeeds'\);if\(!box\)\{/, 'draws nothing without the team section');
@@ -1379,11 +1379,11 @@ test('Usuarios › Equipos: create/rename teams; a two-column table assigns each
   assert.match(admin, /!\$\('#teamsBox'\)\.contains\(document\.activeElement\)/, 'the 30 s refresh never interrupts typing a team');
   const fold = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const clean = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-  const src = ['drawTeams', 'drawTeamUsers', 'syncTeamSel'].map(f => admin.match(new RegExp(`function ${f}\\(\\)?[^\\n]*`))[0]).concat([admin.match(/const tcAdd=[^\n]*/)[0], admin.match(/function teamCard\(t\)\{[^]*?\n(?=function drawTeams)/)[0], admin.match(/const teamSel=[^\n]*/)[0], admin.match(/const teamRows=[^\n]*/)[0], admin.match(/const teamByName=[^\n]*/)[0]]).join('\n');
+  const src = ['drawTeams', 'drawTeamUsers', 'syncTeamSel', 'teamMatches'].map(f => admin.match(new RegExp(`function ${f}\\(\\)?[^\\n]*`))[0]).concat([admin.match(/const tcAdd=[^\n]*/)[0], admin.match(/const codeCache=[^\n]*/)[0], admin.match(/const codeTag=[^\n]*/)[0], admin.match(/function teamCard\(t,only=null\)\{[^]*?\n(?=\/\/ Buscar en «Equipos»)/)[0], admin.match(/const teamSel=[^\n]*/)[0], admin.match(/const teamRows=[^\n]*/)[0], admin.match(/const teamByName=[^\n]*/)[0]]).join('\n');
   const els = {}; const el = k => els[k] ??= {value: ''};
   const teams = [{id: 't1', name: 'Norte <b>'}, {id: 't2', name: 'Peñas'}];
   const users = [{id: 'u1', name: 'Fufo', teamId: 't1', hasAccessCode: true, roles: ['runner']}, {id: 'u2', name: 'Bea', hasAccessCode: true, roles: ['agent']}, {id: 'u3', name: 'Ana', hasAccessCode: false, roles: ['runner']}];
-  const api = new Function('$', 'teams', 'users', 'renamingTeam', 'clean', 'fold', 'teamName', 'roleNames', 'document', `${src};return {drawTeams, teamSel, teamByName}`)(el, teams, users, null, clean, fold, id => teams.find(t => t.id === id)?.name || '', {runner: 'Runner', agent: 'Agente'}, {activeElement: null});
+  const api = new Function('$', 'teams', 'users', 'renamingTeam', 'clean', 'fold', 'teamName', 'roleNames', 'document', `const roleLabel=r=>roleNames[r]||r;${src};return {drawTeams, teamSel, teamByName}`)(el, teams, users, null, clean, fold, id => teams.find(t => t.id === id)?.name || '', {runner: 'Runner', agent: 'Agente'}, {activeElement: null});
   api.drawTeams();
   const body = el('#teamUsers tbody').innerHTML;
   assert.match(el('#teamNames').innerHTML, /<option value="Norte &lt;b&gt;"><\/option><option value="Peñas">/, 'type-ahead list of teams');
@@ -1418,7 +1418,7 @@ test('Usuarios: checkboxes per user; selected users that no longer match the sea
   const users = [{id: 'u1', name: 'Fufo', roles: ['runner'], hasAccessCode: true}, {id: 'u2', name: 'Bea', roles: ['agent'], hasAccessCode: true, teamId: 't1'}, {id: 'u3', name: 'Ana', roles: ['runner'], hasAccessCode: false}];
   const patched = [];
   const fold = s => String(s).toLowerCase();
-  const api = new Function('$', 'users', 'fold', 'clean', 'userRuns', 'userRunsHtml', 'keyBtn', 'phoneBtn', 'teamChip', 'roleNames', 'stamp', 'patchUsers', `${src};return {userSel, drawUsers, batchUsers}`)(el, users, fold, s => String(s ?? ''), () => [], () => '', () => '', () => '', () => '', {}, s => s, async (ids, body) => { patched.push([ids, body]); return ids.includes('u3') ? [{id: 'u3', text: 'Ana: no'}] : []; });
+  const api = new Function('$', 'users', 'fold', 'clean', 'userRuns', 'userRunsHtml', 'keyBtn', 'phoneBtn', 'teamChip', 'roleNames', 'stamp', 'patchUsers', `const roleLabel=r=>roleNames[r]||r;${src};return {userSel, drawUsers, batchUsers}`)(el, users, fold, s => String(s ?? ''), () => [], () => '', () => '', () => '', () => '', {}, s => s, async (ids, body) => { patched.push([ids, body]); return ids.includes('u3') ? [{id: 'u3', text: 'Ana: no'}] : []; });
   api.drawUsers();
   assert.equal(el('#userBatch').hidden, true);
   assert.doesNotMatch(el('#userList').innerHTML, /users-chosen/, 'no Seleccionados group without a selection');
@@ -1485,13 +1485,13 @@ test('Usuarios: every user is a row with the same columns (Usuario, Accesos, Equ
   assert.match(head(true), /^<div class="user-head with-filters">[^]*<span><select id="userTeam" class="head-filter on" aria-label="Filtrar por equipo"><option value="">Equipo: todos<\/option><option value="t1" selected>👥 Norte<\/option><option value="__none__">Sin equipo<\/option><\/select><\/span><span><button type="button" class="sorth" data-usort="activity"/, 'Resultados: team filter in the Equipo column, highlighted when on');
   assert.doesNotMatch(admin, /<div class="userbar">[^]*?id="userTeam"[^]*?<div id="userList">/, 'no longer in the top filter bar');
   assert.match(admin, /\.user-head\.with-filters\{display:flex!important;flex-wrap:wrap;gap:6px 12px;padding:4px 0\}/, 'phones keep the sort buttons and filters');
-  assert.match(head(true), /<button type="button" class="head-filter rolefilter" data-rolefilter aria-expanded="false" aria-label="Filtrar por rol">▾<\/button><div class="rolepop" id="rolePop" hidden><label class="check"><input type="checkbox" data-rolecheck="runner"> Runner<\/label>/, 'Roles: checkbox filter, several at once');
+  assert.match(head(true), /<button type="button" class="head-filter rolefilter" data-rolefilter aria-expanded="false" aria-label="Filtrar por rol">▾<\/button><div class="rolepop" id="rolePop" hidden><label class="check"><input type="checkbox" data-rolecheck="runner"> 🏃 Runner<\/label>/, 'Roles: checkbox filter, several at once');
   assert.doesNotMatch(admin, /id="userRole"|id="userSort"/, 'no more top filters that repeat the headers');
   assert.match(admin, /\.user-card,\.user-head\{display:grid;grid-template-columns:22px minmax\(190px,2\.2fr\)[^}]*\}/, 'rows and header share one column grid');
   assert.match(admin, /@media\(max-width:720px\)\{\.user-head\{display:none\}[^}]*\}[^@]*\.uc-col:before\{content:attr\(data-label\)/, 'phones: one labeled line per column');
   assert.match(admin, /\$\{userHead\(\)\}\$\{chosen\.map\(userCard\)/);
   assert.match(admin, /\$\{users\.length\?userHead\(true\):''\}\$\{rest\.length\?rest\.map\(userCard\)/, 'the filter header stays even with no results, so it can be cleared');
-  const card = new Function('userRuns', 'userSel', 'clean', 'keyBtn', 'phoneBtn', 'roleNames', 'teamChip', 'stamp', 'userRunsHtml', `${admin.match(/const userCard=[^\n]*/)[0]};return userCard`)(() => [], new Set(), s => String(s ?? ''), () => '', () => '', {runner: 'Corredor'}, u => u.teamId ? '<span class="team-chip">👥 Norte</span>' : '', s => s, () => '');
+  const card = new Function('userRuns', 'userSel', 'clean', 'keyBtn', 'phoneBtn', 'roleNames', 'teamChip', 'stamp', 'userRunsHtml', `const roleLabel=r=>roleNames[r]||r;${admin.match(/const userCard=[^\n]*/)[0]};return userCard`)(() => [], new Set(), s => String(s ?? ''), () => '', () => '', {runner: 'Corredor'}, u => u.teamId ? '<span class="team-chip">👥 Norte</span>' : '', s => s, () => '');
   const a = card({id: 'u1abcdefgh', name: 'Fufo', roles: ['runner'], teamId: 't1', online: true, createdAt: '1 oct'});
   const b = card({id: 'u2abcdefgh', name: 'Ana', roles: [], disabled: true});
   const cols = h => [...h.matchAll(/<div class="uc-col" data-label="([^"]+)">/g)].map(m => m[1]);
@@ -1567,7 +1567,7 @@ test('shared top navigation (nav.js): Inicio and the panels of the signed-in cod
   assert.match(readFileSync(new URL('./builder.html', import.meta.url), 'utf8'), /<script src="\.\/nav\.js"><\/script>/);
   assert.match(nav, /\['\/', '🏠', \(\) => 'Inicio', \(\) => true\]/, 'the public map page is «Inicio»');
   assert.match(nav, /\['\/runner\.html', '<svg class="walkico"[^']*<\/svg>', u => !u\.roles \|\| u\.roles\.includes\('runner'\) \? 'Runners' : 'Empaque'/, 'the runner page is «Runners» with the blue en-camino walking icon');
-  assert.match(nav, /\['\/command\.html', '🎧', \(\) => 'Comando', u => has\(u, 'agent'\)\]/);
+  assert.match(nav, /\['\/command\.html', '🧑‍💻', \(\) => 'Command', u => has\(u, 'agent'\)\]/, 'Command: the HQ where data is checked and managed at a computer');
   assert.match(nav, /const list = u \? pages\.filter\(\(\[url, , , ok\]\) => url === here \|\| ok\(u\)\) : \[\];\n[^\n]*\n    el\.hidden = list\.length < 2;/, 'nothing for the public');
   // Narrow screens: one toggle with the current page opens the full list under the header; outside tap / Escape closes it.
   assert.match(nav, /<button type="button" class="appnav-toggle" aria-expanded="false" aria-controls="appNavList" aria-label="Cambiar de página">/);
@@ -1598,7 +1598,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /@media\(max-width:760px\)\{\.top\{position:static\}/, 'phone: the header scrolls with the page');
   assert.doesNotMatch(agent, /hdr-hidden/);
   assert.doesNotMatch(agent, /class="mobile-nav"/, 'no list/map toggle: the map sits above the rows on phones');
-  assert.match(agent, /<form id="gateForm" novalidate data-signin><h1>Centro de comando<\/h1><fieldset class="sg sg-code">/);
+  assert.match(agent, /<form id="gateForm" novalidate data-signin><h1>🧑‍💻 Command · centro de datos<\/h1><fieldset class="sg sg-code">/);
   assert.doesNotMatch(agent.match(/<form id="gateForm"[^]*?<\/form>/)[0], /sg-new/, 'agents are created by admin: code only');
   assert.match(agent, /fetch\('\/api\/session\/code',\{method:'POST'[^\n]*?body:JSON\.stringify\(\{accessCode\}\)[^\n]*?if\(!\(body\.roles\|\|\[\]\)\.includes\('agent'\)\)throw Error\('Tu código no tiene acceso al Centro de comando\.'\)/, 'one code login opens every panel of the user');
   assert.match(agent, /localStorage\.getItem\('agentCode'\)\|\|localStorage\.getItem\('runnerCode'\)\|\|localStorage\.getItem\('builderCode'\)/, 're-entry with a code saved by any page');
@@ -2103,7 +2103,7 @@ test('Donaciones page: only admin or the «Donaciones» role (code); tickets wit
   assert.match(page, /fetch\('\/api\/admin\/session'/, 'admin session also opens it');
   assert.doesNotMatch(page, /\/api\/agent/, 'agents need the role, not their agent session');
   assert.match(page, /necesita el rol «Donaciones»/);
-  assert.match(admin, /<input type="checkbox" name="roles" value="donations"> Donaciones<\/label>/);
+  assert.match(admin, /<input type="checkbox" name="roles" value="donations"> 🎁 Donaciones<\/label>/);
   assert.match(nav, /\['\/donations\.html', '🎁', \(\) => 'Donaciones', u => has\(u, 'donations'\)\]/);
   for (const s of ['Por confirmar', 'Confirmada', 'En acopio', 'En camino', 'Entregada', 'Cancelada']) assert.ok(page.includes(s), s);
   for (const f of ['dropPlace', 'dropAt', 'transporter', 'transporterPhone', 'campId', 'dispatchAt', 'destination']) assert.match(page, new RegExp(`name="${f}"`), f);
@@ -2274,7 +2274,7 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   assert.match(page, /data-runnerlive="\$\{clean\(n\.id\)\}">📍 Ver runner en el mapa<\/button>/, 'live position on the map when shared');
   assert.match(page, /secHead\('h-dest','📍','Destino'[^\n]*\$\{needDetails\(\{\.\.\.n,packing:null\},true,false\)\}<div class="actrow">\$\{needButtons\(n\)\}/, 'point, contacts and needs (no packing here), see on map');
   assert.match(page, /secHead\('h-load','📦','Para cargar'[^\n]*PointForm\.packingHtml\(n\.packing\)[^\n]*\$\{mediaStrip\(n\)\}/, 'packing and departure photos together');
-  assert.match(admin, /<input type="checkbox" name="roles" value="supplier"> Supply<\/label>/);
+  assert.match(admin, /<input type="checkbox" name="roles" value="supplier"> 📦 Supply<\/label>/);
   assert.match(admin, /n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada · en camino'/);
   assert.match(nav, /\['\/supplier\.html', '📦', \(\) => 'Supply', u => has\(u, 'supplier'\)\]/);
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
@@ -2399,7 +2399,7 @@ test('Usuarios: click a header to sort (again to reverse); newest first by defau
   const src = [admin.match(/let userSortKey=[^\n]*/)[0], 'const userSel=new Set();let userTeamFilter="";', admin.match(/function userResults\(\)\{[^\n]*/)[0]].join('\n');
   const users = [{id: 'a', name: 'Bea', roles: ['runner'], createdAt: '2026-10-02'}, {id: 'b', name: 'Ana', roles: [], createdAt: '2026-10-05', lastActiveAt: '2026-10-14'}, {id: 'c', name: 'Ceci', roles: ['supplier', 'agent'], createdAt: '2026-10-01', online: true}];
   const el = {'#userSearch': {value: ''}, '#userShowDisabled': {checked: false}, '#userOnlyCode': {checked: false}};
-  const run = (setup) => new Function('$', 'users', 'fold', 'roleNames', `${src};${setup};return userResults().map(u=>u.name)`)(k => el[k], users, x => String(x).toLowerCase(), {runner: 'Corredor', agent: 'Agente', supplier: 'Acopio'});
+  const run = (setup) => new Function('$', 'users', 'fold', 'roleNames', `const roleLabel=r=>roleNames[r]||r;${src};${setup};return userResults().map(u=>u.name)`)(k => el[k], users, x => String(x).toLowerCase(), {runner: 'Corredor', agent: 'Agente', supplier: 'Acopio'});
   assert.deepEqual(run(''), ['Ana', 'Bea', 'Ceci'], 'created, newest first');
   assert.deepEqual(run("userSortDir='asc'"), ['Ceci', 'Bea', 'Ana']);
   assert.deepEqual(run("userSortKey='name';userSortDir='asc'"), ['Ana', 'Bea', 'Ceci']);
@@ -2440,13 +2440,13 @@ test('«Mi equipo» (team.html): invite links (one use, expiring), members with 
   assert.match(signup, /fetch\('\/api\/full\/invites\/accept',\{method:'POST'/);
   assert.match(signup, /showDone\(user\);await acceptInvite\(\);return\}showEnter\(\)/, 'already signed in: joins right away');
   assert.match(signup, /showDone\(await signIn\(code\),code\);await acceptInvite\(\)/, 'new account: joins after creating it');
-  assert.match(page, /const ROLE_ICONS=\{runner:'🏃',builder:'🔨',agent:'🎧',donations:'🎁',supplier:'📦',teammanager:'👥'\}/, 'role chips carry the page icons');
+  assert.match(page, /const ROLE_ICONS=\{runner:'🏃',builder:'🔨',agent:'🧑‍💻',donations:'🎁',supplier:'📦',teammanager:'👥'\}/, 'role chips carry the page icons');
   assert.ok((page.match(/clean\(roleLabel\(r\)\)/g) || []).length === 2, 'icons on member chips and in the roles dialog');
   assert.match(page, /<input type="search" class="msearch" id="memberSearch"/);
   assert.match(page, /\$\('#memberSearch'\)\.oninput=renderMembers;/, 'filters as you type');
   assert.match(page, /\$\{ms\.length\} de \$\{all\.length\}/, 'count shows matches of total');
   const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
-  assert.match(admin, /<input type="checkbox" name="roles" value="teammanager"> Team manager <small>\(necesita equipo\)<\/small><\/label>/);
+  assert.match(admin, /<input type="checkbox" name="roles" value="teammanager"> 👥 Team manager <small>\(necesita equipo\)<\/small><\/label>/);
 });
 
 test('Runners: header «Buscar» like the home page (🔍 pop-up on phones) filters the open tab and the map', () => {
@@ -2651,10 +2651,15 @@ test('admin Usuarios: tabs Usuarios / Equipos, live refresh every 10 s, and «�
   assert.match(admin, /<nav class="utabs" id="userTabs" role="tablist"[^>]*><button type="button" role="tab" data-utab="users" aria-selected="true">👤 Usuarios<\/button><button type="button" role="tab" data-utab="teams" aria-selected="false">👥 Equipos/);
   assert.match(admin, /<span class="livetag" id="liveTag"[^>]*>● En vivo/);
   assert.match(admin, /\},10000\);/, 'refresh every 10 s');
-  assert.match(admin, /const newcomers=\(\)=>\{const now=Date\.now\(\);return users\.filter\(u=>!u\.disabled&&u\.hasAccessCode&&\(!u\.teamId\|\|justAssigned\.has\(u\.id\)\)&&now-Date\.parse\(u\.createdAt\|\|0\)<NEW_WINDOW\)/, 'last 3 days, no team yet');
+  assert.match(admin, /const newcomers=\(\)=>\{const now=Date\.now\(\);return users\.filter\(u=>!u\.disabled&&now-Date\.parse\(u\.createdAt\|\|0\)<NEW_WINDOW\)/, 'everyone from the last 3 days, assigned or not');
   assert.match(admin, /const failed=await patchUsers\(\[u\.id\],\{teamId:team,roles\}\);/, 'team and roles in one save');
   assert.match(admin, /localStorage\.setItem\('adminLastTeam',team\)/, 'remembers the last team');
-  assert.match(admin, /<span class="nc-id">ID <code>\$\{clean\(u\.id\.slice\(0,8\)\)\}<\/code><button type="button" class="linkbtn" data-copy-id=/, 'ID to confirm who it is');
+  assert.match(admin, /<button type="button" class="nc-item\$\{freshIds\.has\(u\.id\)\?' fresh':''\}\$\{u\.teamId\?'':' noteam'\}" data-nc-pick=/, 'a plain list: tap someone to open the assign window');
+  assert.match(admin, /<dialog id="adDlg" class="addlg"[^>]*><div class="adbox"><h2 id="adTitle">Asignar a un equipo<\/h2>/);
+  assert.match(admin, /const codeTag=u=>u\.hasAccessCode\?`<span class="ucode" data-code-for="\$\{clean\(u\.id\)\}">🔑 <code>/);
+  assert.match(admin, /adminRequest\('\/api\/admin\/users\/'\+encodeURIComponent\(id\)\+'\/access-code'\);codeCache\.set\(id,/, 'loaded one by one like 🔑, cached');
+  assert.match(admin, /<div class="adstep"><span class="stepn">1<\/span><span class="stepl">Equipo<\/span><div id="adTeamWrap"><\/div><\/div><div class="adstep"><span class="stepn">2<\/span><span class="stepl">Roles<\/span>[^]*?<span class="stepn">3<\/span><span class="stepl">Guardar<\/span>/, 'steps 1, 2, 3 in the window');
+  assert.match(admin, /busy=userFormOpen\(\)\|\|renamingTeam\|\|\$\('#adDlg'\)\.open\|\|/, 'no refresh while the window is open');
   assert.match(admin, /if\(seenUsers\)for\(const u of users\)if\(!seenUsers\.has\(u\.id\)\)freshIds\.set\(u\.id,now\)/, 'newcomers since the page opened are highlighted');
   assert.match(admin, /const roleNames=\{runner:'Runner',builder:'Constructor',agent:'Agente',donations:'Donaciones',supplier:'Supply',teammanager:'Team manager'\};/);
 });
@@ -2663,6 +2668,85 @@ test('admin Equipos tab: a card per team with its Team managers, members (☆ Ha
   assert.match(admin, /<p class="tc-mgr\$\{mgrs\.length\?'':' none'\}"><span class="tc-lbl">★ Team manager<\/span>/);
   assert.match(admin, /data-tm-toggle="\$\{clean\(u\.id\)\}" aria-pressed="\$\{mgr\}">\$\{mgr\?'★ Team manager':'☆ Hacer team manager'\}<\/button>/);
   assert.match(admin, /const failed=await patchUsers\(\[u\.id\],\{teamId:'',roles:u\.roles\.filter\(r=>r!=='teammanager'\)\}\);/, 'removing from the team also removes Team manager');
-  assert.match(admin, /placeholder="＋ Agregar miembro: nombre, teléfono o ID…"/);
-  assert.match(admin, /userTab\(q\.get\('tab'\)==='equipos'\?'teams':'users',false\)/, 'the tab is in the link');
+  assert.match(admin, /placeholder="＋ Agregar miembro: nombre, teléfono o código…"/);
+  assert.match(admin, /userTab\(\{equipos:'teams',registros:'live',invitaciones:'invites'\}\[q\.get\('tab'\)\]\|\|'users',false\)/, 'the tab is in the link');
+});
+
+test('admin Equipos: quick search by team name or by person (name, phone, ID) filters the cards', () => {
+  assert.match(admin, /<div class="team-find"><input id="teamFind" type="search" placeholder="🔍 Buscar equipo o persona \(nombre, teléfono o código\)…"/);
+  const fold = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const teams = [{id: 't1', name: 'Oro'}, {id: 't2', name: 'Plata'}];
+  const users = [{id: 'aa11', name: 'Lucía', teamId: 't1', telephone: '6611-2233'}, {id: 'bb22', name: 'Pablo', teamId: 't2'}, {id: 'cc33', name: 'Ana', teamId: 't2'}];
+  const find = q => new Function('$', 'teams', 'users', 'fold', 'codeCache', `${admin.match(/function teamMatches\(\)\{[^\n]*/)[0]};return teamMatches()`)(s => s === '#teamFind' ? {value: q} : null, teams, users, fold, new Map([['bb22', 'pablo77']]));
+  assert.equal(find('').length, 2);
+  assert.deepEqual(find('pla').map(([t, only]) => [t.id, only]), [['t2', null]], 'by team name: the whole card');
+  assert.deepEqual(find('lucia').map(([t, only]) => [t.id, [...only]]), [['t1', ['aa11']]], 'by person (accents ignored): only them');
+  assert.deepEqual(find('2233').map(([t]) => t.id), ['t1'], 'by phone');
+  assert.deepEqual(find('cc3').map(([t, only]) => [t.id, [...only]]), [['t2', ['cc33']]], 'by ID');
+  assert.deepEqual(find('pablo77').map(([t, only]) => [t.id, [...only]]), [['t2', ['bb22']]], 'by access code once loaded');
+});
+
+test('admin «📡 Registros en vivo» tab (with its own filter) and «🔗 Invitar a un equipo»: one-use 24 h link only for that user ID', () => {
+  assert.match(admin, /<button type="button" role="tab" data-utab="live" aria-selected="false">📡 Registros en vivo <b class="livecount" id="liveTabCount" hidden><\/b><\/button>/);
+  assert.match(admin, /#operations:not\(\.tab-live\) #newcomers\{display:none!important\}/, 'the sign-ups list is its own tab');
+  assert.match(admin, /<input id="ncFind" type="search" value="\$\{clean\(ncQuery\)\}" placeholder="🔍 Filtrar: nombre, teléfono, código o equipo…"/);
+  assert.match(admin, /nq\?all\.filter\(u=>fold\(u\.name\+' '\+\(u\.telephone\|\|''\)\+' '\+u\.id\+' '\+\(codeCache\.get\(u\.id\)\|\|''\)\+' '\+teamName\(u\.teamId\)\)\.includes\(nq\)\):all/);
+  assert.match(admin, /<details class="invitebox" id="inviteBox" open><summary>🔗 Nueva invitación a un equipo <small>enlace de un solo uso, 24 h, solo para esa persona<\/small><\/summary>/);
+  assert.match(admin, /adminRequest\('\/api\/admin\/teams\/'\+encodeURIComponent\(team\)\+'\/invites','POST',\{userId:u\.id\}\)/);
+  assert.match(admin, /const url=location\.origin\+'\/signup\.html\?invite='\+encodeURIComponent\(r\.token\)/);
+  assert.match(admin, /data-ad-invite>🔗 Mandarle una invitación en vez de asignar<\/button>/, 'from the assign window, prefilled');
+});
+
+test('admin search results (invite person, add member) are readable: dark text on white, not the white admin button text', () => {
+  assert.match(admin, /\.inv-hits button\{[^}]*background:#fff;color:#173c46;/);
+  assert.match(admin, /\.tc-hits button\{[^}]*background:#fff;color:#173c46;/);
+});
+
+test('admin team picker: under 9 teams, one tap button per team with its initials in a colored circle; otherwise a dropdown', () => {
+  const src = [admin.match(/const TEAM_COLORS=[^\n]*/)[0], admin.match(/const teamColor=[^\n]*/)[0], admin.match(/const teamInitials=[^\n]*/)[0], admin.match(/function teamPicker[^\n]*/)[0]].join('\n');
+  const clean = s => String(s ?? '');
+  const mk = teams => new Function('teams', 'clean', `${src};return {teamPicker, teamInitials}`)(teams, clean);
+  const {teamPicker, teamInitials} = mk([{id: 'a', name: 'Oro'}, {id: 'b', name: 'Unidos por Azuero'}]);
+  assert.equal(teamInitials('Oro'), 'Or');
+  assert.equal(teamInitials('Unidos por Azuero'), 'UA');
+  assert.equal(teamInitials('Equipo principal'), 'Pr');
+  const html = teamPicker('data-nc-team', 'b');
+  assert.match(html, /<input type="hidden" data-nc-team value="b">/);
+  assert.match(html, /<button type="button" class="tbadge on" data-tpick="b" role="radio" aria-checked="true" title="Unidos por Azuero"><span class="ti" style="background:#19745f">UA<\/span>/);
+  const nine = mk(Array.from({length: 9}, (_, i) => ({id: 't' + i, name: 'Equipo ' + i}))).teamPicker('data-nc-team', '');
+  assert.match(nine, /^<select data-nc-team/, '9 or more: dropdown');
+});
+
+test('admin «🔗 Invitaciones» tab: create invites there and monitor all of them (pending, used, expired, revoked) with «Anular»', () => {
+  assert.match(admin, /data-utab="invites" aria-selected="false">🔗 Invitaciones <small id="invTabCount"><\/small><\/button>/);
+  assert.match(admin, /#operations:not\(\.tab-invites\) #inviteBox,#operations:not\(\.tab-invites\) #invitesPane\{display:none!important\}/);
+  assert.match(admin, /invites=await adminRequest\('\/api\/admin\/invites'\)/);
+  assert.match(admin, /const INV_STATES=\[\['pending','⏳ Pendientes'\],\['used','✓ Usadas'\],\['expired','⌛ Vencidas'\],\['revoked','✕ Anuladas'\],\['','Todas'\]\];/);
+  assert.match(admin, /adminRequest\('\/api\/admin\/invites\/'\+encodeURIComponent\(i\.id\)\+'\/revoke','POST',\{\}\)/);
+  assert.match(admin, /if\(\$\('#operations'\)\.classList\.contains\('tab-invites'\)\)loadInvites\(\)/, 'refreshes with the 10 s live update');
+});
+
+test('admin: roles carry their page icon everywhere; the assign window offers «⊘ Sin equipo» to take someone out of a team', () => {
+  assert.match(admin, /const ROLE_ICONS=\{runner:'🏃',builder:'🔨',agent:'🧑‍💻',donations:'🎁',supplier:'📦',teammanager:'👥'\},roleLabel=r=>`\$\{ROLE_ICONS\[r\]\?ROLE_ICONS\[r\]\+' ':''\}\$\{roleNames\[r\]\|\|r\}`;/);
+  const roleLabel = new Function(`const roleNames={runner:'Runner'};${admin.match(/const ROLE_ICONS=[^\n]*/)[0]};return roleLabel`)();
+  assert.equal(roleLabel('runner'), '🏃 Runner', 'no recursion');
+  assert.doesNotMatch(admin, /roleNames\[r\]\|\|r\)\.join/, 'role lists use roleLabel');
+  assert.match(admin, /data-tpick="__none__" role="radio"[^>]*title="Sacarlo de su equipo"><span class="ti">⊘<\/span><small>Sin equipo<\/small>/);
+  assert.match(admin, /teamPicker\('id="adTeam"',u\.teamId\|\|lastTeam\(\),true\)/);
+  assert.match(admin, /const lostTM=noTeam&&roles\.includes\('teammanager'\);if\(lostTM\)roles=roles\.filter\(r=>r!=='teammanager'\);/, 'no team also drops Team manager');
+});
+
+test('home: runner actions (conductor, empaque, foto de partida) only for the Runner role; on phones, non-runners get no list and map taps open nothing', () => {
+  assert.match(template, /function canRun\(\)\{try\{return\(JSON\.parse\(localStorage\.getItem\('codeUser'\)\|\|'null'\)\?\.roles\|\|\[\]\)\.includes\('runner'\)/);
+  assert.match(template, /\$\{canRun\(\)\?`<div class="teamacts"><button type="button" data-assign-need=/);
+  assert.match(template, /n\.runnerName&&canRun\(\)\?` · <button type="button" class="unassign"/);
+  assert.match(template, /m\.on\('click',\(\)=>\{if\(!phoneLocked\(\)\)show\(r\)\}\)/);
+  assert.match(template, /function mobileView\(view\)\{if\(view==='list'&&phoneLocked\(\)\)view='stats';/);
+  assert.match(template, /body\.no-runner \.mobile-nav button\[data-view=list\]\{display:none\}/);
+  assert.match(template, /codeMe\(\)&&!phoneLocked\(\)\?'<div id="teamNeeds">/);
+  assert.match(template, /addEventListener\('accesschange'/);
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  assert.match(nav, /dispatchEvent\(new Event\('accesschange'\)\)/);
+  const go = readFileSync(new URL('./fullneeds.go', import.meta.url), 'utf8');
+  for (const route of ['runner', 'media', 'packing']) assert.match(go, new RegExp(`POST /api/full/needs/\\{id\\}/${route}", func\\(w http.ResponseWriter, r \\*http.Request\\) \\{\\n\\t\\t(me|u), ok := a\\.runnerViewer`));
 });

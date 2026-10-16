@@ -31,7 +31,7 @@ dialog{border:0;border-radius:16px;padding:20px;width:min(380px,calc(92vw / var(
 const $=s=>document.querySelector(s),clean=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ROLE_NAMES={runner:'Runner',builder:'Constructor',agent:'Agente',donations:'Donaciones',supplier:'Supply',teammanager:'Team manager'};
 // Mismos íconos que las páginas de cada rol (barra y menú ☰).
-const ROLE_ICONS={runner:'🏃',builder:'🔨',agent:'🎧',donations:'🎁',supplier:'📦',teammanager:'👥'},roleLabel=r=>`${ROLE_ICONS[r]?ROLE_ICONS[r]+' ':''}${ROLE_NAMES[r]||r}`;
+const ROLE_ICONS={runner:'🏃',builder:'🔨',agent:'🧑‍💻',donations:'🎁',supplier:'📦',teammanager:'👥'},roleLabel=r=>`${ROLE_ICONS[r]?ROLE_ICONS[r]+' ':''}${ROLE_NAMES[r]||r}`;
 // Búsqueda rápida: sin acentos ni mayúsculas; el teléfono se compara solo por dígitos.
 const fold=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const stamp=v=>{const d=new Date(v);if(!v||isNaN(d))return '';return d.toLocaleString('es-PA',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})};

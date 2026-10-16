@@ -2324,7 +2324,7 @@ func userPanels(u User) []map[string]string {
 		panels = append(panels, map[string]string{"label": "Constructores", "url": "/builder.html"})
 	}
 	if u.has(roleAgent) {
-		panels = append(panels, map[string]string{"label": "Comando", "url": "/command.html"})
+		panels = append(panels, map[string]string{"label": "Command", "url": "/command.html"})
 	}
 	if u.has(roleSupplier) {
 		panels = append(panels, map[string]string{"label": "Supply", "url": "/supplier.html"})
@@ -2386,7 +2386,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 		}
 		if item.has(roleAgent) {
 			a.startAgentSession(w, r, item.ID)
-			panels = append(panels, map[string]string{"label": "Comando", "url": "/command.html"})
+			panels = append(panels, map[string]string{"label": "Command", "url": "/command.html"})
 		}
 		if item.has(roleSupplier) {
 			a.startSupplierSession(w, r, item.ID)

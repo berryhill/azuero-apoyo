@@ -9,7 +9,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-// Página pública con código: en la ficha del punto, quien entró con código asigna o cambia el conductor (corredor)
+// Página pública con código: en la ficha del punto, quien entró con código y tiene el rol Runner asigna o cambia el conductor (corredor)
 // y agrega a la lista de empaque de las necesidades abiertas o en ruta, como en administración.
 
 type crewChoice struct {
@@ -21,6 +21,21 @@ type crewChoice struct {
 
 var errNeedClosed = errors.New("Esta necesidad ya no está abierta ni en camino.")
 var errOtherTeam = errors.New("Esta carrera la lleva otro equipo.")
+
+const notRunnerMsg = "Solo quien tiene el rol Runner puede asignar conductor, agregar empaque o fotos de partida."
+
+// runnerViewer: las acciones de carrera desde la ficha (conductor, empaque, fotos de partida) piden el rol Runner.
+func (a *App) runnerViewer(w http.ResponseWriter, r *http.Request) (User, bool) {
+	me, ok := a.viewer(w, r)
+	if !ok {
+		return me, false
+	}
+	if !me.has(roleRunner) {
+		fail(w, 403, notRunnerMsg)
+		return me, false
+	}
+	return me, true
+}
 
 // assignable: a quien entró con código le salen los corredores de su equipo y los que no tienen código;
 // los corredores con código de otro equipo (o sin equipo) no.
@@ -107,7 +122,7 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 	// Asignar, cambiar o quitar el conductor: como en administración, al asignar una necesidad abierta pasa a «En ruta»
 	// y al quitarlo vuelve a «Abierta».
 	mux.HandleFunc("POST /api/full/needs/{id}/runner", func(w http.ResponseWriter, r *http.Request) {
-		me, ok := a.viewer(w, r)
+		me, ok := a.runnerViewer(w, r)
 		if !ok {
 			return
 		}
@@ -152,7 +167,7 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 		}
 	}
 	mux.HandleFunc("POST /api/full/needs/{id}/media", func(w http.ResponseWriter, r *http.Request) {
-		u, ok := a.viewer(w, r)
+		u, ok := a.runnerViewer(w, r)
 		if !ok || !sameOrigin(w, r) {
 			return
 		}
@@ -175,7 +190,7 @@ func (a *App) fullNeedRoutes(mux *http.ServeMux) {
 		})
 	})
 	mux.HandleFunc("POST /api/full/needs/{id}/packing", func(w http.ResponseWriter, r *http.Request) {
-		u, ok := a.viewer(w, r)
+		u, ok := a.runnerViewer(w, r)
 		if !ok {
 			return
 		}

@@ -18,12 +18,7 @@ func TestCodeUserAssignsRunnerAndPacksFromPublicDetail(t *testing.T) {
 	s.team("Norte", fufo, builder)
 	need := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","urgency":"normal"}`, 201)["id"].(string)
 	done := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Toldas","urgency":"normal","status":"COMPLETED"}`, 201)["id"].(string)
-	var viewer *http.Cookie
-	for _, c := range s.call("POST", "/api/session/code", `{"accessCode":"BEA123"}`, false).Result().Cookies() {
-		if c.Name == "viewer_session" {
-			viewer = c
-		}
-	}
+	viewer, beaC := s.viewerCookie("FUFO12"), s.viewerCookie("BEA123")
 	call := func(method, path, body string, c *http.Cookie) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, path, strings.NewReader(body))
 		if method == "POST" {
@@ -43,6 +38,12 @@ func TestCodeUserAssignsRunnerAndPacksFromPublicDetail(t *testing.T) {
 	}
 	if w := call("POST", "/api/full/needs/"+need+"/runner", `{"runnerId":"`+fufo+`"}`, nil); w.Code != 401 {
 		t.Fatalf("assigning needs a code session: %d", w.Code)
+	}
+	// Runner actions need the Runner role: Bea (builder, same team) can't assign, pack or add a pickup photo.
+	for _, try := range [][2]string{{"/api/full/needs/" + need + "/runner", `{"runnerId":"` + ana + `"}`}, {"/api/full/needs/" + need + "/packing", `{"items":[{"item":"Linternas","quantity":1}]}`}} {
+		if w := call("POST", try[0], try[1], beaC); w.Code != 403 || !strings.Contains(w.Body.String(), "Runner") {
+			t.Fatalf("non-runner %s: %d %s", try[0], w.Code, w.Body.String())
+		}
 	}
 	var crew []crewChoice
 	json.Unmarshal(call("GET", "/api/full/crew", "", viewer).Body.Bytes(), &crew)
@@ -74,7 +75,7 @@ func TestCodeUserAssignsRunnerAndPacksFromPublicDetail(t *testing.T) {
 	if w := call("POST", "/api/full/needs/"+need+"/packing", `{"items":[{"item":"Linternas","quantity":0}]}`, viewer); w.Code != 400 {
 		t.Fatalf("bad packing: %d", w.Code)
 	}
-	if w := call("POST", "/api/full/needs/"+need+"/packing", `{"items":[{"item":"Linternas","quantity":4}]}`, viewer); w.Code != 200 || !strings.Contains(w.Body.String(), `"addedByName":"Bea"`) {
+	if w := call("POST", "/api/full/needs/"+need+"/packing", `{"items":[{"item":"Linternas","quantity":4}]}`, viewer); w.Code != 200 || !strings.Contains(w.Body.String(), `"addedByName":"Fufo"`) {
 		t.Fatalf("pack: %d %s", w.Code, w.Body.String())
 	}
 	if w := call("POST", "/api/full/needs/"+done+"/packing", `{"items":[{"item":"Linternas","quantity":1}]}`, viewer); w.Code != 409 {
@@ -82,7 +83,7 @@ func TestCodeUserAssignsRunnerAndPacksFromPublicDetail(t *testing.T) {
 	}
 	// The detail shows the runner's name and the packing list to code users only; never the runner ID.
 	full := call("GET", "/api/full/camps/"+s.camp+"/needs", "", viewer).Body.String()
-	if !strings.Contains(full, `"runnerName":"Fufo"`) || !strings.Contains(full, `"item":"Linternas"`) || strings.Contains(full, fufo) {
+	if !strings.Contains(full, `"runnerName":"Fufo"`) || !strings.Contains(full, `"item":"Linternas"`) || strings.Contains(full, `"runnerId"`) {
 		t.Fatalf("full detail: %s", full)
 	}
 	public := s.call("GET", "/api/camps/"+s.camp+"/needs", "", false).Body.String()
@@ -102,15 +103,14 @@ func TestCodeUserAddsPickupPhotoFromPublicDetail(t *testing.T) {
 	t.Setenv("MEDIA_LOCAL_DISK", "1")
 	s := newServiceHarness(t)
 	s.expect("POST", "/api/admin/users", `{"name":"Bea","telephone":"6999-4444","roles":["agent"],"accessCode":"BEA123"}`, 201)
+	s.expect("POST", "/api/admin/users", `{"name":"Rui","telephone":"6999-5555","roles":["runner"],"accessCode":"RUI123"}`, 201)
 	need := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","urgency":"normal"}`, 201)["id"].(string)
 	done := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Toldas","urgency":"normal","status":"COMPLETED"}`, 201)["id"].(string)
-	var viewer *http.Cookie
-	for _, c := range s.call("POST", "/api/session/code", `{"accessCode":"BEA123"}`, false).Result().Cookies() {
-		if c.Name == "viewer_session" {
-			viewer = c
-		}
-	}
+	viewer := s.viewerCookie("RUI123")
 	jpeg := []byte("\xff\xd8\xff fake jpeg")
+	if w := rawUpload(s, "/api/full/needs/"+need+"/media?stage=pickup", s.viewerCookie("BEA123"), "", "image/jpeg", jpeg); w.Code != 403 {
+		t.Fatalf("an agent without the Runner role can't add a pickup photo: %d", w.Code)
+	}
 	if w := rawUpload(s, "/api/full/needs/"+need+"/media?stage=pickup", &http.Cookie{Name: "viewer_session", Value: "x"}, "", "image/jpeg", jpeg); w.Code != 401 {
 		t.Fatalf("needs a code session: %d", w.Code)
 	}
@@ -121,7 +121,7 @@ func TestCodeUserAddsPickupPhotoFromPublicDetail(t *testing.T) {
 		t.Fatalf("closed needs: %d", w.Code)
 	}
 	w := rawUpload(s, "/api/full/needs/"+need+"/media?stage=pickup", viewer, "", "image/jpeg", jpeg)
-	if w.Code != 201 || !strings.Contains(w.Body.String(), `"addedByName":"Bea"`) {
+	if w.Code != 201 || !strings.Contains(w.Body.String(), `"addedByName":"Rui"`) {
 		t.Fatalf("upload: %d %s", w.Code, w.Body.String())
 	}
 	var item MediaItem

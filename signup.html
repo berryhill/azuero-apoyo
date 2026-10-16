@@ -17,7 +17,7 @@ label{display:block;margin-top:10px;font-size:13px;font-weight:750;color:#173c46
 </main>
 <script src="./nav.js"></script><script>
 const $=s=>document.querySelector(s),clean=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pageIcon={'/runner.html':'🏃','/builder.html':'🔨','/command.html':'🎧','/supplier.html':'📦','/donations.html':'🎁','/team.html':'👥'};
+const pageIcon={'/runner.html':'🏃','/builder.html':'🔨','/command.html':'🧑‍💻','/supplier.html':'📦','/donations.html':'🎁','/team.html':'👥'};
 function showDone(user,newCode){$('#enter').hidden=true;$('#done').hidden=false;$('#doneTitle').textContent=newCode?'¡Listo, ya entraste!':'Ya entraste';$('#doneWho').textContent=`Entraste como ${user.name}.`;$('#joinMsg').hidden=true;$('#newCodeBox').hidden=!newCode;if(newCode)$('#newCode').textContent=newCode;
 const panels=user.panels||[];$('#pages').innerHTML=panels.map(p=>`<a class="btn go" href="${clean(p.url)}">${pageIcon[p.url]||'➜'} ${clean(p.label)}</a>`).join('')+`<a class="btn ghost" href="/">🗺️ Ir al mapa</a>`;window.AppNav?.draw()}
 function showEnter(){$('#done').hidden=true;$('#enter').hidden=false;$('#inviteNote').hidden=!invite;window.AppNav?.prefillCode($('#signinForm'))}

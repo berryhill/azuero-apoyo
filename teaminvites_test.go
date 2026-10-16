@@ -132,3 +132,47 @@ func TestTeamManagerInvites(t *testing.T) {
 		t.Fatalf("Leo left the team: %+v", view.Members)
 	}
 }
+
+// Admin invite for one person: a one-use link to a team, valid 24 h, that only that user ID can accept (anyone else
+// signed in gets 403 and the link is not spent).
+func TestAdminInviteForOneUser(t *testing.T) {
+	s := newServiceHarness(t)
+	team := s.expect("POST", "/api/admin/teams", `{"name":"Oro"}`, 201)["id"].(string)
+	mia := s.expect("POST", "/api/admin/users", `{"name":"Mia","telephone":"6999-4444","roles":["runner"],"accessCode":"MIA123"}`, 201)["id"].(string)
+	s.expect("POST", "/api/admin/users", `{"name":"Leo","telephone":"6999-5555","roles":["runner"],"accessCode":"LEO123"}`, 201)
+	noCode := s.expect("POST", "/api/admin/users", `{"name":"Sin Código","telephone":"6999-6666","roles":["runner"]}`, 201)["id"].(string)
+	if w := s.call("POST", "/api/admin/teams/"+team+"/invites", `{"userId":"`+noCode+`"}`, true); w.Code != 400 {
+		t.Fatalf("a user without a code can't accept: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.call("POST", "/api/admin/teams/"+team+"/invites", `{"userId":"nope"}`, true); w.Code != 400 {
+		t.Fatalf("unknown user: %d", w.Code)
+	}
+	inv := s.expect("POST", "/api/admin/teams/"+team+"/invites", `{"userId":"`+mia+`"}`, 201)
+	token, exp := inv["token"].(string), inv["expiresAt"].(string)
+	if at, _ := time.Parse(time.RFC3339, exp); at.Sub(time.Now()) > 24*time.Hour || at.Sub(time.Now()) < 23*time.Hour || inv["user"] != "Mia" {
+		t.Fatalf("24 h, for Mia: %v", inv)
+	}
+	body := `{"token":"` + token + `"}`
+	if w := s.as(s.viewerCookie("LEO123"), "POST", "/api/full/invites/accept", body); w.Code != 403 || !strings.Contains(w.Body.String(), "otra persona") {
+		t.Fatalf("someone else can't use it: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.as(s.viewerCookie("MIA123"), "POST", "/api/full/invites/accept", body); w.Code != 200 || !strings.Contains(w.Body.String(), "Oro") {
+		t.Fatalf("Mia joins (the link was not spent by Leo): %d %s", w.Code, w.Body.String())
+	}
+	if w := s.as(s.viewerCookie("LEO123"), "POST", "/api/full/invites/accept", body); w.Code != 410 {
+		t.Fatalf("used once: %d", w.Code)
+	}
+	// Admin monitors every invite (status, team, for whom, used by) and can revoke a pending one.
+	other := s.expect("POST", "/api/admin/teams/"+team+"/invites", `{"userId":"`+mia+`"}`, 201)
+	list := s.call("GET", "/api/admin/invites", "", true).Body.String()
+	if !strings.Contains(list, `"status":"used"`) || !strings.Contains(list, `"usedByName":"Mia"`) || !strings.Contains(list, `"forUserName":"Mia"`) || !strings.Contains(list, `"teamName":"Oro"`) || !strings.Contains(list, `"status":"pending"`) || strings.Contains(list, "hash") || strings.Contains(list, token) {
+		t.Fatalf("admin invite list: %s", list)
+	}
+	s.expect("POST", "/api/admin/invites/"+other["id"].(string)+"/revoke", `{}`, 200)
+	if list := s.call("GET", "/api/admin/invites", "", true).Body.String(); !strings.Contains(list, `"status":"revoked"`) {
+		t.Fatalf("revoked: %s", list)
+	}
+	if w := s.as(s.viewerCookie("MIA123"), "POST", "/api/full/invites/accept", `{"token":"`+other["token"].(string)+`"}`); w.Code != 410 {
+		t.Fatalf("a revoked link no longer works: %d", w.Code)
+	}
+}

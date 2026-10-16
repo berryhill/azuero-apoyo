@@ -30,6 +30,9 @@ type TeamInvite struct {
 	UsedBy    string `json:"usedBy,omitempty"`
 	UsedAt    string `json:"usedAt,omitempty"`
 	Revoked   bool   `json:"revoked,omitempty"`
+	// ForUser: invitación de administración para una persona en particular (su ID de usuario); solo esa persona,
+	// con su sesión de código, la puede usar.
+	ForUser string `json:"forUser,omitempty"`
 }
 
 // teamInviteView: la invitación como la ve el team manager (sin token ni hash).
@@ -55,6 +58,11 @@ func teamManagerCan(role string) bool {
 	return false
 }
 
+const adminInviteHours = 24
+
+var errInviteNoUser = errors.New("No hay un usuario activo con ese ID.")
+var errInviteNoCode = errors.New("Ese usuario no tiene código de acceso: no puede entrar para aceptar la invitación.")
+var errInviteNotYou = errors.New("Esta invitación es para otra persona. Entra con tu propio código de acceso, o pide a administración una invitación a tu nombre.")
 var errInviteInvalid = errors.New("Este enlace de invitación no sirve: ya se usó, venció o lo anularon. Pide uno nuevo.")
 var errNotTeamManager = errors.New("Solo un team manager con equipo puede invitar.")
 
@@ -300,6 +308,117 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 		})
 	})
 	// Aceptar: solo con sesión de código; el usuario queda en el equipo de la invitación (cambia de equipo si tenía otro).
+	// Administración: todas las invitaciones (de administración y de los team managers), las más nuevas arriba, con su
+	// estado (pendiente, usada, vencida, anulada), equipo, para quién, quién la creó y quién la usó. Sin token ni hash.
+	mux.HandleFunc("GET /api/admin/invites", func(w http.ResponseWriter, r *http.Request) {
+		if !a.admin(w, r) {
+			return
+		}
+		type adminInvite struct {
+			teamInviteView
+			TeamID      string `json:"teamId"`
+			TeamName    string `json:"teamName"`
+			ForUser     string `json:"forUser,omitempty"`
+			ForUserName string `json:"forUserName,omitempty"`
+			UsedBy      string `json:"usedBy,omitempty"`
+		}
+		list := []adminInvite{}
+		now := time.Now()
+		err := a.db.View(func(tx *bolt.Tx) error {
+			name := func(id string) string {
+				if id == "admin" {
+					return "Administración"
+				}
+				if u, ok := getUser(tx, id); ok {
+					return u.Name
+				}
+				return ""
+			}
+			return tx.Bucket(teamInvitesBucket).ForEach(func(_, v []byte) error {
+				var inv TeamInvite
+				if json.Unmarshal(v, &inv) != nil {
+					return nil
+				}
+				t, _ := getTeam(tx, inv.TeamID)
+				list = append(list, adminInvite{teamInviteView: teamInviteView{ID: inv.ID, CreatedAt: inv.CreatedAt, ExpiresAt: inv.ExpiresAt, CreatedBy: name(inv.CreatedBy), UsedByName: name(inv.UsedBy), UsedAt: inv.UsedAt, Status: inv.status(now)}, TeamID: inv.TeamID, TeamName: t.Name, ForUser: inv.ForUser, ForUserName: name(inv.ForUser), UsedBy: inv.UsedBy})
+				return nil
+			})
+		})
+		if serviceError(w, err) {
+			return
+		}
+		sort.Slice(list, func(i, j int) bool { return list[i].CreatedAt > list[j].CreatedAt })
+		response(w, 200, list)
+	})
+	// Administración anula cualquier invitación pendiente (de cualquier equipo).
+	mux.HandleFunc("POST /api/admin/invites/{id}/revoke", func(w http.ResponseWriter, r *http.Request) {
+		if !a.adminWrite(w, r) {
+			return
+		}
+		found := false
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(teamInvitesBucket)
+			var key []byte
+			var inv TeamInvite
+			if e := b.ForEach(func(k, v []byte) error {
+				var x TeamInvite
+				if json.Unmarshal(v, &x) == nil && x.ID == r.PathValue("id") {
+					key, inv, found = append([]byte{}, k...), x, true
+				}
+				return nil
+			}); e != nil || !found {
+				return e
+			}
+			inv.Revoked = true
+			return putJSON(b, string(key), inv)
+		})
+		if serviceError(w, err) {
+			return
+		}
+		if !found {
+			fail(w, 404, "Esa invitación ya no existe.")
+			return
+		}
+		response(w, 200, map[string]string{"id": r.PathValue("id")})
+	})
+	// Administración: invitación de un solo uso a un equipo para una persona en particular (por su ID), válida 24 horas.
+	// La persona abre el enlace con su sesión de código y queda en ese equipo; nadie más lo puede usar.
+	mux.HandleFunc("POST /api/admin/teams/{id}/invites", func(w http.ResponseWriter, r *http.Request) {
+		if !a.adminWrite(w, r) {
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"userId": 128})
+		if !ok {
+			return
+		}
+		token := randomToken()
+		now := time.Now().UTC()
+		inv := TeamInvite{ID: randomToken()[:16], Hash: inviteHash(token), CreatedBy: "admin", CreatedAt: now.Format(time.RFC3339), ExpiresAt: now.Add(adminInviteHours * time.Hour).Format(time.RFC3339)}
+		var team Team
+		var who User
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			var found bool
+			if team, found = getTeam(tx, r.PathValue("id")); !found {
+				return errMissing
+			}
+			if who, found = getUser(tx, strings.TrimSpace(fieldText(f, "userId"))); !found || who.Disabled {
+				return errInviteNoUser
+			}
+			if who.CodeHash == "" {
+				return errInviteNoCode
+			}
+			inv.TeamID, inv.ForUser = team.ID, who.ID
+			return putJSON(tx.Bucket(teamInvitesBucket), inv.Hash, inv)
+		})
+		if errors.Is(err, errInviteNoUser) || errors.Is(err, errInviteNoCode) {
+			failField(w, 400, "userId", err.Error())
+			return
+		}
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 201, map[string]any{"id": inv.ID, "token": token, "expiresAt": inv.ExpiresAt, "team": team.Name, "user": who.Name, "userId": who.ID})
+	})
 	mux.HandleFunc("POST /api/full/invites/accept", func(w http.ResponseWriter, r *http.Request) {
 		u, ok := a.viewer(w, r)
 		if !ok {
@@ -333,6 +452,10 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 			if inv.status(time.Now()) != "pending" {
 				return errInviteInvalid
 			}
+			// A nombre de alguien: otra persona no la puede usar (y no se gasta).
+			if inv.ForUser != "" && inv.ForUser != u.ID {
+				return errInviteNotYou
+			}
 			me, found := getUser(tx, u.ID)
 			if !found {
 				return errMissing
@@ -347,6 +470,10 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 		})
 		if errors.Is(err, errInviteInvalid) {
 			fail(w, 410, err.Error())
+			return
+		}
+		if errors.Is(err, errInviteNotYou) {
+			fail(w, 403, err.Error())
 			return
 		}
 		if serviceError(w, err) {

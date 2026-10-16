@@ -140,6 +140,7 @@ func TestCodeUsersOnlySeeAndActOnTheirOwnTeamsRuns(t *testing.T) {
 	run := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","urgency":"urgente","runnerId":"`+fufo+`"}`, 201)["id"].(string)
 	open := s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Toldas","urgency":"normal"}`, 201)["id"].(string)
 	beaC, yanC := s.viewerCookie("BEA123"), s.viewerCookie("YAN123")
+	fufoC, zedC := s.viewerCookie("FUFO12"), s.viewerCookie("ZED123")
 
 	// Camp detail: Bea (Norte) sees Fufo's run; Yan (Sur) sees only its status and urgency.
 	if body := s.as(beaC, "GET", "/api/full/camps/"+s.camp+"/needs", "").Body.String(); !strings.Contains(body, `"need":"Agua"`) || !strings.Contains(body, `"runnerName":"Fufo"`) {
@@ -173,30 +174,36 @@ func TestCodeUsersOnlySeeAndActOnTheirOwnTeamsRuns(t *testing.T) {
 		t.Fatalf("Sur's picker: %+v", crew)
 	}
 	for _, other := range []string{fufo, solo} {
-		if w := s.as(yanC, "POST", "/api/full/needs/"+open+"/runner", `{"runnerId":"`+other+`"}`); w.Code != 400 {
+		if w := s.as(zedC, "POST", "/api/full/needs/"+open+"/runner", `{"runnerId":"`+other+`"}`); w.Code != 400 {
 			t.Fatalf("can't hand a run to another team's runner: %d", w.Code)
 		}
 	}
 	// Another team's run can't be reassigned, unassigned, packed or photographed.
 	for _, body := range []string{`{"runnerId":"` + zed + `"}`, `{"runnerId":""}`} {
-		if w := s.as(yanC, "POST", "/api/full/needs/"+run+"/runner", body); w.Code != 403 {
+		if w := s.as(zedC, "POST", "/api/full/needs/"+run+"/runner", body); w.Code != 403 {
 			t.Fatalf("other team's run: %d %s", w.Code, w.Body.String())
 		}
 	}
-	if w := s.as(yanC, "POST", "/api/full/needs/"+run+"/packing", `{"items":[{"item":"Linternas","quantity":1}]}`); w.Code != 403 {
+	if w := s.as(zedC, "POST", "/api/full/needs/"+run+"/packing", `{"items":[{"item":"Linternas","quantity":1}]}`); w.Code != 403 {
 		t.Fatalf("other team's packing: %d", w.Code)
 	}
-	if w := rawUpload(s, "/api/full/needs/"+run+"/media?stage=pickup", yanC, "", "image/jpeg", []byte("\xff\xd8\xff x")); w.Code != 404 {
+	if w := rawUpload(s, "/api/full/needs/"+run+"/media?stage=pickup", zedC, "", "image/jpeg", []byte("\xff\xd8\xff x")); w.Code != 404 {
 		t.Fatalf("other team's photo: %d", w.Code)
 	}
-	if w := s.as(beaC, "POST", "/api/full/needs/"+run+"/packing", `{"items":[{"item":"Linternas","quantity":1}]}`); w.Code != 200 {
+	if w := s.as(fufoC, "POST", "/api/full/needs/"+run+"/packing", `{"items":[{"item":"Linternas","quantity":1}]}`); w.Code != 200 {
 		t.Fatalf("teammate packs: %d %s", w.Code, w.Body.String())
 	}
-	if w := s.as(yanC, "POST", "/api/full/needs/"+open+"/runner", `{"runnerId":"`+zed+`"}`); w.Code != 200 {
+	// A teammate without the Runner role (Bea, agent) sees the run but can't pack it or hand it out.
+	if w := s.as(beaC, "POST", "/api/full/needs/"+run+"/packing", `{"items":[{"item":"Linternas","quantity":1}]}`); w.Code != 403 {
+		t.Fatalf("non-runner teammate packs: %d", w.Code)
+	}
+	if w := s.as(yanC, "POST", "/api/full/needs/"+open+"/runner", `{"runnerId":"`+zed+`"}`); w.Code != 403 {
+		t.Fatalf("non-runner assigns: %d", w.Code)
+	}
+	if w := s.as(zedC, "POST", "/api/full/needs/"+open+"/runner", `{"runnerId":"`+zed+`"}`); w.Code != 200 {
 		t.Fatalf("own team: %d %s", w.Code, w.Body.String())
 	}
 	// Live map: Fufo shares; Bea sees him, Yan doesn't.
-	fufoC := s.viewerCookie("FUFO12")
 	s.as(fufoC, "POST", "/api/full/location/consent", `{"accept":true}`)
 	s.as(fufoC, "POST", "/api/full/location", `{"lat":7.5,"lon":-80.3}`)
 	if body := s.as(beaC, "GET", "/api/full/runners", "").Body.String(); !strings.Contains(body, "Fufo") {
