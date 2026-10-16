@@ -22,6 +22,8 @@ html:has(dialog[open]),html:has(.modalbg.open){overflow:hidden}html:has(dialog[o
 .textsize{position:relative;margin-left:8px;flex:none}.textsize>button{height:28px;padding:0 8px;border:1px solid #47657a;border-radius:8px;background:none;color:#c8d6db;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}.textsize>button:hover,.textsize>button[aria-expanded="true"]{background:#ffffff1a;color:#fff}
 .textsize-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:3100;display:flex;align-items:center;gap:6px;background:#fff;border-radius:12px;padding:7px;box-shadow:0 10px 26px #0005}.textsize-pop[hidden]{display:none}.textsize-pop button{width:40px;height:36px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#173c46;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.textsize-pop button:disabled{opacity:.4;cursor:default}.textsize-pop span{min-width:46px;text-align:center;font:750 13px Inter,system-ui,sans-serif;color:#36505a}
 html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1))}
+.appnav-list .appnav-admin{margin-left:10px;border:1px dashed #ffb4a366;font-size:12px!important;opacity:.7;color:#ffb4a3!important}.appnav-list .appnav-admin:hover{opacity:1}
+.madmin{display:flex;align-items:center;justify-content:center;gap:6px;margin:14px auto 0;padding:6px 12px;width:max-content;border:1px dashed #ffb4a366;border-radius:8px;color:#ffb4a3;font:700 12px Inter,system-ui,sans-serif;text-decoration:none;opacity:.75}
 .mbar,.msheet{display:none}
 @media(max-width:760px){.top:has(>.mbar)>.appnav,.top:has(>.mbar) .textsize,.top:has(>.mbar)>.topright{display:none!important}.top:has(>.mbar) .brand{display:none!important}.top:has(>.mbar){gap:10px}
 .mbar{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.mlinks{flex:1;min-width:0;display:flex;gap:3px;overflow:hidden;background:#ffffff12;border-radius:11px;padding:3px}.mlinks a{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:9px;color:#c8d6db;text-decoration:none;font:800 14px Inter,system-ui,sans-serif;white-space:nowrap}.mlinks a[aria-current="page"]{background:#fff;color:#10263a}.mlinks .mi{display:inline-flex}.mbar .mtitle{display:none}.mbar.compact .mlinks a:not([aria-current]) .ml{display:none}.mbar.tight .mlinks{display:none}.mbar.tight .mtitle{display:flex}.mtitle{flex:1;min-width:0;align-items:center;gap:7px;margin:0;padding:8px 10px;border:0;border-radius:11px;background:none;color:#fff;font:800 17px Inter,system-ui,sans-serif;text-align:left;white-space:nowrap;overflow:hidden}.mtitle .mtl{min-width:0;overflow:hidden;text-overflow:ellipsis}.mtitle:not(:disabled){background:#ffffff12;cursor:pointer}.mtitle:disabled{opacity:1;cursor:default}.mtitle .chev{margin-left:auto;padding-left:4px;font-size:12px;opacity:.85}.mtitle[aria-expanded="true"]{background:#fff;color:#10263a}
@@ -59,13 +61,28 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const el = document.getElementById('appNav');
     if (!el) return;
     const u = user(), here = location.pathname === '/index.html' ? '/' : location.pathname;
-    const list = u ? pages.filter(([url, , , ok]) => url === here || ok(u)) : [];
-    const current = list.find(([url]) => url === here) || list[0];
-    el.hidden = list.length < 2;
+    let list = u ? pages.filter(([url, , , ok]) => url === here || ok(u)) : [];
+    // En el panel de administración solo Inicio y «🔒 Administración» (la actual); sus herramientas están en su ☰.
+    if (here === '/admin.html') list = [pages[0], ['/admin.html', '🔒', () => 'Administración', () => true]];
+    const adminMenu = here === '/admin.html' ? ' data-admin-menu aria-haspopup="menu" aria-controls="adminMenu"' : '';
+    const current = list.find(([url]) => url === here) || list[0] || pages[0];
+    // Administración: con el rol Admin o si este navegador tiene abierta la sesión de la contraseña maestra; va al final,
+    // apartada y pequeña, y pide confirmar para no entrar por error.
+    const admin = (adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? `<a href="/admin.html" class="appnav-admin" data-admin-link><span aria-hidden="true">🔒</span><span class="appnav-label">Administración</span></a>` : '';
+    el.hidden = list.length < 2 && !admin;
     el.classList.remove('open');
     el.setAttribute('aria-label', 'Páginas');
-    el.innerHTML = list.length < 2 ? '' : `<button type="button" class="appnav-toggle" aria-expanded="false" aria-controls="appNavList" aria-label="Cambiar de página"><span aria-hidden="true">${current[1]}</span>${esc(current[2](u))}<span class="chev" aria-hidden="true">▼</span></button><div class="appnav-list" id="appNavList">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><span class="appnav-label">${esc(label(u))}</span></a>`).join('')}</div>`;
+    el.innerHTML = list.length < 2 && !admin ? '' : `<button type="button" class="appnav-toggle" aria-expanded="false" aria-controls="appNavList" aria-label="Cambiar de página"><span aria-hidden="true">${current[1]}</span>${esc(current[2](u))}<span class="chev" aria-hidden="true">▼</span></button><div class="appnav-list" id="appNavList">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' + adminMenu : ''}><span aria-hidden="true">${icon}</span><span class="appnav-label">${esc(label(u))}</span>${url === here && adminMenu ? '<span class="chev" aria-hidden="true">▾</span>' : ''}</a>`).join('')}${admin}</div>`;
   }
+  // ¿Este navegador tiene abierta la sesión de administración? Se pregunta una vez por página (no en admin.html).
+  let adminOK = false;
+  if (location.pathname !== '/admin.html') fetch('/api/admin/session', {credentials: 'same-origin', cache: 'no-store'}).then(r => { if (r.ok) { adminOK = true; draw(); } }).catch(() => {});
+  document.addEventListener('click', async e => {
+    const a = e.target.closest('[data-admin-link]');
+    if (!a) return;
+    e.preventDefault();
+    if (await confirm('¿Abrir Administración?', {yes: 'Abrir', no: 'Cancelar', detail: 'Panel con la contraseña maestra: los cambios ahí afectan a todos.'})) location.href = a.href;
+  });
   function setOpen(open) {
     const el = document.getElementById('appNav'), b = el?.querySelector('.appnav-toggle');
     if (!b) return;
@@ -206,7 +223,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const bar = document.createElement('div');
     bar.id = 'mBar';
     bar.className = 'mbar';
-    bar.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"></nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled></button>${top.querySelector('.topsearch') ? `<button type="button" class="msearchbtn" id="mSearch" aria-expanded="false" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}</button>` : ''}<button type="button" class="madd" id="mAdd" hidden></button><button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button>`;
+    bar.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"></nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled></button>${top.querySelector('.topsearch') ? `<button type="button" class="msearchbtn" id="mSearch" aria-expanded="false" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}</button>` : ''}<button type="button" class="madd" id="mAdd" hidden></button>${document.getElementById('loginBtn') ? '<button type="button" class="mlogin" id="mLogin">Inicia sesión</button>' : ''}<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button>`;
     top.appendChild(bar);
     const sheet = document.createElement('div');
     sheet.id = 'mSheet';
@@ -293,10 +310,10 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       const list = u ? pages.filter(([url, , , ok]) => url === here || ok(u)) : [];
       const outLabel = out && out.textContent.trim() !== '✕' ? out.textContent.trim() : 'Salir';
       // Roles de quien entró (chips bajo su nombre) y las páginas de poco uso (Mi equipo), solo en este menú.
-      const roleNames = {runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', teammanager: 'Team manager'};
+      const roleNames = {runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', teammanager: 'Team manager', admin: 'Admin'};
       const roleChips = signedIn && u?.roles?.length ? `<span class="msroles">${u.roles.map(r => `<span class="msrole">${esc(roleNames[r] || r)}</span>`).join('')}</span>` : '';
       const menuOnly = signedIn && u ? pages.filter(([url, , , ok, where]) => where === 'menu' && url !== here && ok(u)).map(([url, icon, label]) => `<nav class="mpages" aria-label="Más"><a href="${url}"><span aria-hidden="true">${icon}</span>${esc(label(u))}</a></nav>`).join('') : '';
-      sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${roleChips}</b>${copyId ? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${menuOnly}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}<div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>`;
+      sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${roleChips}</b>${copyId ? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${menuOnly}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}<div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>${(adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? '<a href="/admin.html" class="madmin" data-admin-link><span aria-hidden="true">🔒</span> Administración</a>' : ''}`;
       sheet.querySelector('[data-msize="-1"]').disabled = zoom === sizes[0];
       sheet.querySelector('[data-msize="1"]').disabled = zoom === sizes[sizes.length - 1];
     }
@@ -312,6 +329,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const size = e.target.closest('[data-msize]');
     if (size) { zoom = sizes[Math.min(sizes.length - 1, Math.max(0, sizes.indexOf(zoom) + Number(size.dataset.msize)))]; try { localStorage.setItem('textZoom', String(zoom)); } catch {} applySize(); showSheet(true); return; }
     if (e.target.closest('[data-m="logout"]')) { showSheet(false); (document.getElementById('logout') || document.getElementById('codeLogout'))?.click(); return; }
+    if (e.target.closest('#mLogin')) { showSheet(false); document.getElementById('loginBtn')?.click(); return; }
     if (e.target.closest('[data-m="login"]')) { showSheet(false); document.getElementById('loginBtn')?.click(); return; }
     const cid = e.target.closest('[data-m="copyid"]');
     if (cid) { document.getElementById('copyMyId')?.click(); cid.textContent = 'ID copiado'; return; }

@@ -46,7 +46,7 @@ type teamInviteView struct {
 	Status     string `json:"status"` // pending | used | expired | revoked
 }
 
-// Roles que un team manager puede dar o quitar en su equipo; agente y donaciones (datos privados) solo administración.
+// Roles que un team manager puede dar o quitar en su equipo; agente, donaciones (datos privados) y admin solo administración.
 var teamManagerRoles = []string{roleRunner, roleBuilder, roleSupplier, roleTeamManager}
 
 func teamManagerCan(role string) bool {

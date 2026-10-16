@@ -9,8 +9,13 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-15**
+- Admin Usuarios: «📊 En vivo» box with online, users, teams and their members, en ruta, waiting for a driver and GPS active (§13).
+- Admin Usuarios: «Asignar en lote» removed from Equipos; «todos» is a header checkbox; «Seleccionados» starts collapsed with 2 or more (§13).
+- Admin «Importar reportes»: drop the .csv/.json file onto the box, or tap to choose it (§5).
+- New role **Admin** (only the admin panel can give it; team managers can't, and it stays when they change other roles); it shows «🔒 Administración» in the nav. Admin panel header uses the shared page switcher with only Inicio and Administración; «Administración ▾» opens the admin tools (with icons, grouped by lines) instead of the far-right ☰ (§2, §3).
+- Nav: «🔒 Administración» link for browsers with the admin session open, set apart and asking before opening (§2).
 - Home Resumen: no «Resumen» title or «Al …» timestamp above the figures (§14).
-- Home: «¡Ayuda!» is now «Reportar punto»; the header «Login» button is gone (sign in from «¡Empieza!»). Tabs on
+- Home: «¡Ayuda!» is now «Reportar punto»; the header sign-in button reads «Inicia sesión». Tabs on
   every page share one design: Runners/Supply pills for views, Supply underlined tabs with icons above names on
   phones for sections (§2, §14).
 - Manual checked against the change history, team-data guards, activity log and Scout: pages table, top bar, roles
@@ -100,7 +105,7 @@ Everything the community reports is *reported* data, not verified, and the app p
 
 | Page | Who | What it does |
 | --- | --- | --- |
-| `/` (home) | Public and everyone | Map and list of points, «📊 Resumen» figures (the first view on phones), «Reportar punto» (signed in: «+ Agregar punto») to report a point, «Reportar necesidad» on a selected point; signed out, the «🙌 ¿Quieres ayudar?» card's «¡Empieza!» opens the sign-in window. |
+| `/` (home) | Public and everyone | Map and list of points, «📊 Resumen» figures (the first view on phones), «Reportar punto» (signed in: «+ Agregar punto») to report a point, «Reportar necesidad» on a selected point; signed out, **«Inicia sesión»** in the header (and the «🙌 ¿Quieres ayudar?» card's «¡Empieza!») opens the sign-in window. |
 | `/signup.html` | Anyone (link to share) | Sign in with a code or create an account. When signed in, shows which pages the person can open. Also accepts team invites (`?invite=…`). |
 | `/camp.html?id=…` | Public | Public page of an approved point (no private data): need chips with their options, «Verificado por un equipo» badge, link to Google/Apple Maps, and **«🕓 Actividad del punto»** (§14). |
 | `/scout.html` («🧭 Scout») | Anyone signed in with a code (no role needed) | The points you or your team added, in a list and on a map (§14). Kept apart from the home page. |
@@ -110,9 +115,9 @@ Everything the community reports is *reported* data, not verified, and the app p
 | `/command.html` («Command») | Agent role | Call center: points, needs, checkups, report needs; change requests to other teams' data and «🕓 Historial de cambios» per point. |
 | `/donations.html` («Donaciones») | Donations role and admin | Donation tickets: offered → confirmed → at center → on the way → delivered. |
 | `/team.html` («Mi equipo») | Team manager role | Invite people to the team, see members, change their roles, remove them. Lives in the ☰ menu. |
-| `/admin.html` | Admin (master password) | Everything: review reports, points, needs, users, teams, backups, newsletter; «🕓 Historial de cambios» per point. |
+| `/admin.html` | Admin (master password) | Everything: review reports, points, needs, users, teams, backups, newsletter; «🕓 Historial de cambios» per point. Its header has the same page switcher as the other pages but only with «🏠 Inicio» and «🔒 Administración ▾»; **«Administración» opens the admin tools menu** (there is no separate ☰): 👥 Usuarios, 🎁 Donaciones │ 📥 Importar reportes (por revisar)… │ 📰 Generar boletín, 🔗 Ver último boletín ↗ │ ✅ Requerir revisión de puntos, 🔑 Cambiar contraseña maestra │ 💾 Descargar respaldo, 📂 Importar respaldo… (lines between the groups). |
 
-The top bar links to the pages the person can use: «Inicio» for everyone, «🧭 Scout» for anyone signed in with a code, then one per role. On phones rarely used ones (Mi equipo) are in the menu. If the links
+The top bar links to the pages the person can use: «Inicio» for everyone, «🧭 Scout» for anyone signed in with a code, then one per role. **«🔒 Administración»** appears for users with the **Admin** role, or in a browser that already has the admin session open (master password): last in the list on a computer and at the bottom of the ☰ menu on phones, small, dashed and faded, and it asks «¿Abrir Administración?» before going there, so it isn't opened by mistake. On phones rarely used ones (Mi equipo) are in the menu. If the links
 don't fit, they shrink to icons and then collapse into one «current page ▾» button that opens the list as a dropdown,
 so the page action (＋ «Agregar punto»), 🔍 and the menu button always stay visible on the right. When signed in, the
 menu button shows the person's **initials** in a gold circle (e.g. «MS»; tooltip with the full name) instead of ☰. The
@@ -136,6 +141,7 @@ count below.
 | `donations` | Donaciones | Donaciones | Sees donor contacts. Admin-only to grant. |
 | `supplier` | Supply | Supply | A collection center. |
 | `teammanager` | Team manager | Mi equipo | **Must belong to a team.** |
+| `admin` | Admin | Shows «🔒 Administración» in the nav | **Only the admin panel can give or remove it** (Usuarios: user form and «Asignar a un equipo»); never team managers, agents or sign-up. The admin panel itself still asks for the master password. |
 | — | Admin | admin.html | Master password; not a user role. |
 
 - A person can hold several roles.
@@ -154,7 +160,7 @@ count below.
 
 ## 4. Signing in and creating an account
 
-Every sign-in (the home «¡Empieza!» window, Runners, Constructores, Command, Supply, `signup.html`) shows two groups side by side,
+Every sign-in (the home «Inicia sesión» / «¡Empieza!» window, Runners, Constructores, Command, Supply, `signup.html`) shows two groups side by side,
 with no hidden fields:
 
 - **«Ya tengo código»** (I have a code): access code + «Recordar mi código de acceso» + «Entrar».
@@ -216,7 +222,7 @@ publishes by itself; Command and admin can publish it sooner with «🌐 Publica
 
 - «Por revisar»: Approve, Edit, Reject, «Duplicado…» (merge into an approved point).
 - Select reports with checkboxes and **⬇ Exportar CSV** (all fields, including private ones).
-- ☰ menu → **Importar reportes (por revisar)…**: an exported CSV or JSON; always imported as «Por revisar»;
+- «🔒 Administración ▾» menu → **📥 Importar reportes (por revisar)…**: an exported CSV or JSON, **dropped onto the dashed box** («Suelta aquí el archivo», which lights up green while dragging; other file types are refused with «Solo archivos .csv o .json.») or chosen by tapping it; the file name shows under it; always imported as «Por revisar»;
   re-importing the same file doesn't create duplicates.
 
 ---
@@ -554,7 +560,7 @@ Access: Donations role or admin.
   one adds a run for that runner, and adding items to a runner's run saves them as a new open need (§6). Admin with
   the master password is not an agent: its edits apply directly, without change requests. The point page ends with
   **«🕓 Historial de cambios»** (§6).
-- **Usuarios** (☰ menu) has four tabs, **«👤 Usuarios»**, **«👥 Equipos»**, **«📡 Registros en vivo»** and
+- **Usuarios** («🔒 Administración ▾» menu) has four tabs, **«👤 Usuarios»**, **«👥 Equipos»**, **«📡 Registros en vivo»** and
   **«🔗 Invitaciones»** (the tab is kept in the link: `&tab=equipos` / `registros` / `invitaciones`; the live tab shows
   how many are waiting, Invitaciones how many are pending). Registros, Equipos and the searches show each person's
   **access code** («🔑 LUCIA777», loaded one by one like the 🔑 button) instead of the user ID, and searches match it.
@@ -578,19 +584,29 @@ Access: Donations role or admin.
     ⌛ Vencidas, ✕ Anuladas, Todas and a search: team (initials), for whom (or «cualquiera»), who created it and when,
     «vence en 5 h» or who used it and when. **«Anular»** stops a pending link (asks first). It refreshes with the page
     every 10 seconds. A link can only be copied right after creating it (it is not stored).
+  - **«📊 En vivo»** box (right column on wide screens, at the top on phones; on every Usuarios tab, refreshed with the
+    list): **En línea** (of the active users), **Usuarios** (and how many have a code), **Equipos** (and people with a
+    code but no team), **En ruta** (users with a run on the way, and how many runs), **Esperando conductor** (open
+    supply needs with no runner yet, orange when there are any), **GPS activo** (people sharing their live location
+    right now; admin sees only how many, never where), and **Personas por equipo** (each team's initials, name, how
+    many are online and how many members).
   - The full list: search, «Solo con código», «Ver desactivados». Click headers to sort (click again to reverse; ▲▼
     shows direction): Usuario, Roles, Actividad, Creado (default: newest first). «Roles» filters with checkboxes
     (several at once; «Sin acceso» = no roles); «Equipo» filters by team. Empty fields are left blank. Bulk select to
-    move to a team, deactivate or activate. View/copy each user's code (🔑), email, roles, team.
+    move to a team, deactivate or activate: a checkbox per user, and a **checkbox in the column header** selects every
+    result («Todos» next to it on phones). Selected users move to **«☑ Seleccionados (N)»** above the results: open
+    with one, **collapsed with 2 or more** (tap its title or the **▾** on the right to open or fold it; that choice is
+    kept until the selection is empty). The checked box at the left of its title clears the whole selection, even
+    while it's folded. View/copy each user's code (🔑), email, roles, team.
   - **«👥 Equipos»**: create a team at the top; a **search** finds teams by name, or by a person (name, phone or ID),
     showing only their teams with just those people («1 de 5 equipos»); one **card per team** with its **★ Team manager** (red when the team
     has none yet), then its members with their roles and ID. **«☆ Hacer team manager»** gives that role in one tap
     (that person then manages the team from «Mi equipo»: invites, roles); **«Quitar»** takes someone out of the team
     (and out of Team manager), after confirming. **«＋ Agregar miembro»** searches people with a code by name, phone or
-    ID and adds them (asks before moving someone from another team). «Editar nombre» renames. Below, «Asignar en
-    lote» keeps the table to assign many users at once.
+    ID and adds them (asks before moving someone from another team). «Editar nombre» renames. (To move many people at
+    once, select them in «👤 Usuarios» and use «👥 Mover a equipo».)
   - Role names in admin always carry their page icon: 🏃 Runner, 🔨 Constructor, 🧑‍💻 Agente, 🎁 Donaciones, 📦 Supply,
-    👥 Team manager.
+    👥 Team manager, 🔒 Admin.
 - **Teams**, **newsletter** (boletín), **backup** (download; import only on test servers), **master password**.
 
 ---
@@ -599,8 +615,8 @@ Access: Donations role or admin.
 
 «📊 Resumen» is the home sidebar (on phones, the «Resumen» view, which is where the home page opens unless the link
 points to a specific point). On phones the views are switched with «Lista / Mapa / Resumen» (icon and name; «Lista» only
-for Runners). There is no «Login» button in the header any more: signed out, the header has «Reportar punto» and ☰,
-and signing in starts from «¡Empieza!» below. The summary has no title or timestamp: it starts with the card (signed
+for Runners). Signed out, the header has «Reportar punto», **«Inicia sesión»** and ☰ (on phones too); both «Inicia
+sesión» and «¡Empieza!» below open the sign-in window (code or new account). «Inicia sesión» hides once signed in. The summary has no title or timestamp: it starts with the card (signed
 out), then the note «Cifras reunidas por voluntarios: úsalas como guía, no como datos oficiales.» and the figures.
 
 - **«🙌 ¿Quieres ayudar?»** (only when not signed in): a card at the top inviting visitors to join: «Crea tu cuenta

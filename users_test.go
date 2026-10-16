@@ -43,7 +43,7 @@ func TestAdminUsersCreateEditDisable(t *testing.T) {
 		`{"name":"","telephone":"1","roles":["runner"]}`:                          "name",
 		`{"name":"B","telephone":"","roles":["runner"]}`:                          "telephone",
 		`{"name":"B","telephone":"1","roles":[]}`:                                 "roles",
-		`{"name":"B","telephone":"1","roles":["admin"]}`:                          "roles",
+		`{"name":"B","telephone":"1","roles":["superuser"]}`:                      "roles",
 		`{"name":"B","telephone":"1","roles":"runner"}`:                           "roles",
 		`{"name":"B","telephone":"1","roles":["agent"],"accessCode":"x1"}`:        "accessCode",
 		`{"name":"B","telephone":"1","roles":["agent"],"password":"x"}`:           "password",

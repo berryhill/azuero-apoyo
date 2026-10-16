@@ -28,9 +28,12 @@ const (
 	roleAgent   = "agent"
 	// Donaciones: lleva las boletas de donación (donations.html); no ve puntos privados ni carreras.
 	roleDonations = "donations"
+	// Admin: lo da y lo quita solo el panel de administración (contraseña maestra); ni team managers ni agentes.
+	// Muestra el enlace «🔒 Administración»; el panel sigue pidiendo la contraseña maestra.
+	roleAdmin = "admin"
 )
 
-var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier, roleTeamManager}
+var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier, roleTeamManager, roleAdmin}
 
 type User struct {
 	ID        string `json:"id"`
@@ -79,6 +82,8 @@ type adminUser struct {
 	TeamID        string   `json:"teamId,omitempty"`
 	// Cuándo aceptó el aviso de ubicación vigente; vacío si no lo ha aceptado (o aceptó uno anterior).
 	LocationConsentAt string `json:"locationConsentAt,omitempty"`
+	// Comparte su ubicación en vivo ahora (posición de menos de locationTTL); solo el sí/no, nunca la posición.
+	Sharing bool `json:"sharing,omitempty"`
 }
 
 func (u User) admin() adminUser {
@@ -118,7 +123,9 @@ func (a *App) touch(id string) {
 func (a *App) withPresence(u adminUser) adminUser {
 	a.mu.Lock()
 	seen, ok := a.lastSeen[u.ID]
+	loc, sharing := a.locations[u.ID]
 	a.mu.Unlock()
+	u.Sharing = sharing && time.Since(loc.At) < locationTTL
 	if ok {
 		u.Online = time.Since(seen) < onlineWindow
 		u.LastActiveAt = seen.UTC().Format(time.RFC3339)
