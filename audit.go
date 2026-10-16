@@ -294,6 +294,28 @@ func putPoint(b *bolt.Bucket, key []byte, data []byte) error {
 }
 
 // campTrail: el rastro de un punto y de sus necesidades, del más reciente al más antiguo.
+// creatorsIn: quién creó cada cosa de un punto según el rastro (Ref → ID de la persona; el propio punto bajo su ID).
+// Solo personas con cuenta: ni administración, ni el público, ni el sistema.
+func creatorsIn(tx *bolt.Tx, campID string) map[string]string {
+	out := map[string]string{}
+	b := tx.Bucket(auditBucket)
+	if b == nil || campID == "" {
+		return out
+	}
+	c := b.Cursor()
+	prefix := []byte(campID + "\x00")
+	for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
+		var e AuditEntry
+		if json.Unmarshal(v, &e) != nil || e.Action != "creó" || e.ByID == "" || e.ByID == "admin" {
+			continue
+		}
+		if _, seen := out[e.Ref]; !seen {
+			out[e.Ref] = e.ByID
+		}
+	}
+	return out
+}
+
 func (a *App) campTrail(id string) []AuditEntry {
 	out := []AuditEntry{}
 	a.db.View(func(tx *bolt.Tx) error {

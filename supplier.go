@@ -159,6 +159,11 @@ const historyDays, historyMax = 30, 60
 
 type supplierRun struct {
 	runnerNeed
+	// «Por surtir»: última actualización de la necesidad (needActivity); ordena la lista y se muestra «hace …».
+	ActivityAt string `json:"activityAt,omitempty"`
+	// «Por surtir», solo para quien es de un equipo: quién agregó la necesidad (o, si no consta, el punto) y su teléfono.
+	AddedByName  string `json:"addedByName,omitempty"`
+	AddedByPhone string `json:"addedByPhone,omitempty"`
 	RunnerName       string `json:"runnerName,omitempty"`
 	RunnerPhone      string `json:"runnerPhone,omitempty"`
 	DispatchedAt     string `json:"dispatchedAt,omitempty"`
@@ -371,7 +376,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			if e != nil {
 				return e
 			}
-			camps := map[string]runnerCamp{}
+			camps, adders, creators := map[string]runnerCamp{}, map[string]string{}, map[string]map[string]string{}
 			if e := tx.Bucket(submissions).ForEach(func(_, v []byte) error {
 				var p Point
 				if e := json.Unmarshal(v, &p); e != nil {
@@ -379,10 +384,14 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				}
 				if p.Status == "approved" && !heldFrom(p, tv.team) {
 					contacts := campContacts(p)
-					// Paneles con sesión: el equipo y quién verificó sí se muestran (publicPoint los quita).
+					adders[p.ID] = p.AddedBy
+					// Quien es de un equipo ve qué equipo y quién verificó; sin equipo, como el público: solo la insignia
+					// (publicPoint los quita).
 					vTeam, vBy := p.VerifiedTeam, p.VerifiedBy
 					p = publicPoint(p)
-					p.VerifiedTeam, p.VerifiedBy = vTeam, vBy
+					if tv.team != "" {
+						p.VerifiedTeam, p.VerifiedBy = vTeam, vBy
+					}
 					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Adults: p.Adults, Children: p.Children, Babies: p.Babies, OlderAdults: p.OlderAdults, Disabled: p.Disabled, Families: p.Families, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt}
 				}
 				return nil
@@ -417,7 +426,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				if n.Need, _ = splitRepair(n.Need); n.Need == "" {
 					return nil
 				}
-				run := supplierRun{runnerNeed: runnerNeed{Also: alsoFor(tx, groups, n), VerifiedTeam: n.VerifiedTeam, VerifiedBy: n.VerifiedBy, VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName}
+				run := supplierRun{runnerNeed: runnerNeed{Also: alsoFor(tx, groups, n), VerifiedTeam: teamOnly(tv, n.VerifiedTeam), VerifiedBy: teamOnly(tv, n.VerifiedBy), VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName}
 				if n.Status == "OPEN" {
 					run.Media, run.Packing = nil, nil
 					// «¡Yo abastezco!»: si este acopio ya ofreció y cuántos acopios ofrecen en total.
@@ -428,6 +437,25 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 					for _, o := range n.OpenOffers {
 						if o.Can {
 							run.OfferedBy++
+						}
+					}
+					run.ActivityAt = needActivity(n)
+					if tv.team != "" {
+						if creators[n.CampID] == nil {
+							creators[n.CampID] = creatorsIn(tx, n.CampID)
+						}
+						by := n.CreatedBy
+						if by == "" {
+							by = creators[n.CampID][n.ID]
+						}
+						if by == "" {
+							by = adders[n.CampID]
+						}
+						if by == "" {
+							by = creators[n.CampID][n.CampID]
+						}
+						if u, found := getUser(tx, by); found {
+							run.AddedByName, run.AddedByPhone = u.Name, u.Telephone
 						}
 					}
 					open = append(open, run)
@@ -491,13 +519,8 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			}
 			return runs[i].EnRouteAt > runs[j].EnRouteAt
 		})
-		// Para pedir corredor: urgentes primero, luego lo que más tiempo lleva esperando.
-		sort.SliceStable(open, func(i, j int) bool {
-			if ri, rj := urgencyRank(open[i].Urgency), urgencyRank(open[j].Urgency); ri != rj {
-				return ri > rj
-			}
-			return open[i].CreatedAt < open[j].CreatedAt
-		})
+		// «Por surtir»: la necesidad actualizada más recientemente primero (crear, editar, cambiar urgencia, soltar…).
+		sort.SliceStable(open, func(i, j int) bool { return open[i].ActivityAt > open[j].ActivityAt })
 		sort.SliceStable(runners, func(i, j int) bool { return runnerNameKey(runners[i].Name) < runnerNameKey(runners[j].Name) })
 		// Historial: lo último entregado primero.
 		sort.SliceStable(history, func(i, j int) bool { return history[i].CompletedAt > history[j].CompletedAt })

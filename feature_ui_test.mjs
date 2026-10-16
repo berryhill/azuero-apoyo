@@ -1625,7 +1625,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.doesNotMatch(agent, /\$\('#needDialog'\)\.close\(\)/, 'every close goes through closeNeedDlg');
   assert.doesNotMatch(agent, /if\(e\.target===d\)\{d\.close\(\)/, 'tapping the backdrop does not close it');
   assert.doesNotMatch(agent.match(/function openSupplyStep[^\n]*/)[0], /\.focus\(\)/, 'no auto-focus (no surprise keyboard)');
-  assert.match(agent, /<span class="state">\$\{n\.status==='OPEN'\?'Necesita':n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada':needLook\[n\.status\]\[1\]\}<\/span>[^`]*?\$\{needChips\(n\.need\)\}\$\{runnerBlock\(n,actions===true\)\}/, 'open needs read «Necesita» right before the chips');
+  assert.match(agent, /<span class="state">\$\{n\.status==='OPEN'\?'Necesita':n\.kind==='repair'&&n\.status==='IN_PROGRESS'\?'🔨 En obra':n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada':needLook\[n\.status\]\[1\]\}<\/span>[^`]*?\$\{needChips\(n\.need\)\}[^\n]*?\$\{runnerBlock\(n,actions===true\)\}/, 'open needs read «Necesita» right before the chips');
   assert.match(agent, /\.needlist \.open \.state\{background:#173c46;color:#fff\}/, 'not red: red is for Urgente');
   assert.doesNotMatch(agent, /Corredor/);
   assert.match(agent, /const needOrder=\(a,b\)=>Object\.keys\(needLook\)\.indexOf\(a\.status\)-Object\.keys\(needLook\)\.indexOf\(b\.status\)\|\|/, 'abiertas first, then en camino, then completed');
@@ -1642,7 +1642,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /body:not\(\.cview-overview\) \.mapcorner\{display:none\}body\.cview-overview \.boardmain\{display:none\}/);
   // Phone: the need windows are full-screen with a fixed bar: «‹ Atrás» left, title, main action right.
   assert.match(agent, /<div class="dlghead"><button type="button" class="dlgback" data-act="cancel">‹ Atrás<\/button><div class="dlgtitle">[^`]*<\/div><button type="submit" class="dlgsave">\$\{n\?'Guardar':'Reportar'\}<\/button>/);
-  assert.match(agent, /<button type="button" class="dlgback" data-act="cancel">‹ Más tarde<\/button>[^`]*<button type="submit" class="dlgsave">Despachar<\/button>/);
+  assert.match(agent, /<button type="button" class="dlgback" data-act="cancel">‹ Más tarde<\/button>[^`]*<button type="submit" class="dlgsave">\$\{repair\?'Asignar':'Despachar'\}<\/button>/);
   assert.match(agent, /@media\(max-width:760px\)\{\.needdlg\{width:calc\(100vw \/ var\(--text-zoom,1\)\);max-width:calc\(100vw \/ var\(--text-zoom,1\)\);height:calc\(100dvh \/ var\(--text-zoom,1\)\);[^}]*\}[^@]*\.needdlg \.dlghead\{position:sticky;top:0;/);
   assert.match(agent, /\.needdlg \.dlgx,\.needdlg \.formacts\{display:none\}/);
   // Like the admin ficha: an opened point stands alone with «← Puntos» + title; editing is its own history step with
@@ -1686,7 +1686,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /\(pending\?'':`<div class="rownone">\$\{reportBtn\}<\/div>`\)/, 'no «sin necesidades» text: just the Reportar button');
   assert.doesNotMatch(agent, /Sin necesidades abiertas ni en camino|Todavía no hay necesidades de servicio/);
   // Need window (Actualizar and Reportar share it): state buttons, required who with typeahead (new runner allowed), packing list.
-  assert.match(agent, /<div class="urgseg stateseg" role="radiogroup" aria-label="Estado"><label><input type="radio" name="status" value="OPEN" checked><span>Necesita<\/span><\/label><label class="route"><input type="radio" name="status" value="IN_PROGRESS"><span>\$\{icoWalk\}En camino<\/span><\/label><label class="done"><input type="radio" name="status" value="COMPLETED"><span>\$\{icoDone\}Completada<\/span><\/label><\/div>/);
+  assert.match(agent, /<div class="urgseg stateseg" role="radiogroup" aria-label="Estado"><label><input type="radio" name="status" value="OPEN" checked><span>Necesita<\/span><\/label><label class="route"><input type="radio" name="status" value="IN_PROGRESS"><span>\$\{repair\?'🔨 En obra':icoWalk\+'En camino'\}<\/span><\/label><label class="done"><input type="radio" name="status" value="COMPLETED"><span>\$\{icoDone\}Completada<\/span><\/label><\/div>/);
   assert.doesNotMatch(agent.match(/function needForm\(n,p\)[^]*?<\/form>`\}/)[0], /DELETED|Eliminada/, '«Eliminada» is «Ya no necesita nada», not an option');
   assert.match(agent, /<input id="whoInput" name="who" autocomplete="off" spellcheck="false" placeholder="Escribe o elige un nombre…" role="combobox"[^>]*><button type="button" class="tacaret" data-act="whoall" aria-label="Ver la lista"/, 'typeahead with a ▾ to pick from the whole list');
   assert.match(agent, /\$\{myTeam\(\)\?'<label class="teamtoggle"><input type="checkbox" data-teamonly checked> Solo mi equipo<\/label>':''\}/, 'agents on a team get «Solo mi equipo», on by default');
@@ -1701,16 +1701,16 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /\$\{n\?`<div class="dlgsec statesec"><div class="dlglabel">Estado<\/div>/, 'step 1 has no state, runner or packing');
   assert.match(agent, /if\(!editing&&supply\)\{notice='Necesidad reportada\.';await refresh\(\);openSupplyStep\(/);
   const step2 = agent.match(/function supplyForm\(n,p\)[^\n]*(\n[^\n]*){5}/)[0];
-  assert.match(step2, /<p class="supplyq">¿La suplimos ahora\?<\/p>/);
+  assert.match(step2, /<p class="supplyq">\$\{repair\?'¿Quién hace la obra\?':'¿La suplimos ahora\?'\}<\/p>/);
   assert.match(step2, /<div class="dlgsec"><div class="packbox"><\/div><button type="button" class="bigact" data-act="needpack">📦 Preparar lista de empaque<\/button>/);
-  assert.match(step2, /<div class="dlglabel">Despachar a un \$\{who\}<\/div><div class="whobox">\$\{whoInputHtml\(\)\}/);
+  assert.match(step2, /<div class="dlglabel">\$\{repair\?'Asignar a un constructor':'Despachar a un '\+who\}<\/div><div class="whobox">\$\{whoInputHtml\(\)\}/);
   assert.match(step2, /<div class="dlgsec"><div class="dlglabel">Documentar partida<\/div>\$\{mediaOn\?'<div class="pthumbs pickupthumbs"><\/div>/, '«Documentar partida» is the section title');
   assert.match(agent, /<button type="button" class="pthumb add\$\{list\.length\?'':' empty'\}" data-act="pickphotos" aria-label="Agregar foto o video">\$\{list\.length\?'\+':'＋ Agregar foto o video'\}<\/button>/, '«+» tile adds another');
   assert.match(agent, /<dialog id="mediaViewer" class="mviewer" aria-label="Foto de partida"><div class="mvbody" id="mvBody"><\/div><div class="mvacts"><button type="button" class="mvdel" id="mvDelete">Eliminar<\/button><button type="button" class="mvclose" id="mvClose">Cerrar<\/button><\/div><\/dialog>/);
   assert.match(agent, /send\('\/api\/agent\/needs\/'\+encodeURIComponent\(v\.needId\)\+'\/media\/'\+encodeURIComponent\(v\.mediaId\),'DELETE',\{\}\)/, 'delete a mistaken photo');
   assert.match(agent, /<dialog id="pickDialog" class="confirmdlg" aria-labelledby="pickTitle"><form method="dialog" class="confirmbox"><h2 id="pickTitle">Documentar partida<\/h2><div class="mediabtns pickbtns"><button type="button" class="btn plain" data-pick="pickPhoto">📷 Tomar foto<\/button><button type="button" class="btn plain" data-pick="pickVideo">🎥 Grabar video<\/button><button type="button" class="btn plain" data-pick="pickGallery">🖼️ Galería<\/button>/, 'same camera / video / gallery picker as the runner page');
   assert.match(agent, /<input type="file" id="pickPhoto" accept="image\/\*" capture="environment" hidden>/, 'Tomar foto opens the camera');
-  assert.match(step2, /<button type="button" class="act" data-act="cancel">Más tarde<\/button><button type="submit" class="act go">Despachar<\/button>/);
+  assert.match(step2, /<button type="button" class="act" data-act="cancel">Más tarde<\/button><button type="submit" class="act go">\$\{repair\?'Asignar constructor':'Despachar'\}<\/button>/);
   assert.match(agent, /PointForm\.uploadMedia\('\/api\/agent\/needs\/'\+encodeURIComponent\(id\)\+'\/media\?stage=pickup',file,\{csrf,/);
   assert.match(agent, /'PATCH',repair\?\{builderId:assignee,status:'IN_PROGRESS'\}:\{runnerId:assignee,status:'IN_PROGRESS'\}\)/, 'dispatch sends it en camino with the runner');
   assert.match(agent, /if\(act==='editneed'\|\|act==='newneed'\)\{openNeedDialog\(act==='editneed'\?n:null,p\);return\}/);
@@ -1886,6 +1886,20 @@ test('runner «Se necesita» filter: a plain select Todas / Solo mi equipo', () 
   assert.match(runner, /\$\('#teamSelect'\)\.onchange=e=>\{teamOnly=e\.target\.value==='1';render\(\)\};/);
 });
 
+test('Command: home repairs show the builder\'s work (progress, what\'s missing, materials, evaluations, photos) and repair wording', () => {
+  const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
+  assert.match(cmd, /function needMedia\(n\)\{if\(n\.kind==='repair'\)return repairInfo\(n\);/);
+  const rep = cmd.match(/function repairInfo\(n\)\{[^\n]*/)[0];
+  for (const bit of ["'/api/agent/media/'", 'Avance ${clean(n.progress||0)}%', 'Qué falta:', 'Materiales:', 'Evaluaciones (${ev.length})', "[['inspect','Evaluación'],['before','Antes'],['progress','Avance'],['after','Final']]"]) assert.ok(rep.includes(bit), bit);
+  assert.match(cmd, /El constructor todavía no documentó la obra/);
+  assert.match(cmd, /\$\{repair\?'¿Quién hace la obra\?':'¿La suplimos ahora\?'\}/);
+  assert.match(cmd, /\$\{repair\?'🔨 En obra':icoWalk\+'En camino'\}/);
+});
+test('Supply «Por surtir» cards show when the need was last updated («🕓 Actualizada hace …»)', () => {
+  const sup = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  assert.match(sup, /function reqCard\(n\)\{[^\n]*?\$\{n\.activityAt\?`<p class="reqwhen"[^`]*>🕓 Actualizada \$\{clean\(ago\(n\.activityAt\)\)\}<\/p>`:''\}/);
+  assert.match(sup, /const ago=v=>\{[^\n]*hace \$\{Math\.max\(1,m\)\} min/);
+});
 test('phone header (nav.js, panels): logo · page name · «+» page action · ☰ menu with name + Salir, pages and text size', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
   assert.match(nav, /bar\.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"><\/nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled><\/button>\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"[^`]*` : ''\}<button type="button" class="madd" id="mAdd" hidden><\/button>\$\{document\.getElementById\('loginBtn'\) \? '<button type="button" class="mlogin" id="mLogin">Inicia sesión<\/button>' : ''\}<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">/, 'pages · 🔍 (public page) · action · ☰');
@@ -2512,17 +2526,22 @@ test('home on phones opens on «📊 Resumen» (a link to a point still opens th
 });
 
 test('«Verificado por equipo»: gold badge on points and needs across pages; public pages without names', () => {
+  const pfSrc = readFileSync(new URL('./pointform.js', import.meta.url), 'utf8');
   const ctx = PointForm;
   assert.equal(ctx.verifiedBadge({}), '');
-  assert.match(ctx.verifiedBadge({verifiedAt: '2026-10-15T12:00:00Z'}), /^<span class="pf-verified" title="Verificado por un equipo · [^"]+" role="img"/);
-  assert.match(ctx.verifiedBadge({verifiedAt: '2026-10-15T12:00:00Z', verifiedTeam: 'Equipo Norte', verifiedBy: 'Ana'}, {text: true}), /title="Verificado por el equipo Norte · Ana · [^"]+"[^>]*><svg[^]*<\/svg><span>Equipo Norte<\/span><\/span>$/);
+  assert.equal(ctx.verifiedBadge({verifiedAt: '2026-10-15T12:00:00Z'}, {text: true}).replace(/<svg[^]*<\/svg>/, ''), '<span class="pf-verified" title="Verificado" role="img" aria-label="Verificado"></span>', 'without team data (public, no team): just the icon, no details');
+  assert.match(ctx.verifiedBadge({verifiedAt: '2026-10-15T12:00:00Z', verifiedTeam: 'Equipo Norte', verifiedBy: 'Ana'}, {text: true}), /^<button type="button" class="pf-verified tap" data-verified="Verificado por el equipo Norte · Ana · [^"]+" aria-expanded="false" aria-label="Verificado: ver qué equipo"><svg[^]*<\/svg><\/button>$/, 'team members: icon only; tapping it shows the team');
+  assert.match(pfSrc, /pop\.textContent = b\.dataset\.verified;/);
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8'), supplier = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8'), cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8'), camp = readFileSync(new URL('./camp.html', import.meta.url), 'utf8');
-  for (const page of [runner, supplier]) assert.match(page, /v=\(n\.verifiedAt\|\|''\)>\(c\.verifiedAt\|\|''\)\?n:c;[^\n]*PointForm\.verifiedBadge\(v,\{text:true\}\)/);
+  assert.match(runner, /v=\(n\.verifiedAt\|\|''\)>\(c\.verifiedAt\|\|''\)\?n:c;[^\n]*PointForm\.verifiedBadge\(v,\{text:true\}\)/);
+  assert.match(supplier, /const verifiedOf=n=>\{const c=n\.camp,v=\(n\.verifiedAt\|\|''\)>\(c\.verifiedAt\|\|''\)\?n:c;return [^\n]*PointForm\.verifiedBadge\(v\)/);
+  assert.match(supplier, /<b>\$\{clean\(c\.area\|\|c\.code\)\}<\/b>\$\{n\.addedByName\?'':verifiedOf\(n\)\}/, 'Supply: badge in the title unless «Agregado por» shows it');
   assert.match(cmd, /\$\{vb\(n,\{text:true\}\)\}\$\{needChips\(n\.need\)\}/);
   assert.match(admin, /\$\{PointForm\.verifiedBadge\(n,\{text:true\}\)\}`;/);
   assert.match(template, /\$\{urgentBadge\(n\.urgency\)\}\$\{vb\(n\)\}\$\{when\}/);
   assert.match(camp, /<h1>\$\{clean\(p\.code\)\}\$\{verified\(p\)\}<\/h1>/);
-  assert.match(camp, /<span>Verificado por un equipo<\/span>/);
+  assert.doesNotMatch(camp, /Verificado por un equipo/, 'public point page: icon only');
+  assert.match(camp, /title="Verificado" role="img" aria-label="Verificado"/);
 });
 
 test('builders see the materials requested with a house repair', () => {
@@ -2630,7 +2649,14 @@ test('«Reportado por» (megaphone) replaces «Coordinador» in labels; the stor
   assert.match(pointformSrc, /input\('coordinatorPhone', 'Teléfono de quien reporta'/);
   assert.doesNotMatch(pub, /Personas del grupo/, 'no redundant title');
   assert.match(pub, /<p class="pf-hint"><b>Al menos un contacto con teléfono es obligatorio\.<\/b><\/p><div class="pf-members"><\/div><button type="button" class="pf-addmember">＋ Agregar otro contacto<\/button>/);
-  for (const page of ['supplier.html', 'builder.html']) assert.match(readFileSync(new URL('./' + page, import.meta.url), 'utf8'), /<small class="role">Reportado por<\/small>/, page);
+  assert.match(readFileSync(new URL('./builder.html', import.meta.url), 'utf8'), /<small class="role">Reportado por<\/small>/);
+  const sup = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(sup, /Reportado por/, 'Supply cards: the reporter is just the name and phone');
+  assert.match(sup, /when=n\.activityAt\?'':n\.revisedAt\|\|n\.createdAt;/, 'Por surtir cards: no «hace …» in the people row (they have «Actualizada hace …»)');
+  assert.match(sup, /🏃 Asignar a runner<\/button>\$\{needButtons\(n\)\}<\/div><\/article>`\}/, 'share button in the same row as ¡Yo abastezco! / Asignar a runner');
+  assert.match(sup, /match=n=>teamOk\(n\)&&\(!q\|\|foldNeed\(\[n\.runnerName,n\.runnerPhone,n\.addedByName,/, 'search finds who added it');
+  assert.match(sup, /const addedByLine=n=>n\.addedByName\?`<p class="reqby">🧭 Agregado por <b>\$\{clean\(n\.addedByName\)\}<\/b>\$\{verifiedOf\(n\)\}\$\{n\.addedByPhone\?` <button type="button" class="telbtn" data-tel=/, '«Agregado por» with a tappable phone (sent only to team members)');
+  assert.match(sup, /href="tel:\$\{clean\(d\)\}">📞 Llamar<\/a><a class="btn small wa"[^>]*>💬 WhatsApp<\/a>/);
   assert.match(readFileSync(new URL('./runner.html', import.meta.url), 'utf8'), /title="Reportado por \$\{n\}: ver teléfono"/, 'Runners: the reporter is the tappable name');
   assert.match(runner, /<small class="role">Pidió<\/small> \$\{clean\(n\.requesterName\)\}/, 'whoever asked for a need');
   assert.doesNotMatch(admin, /coordinator:'Coordinador'/);

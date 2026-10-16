@@ -623,3 +623,56 @@ func TestSupplyCentersRenameArchiveAndOldRequests(t *testing.T) {
 		t.Fatalf("old request is now Julie's offer: %+v", r)
 	}
 }
+
+// «Por surtir» lists the most recently updated need first (not urgency, not the oldest), so a need someone just
+// changed rises to the top.
+func TestSupplyOpenNewestUpdateFirst(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)
+	for _, need := range []string{"Agua", "Carpas", "Pañales"} {
+		s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"`+need+`","status":"OPEN","urgency":"normal"}`, 201)
+	}
+	// Timestamps set directly (the clock has one-second resolution): Carpas was updated last, then Agua (urgent), then Pañales.
+	stamps := map[string][2]string{"Agua": {"2026-10-01T10:00:00Z", "2026-10-03T10:00:00Z"}, "Carpas": {"2026-10-02T10:00:00Z", "2026-10-05T10:00:00Z"}, "Pañales": {"2026-10-04T10:00:00Z", "2026-10-04T10:00:00Z"}}
+	for _, n := range s.needsOf(s.camp) {
+		n := n
+		n.CreatedAt, n.UpdatedAt = stamps[n.Need][0], stamps[n.Need][1]
+		if n.Need == "Agua" {
+			n.Urgency = "urgente"
+		}
+		s.app.db.Update(func(tx *bolt.Tx) error { return putJSON(tx.Bucket(needsBucket), n.ID, n) })
+	}
+	julie, _ := s.supplierLogin("JULIE77")
+	var got []string
+	for _, r := range s.supplierView(julie).Open {
+		got = append(got, r.Need)
+		if r.ActivityAt != stamps[r.Need][1] {
+			t.Fatalf("%s activityAt %q, want %q", r.Need, r.ActivityAt, stamps[r.Need][1])
+		}
+	}
+	if strings.Join(got, "|") != "Carpas|Pañales|Agua" {
+		t.Fatalf("Por surtir order: %q", got)
+	}
+}
+
+// «Por surtir»: «Agregado por» (who added the need, or the point) with their phone, only for people on a team.
+func TestSupplyOpenAddedByOnlyForTeams(t *testing.T) {
+	s := newServiceHarness(t)
+	julie := s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)["id"].(string)
+	s.expect("POST", "/api/admin/users", `{"name":"Solo Acopio","telephone":"6999-1212","roles":["supplier"],"accessCode":"SOLO77"}`, 201)
+	ana := s.expect("POST", "/api/admin/users", `{"name":"Ana Agente","telephone":"6999-3030","roles":["agent"],"accessCode":"ANA777"}`, 201)["id"].(string)
+	s.team("Norte", julie, ana)
+	ac, at := s.agentLogin("ANA777")
+	if w := s.agentCall("POST", "/api/agent/camps/"+s.camp+"/needs", `{"need":"Agua","urgency":"normal"}`, ac, at); w.Code != 201 {
+		t.Fatalf("need: %d %s", w.Code, w.Body.String())
+	}
+	jc, _ := s.supplierLogin("JULIE77")
+	open := s.supplierView(jc).Open
+	if len(open) != 1 || open[0].AddedByName != "Ana Agente" || open[0].AddedByPhone != "6999-3030" {
+		t.Fatalf("team member sees who added it: %+v", open)
+	}
+	sc, _ := s.supplierLogin("SOLO77")
+	if w := s.agentCall("GET", "/api/supplier/runs", "", sc, ""); strings.Contains(w.Body.String(), "addedBy") || strings.Contains(w.Body.String(), "6999-3030") {
+		t.Fatalf("no team: no «Agregado por»: %s", w.Body.String())
+	}
+}

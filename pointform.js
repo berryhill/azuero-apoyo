@@ -87,7 +87,8 @@
 .pf-need span svg{color:#2d7f86;flex:none}.pf-need span:after{content:"";margin-left:auto;width:16px;height:16px;border:1.5px solid #b7c7ca;border-radius:4px;flex:none}
 .pf-need input:checked+span{border-color:#2d7f86;background:#eaf6f3;color:#173c46}.pf-need input:checked+span:after{background:#2d7f86 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/12px no-repeat;border-color:#2d7f86}
 .pf-chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}.pf-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #d5e0e2;border-radius:16px;padding:3px 9px;font-size:13px;font-weight:650;color:#1f3a46;background:#fff}.pf-chip svg{color:#2d7f86;flex:none}.pf-chip.text{border-style:dashed}
-.pf-verified{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;margin-left:5px;line-height:1}.pf-verified svg{flex:none;filter:drop-shadow(0 1px 1px #a8740055)}.pf-verified.text{padding:2px 8px 2px 4px;border:1px solid #e9c46a;border-radius:999px;background:#fff8e1;color:#7a5600;font-size:11px;font-weight:800}
+.pf-verified{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;margin-left:5px;line-height:1}.pf-verified svg{flex:none;filter:drop-shadow(0 1px 1px #a8740055)}.pf-verified.tap{border:0;background:none;padding:2px;margin-left:3px;cursor:pointer;border-radius:50%}.pf-verified.tap:hover,.pf-verified.tap[aria-expanded="true"]{background:#fff3cd}
+.pf-vpop{position:absolute;z-index:4000;max-width:260px;background:#fff;border:1px solid #e9c46a;border-radius:10px;box-shadow:0 10px 26px #17354233;padding:8px 10px;font:700 13px/1.35 Inter,system-ui,sans-serif;color:#5a4100}
 .pf-netbadge{display:inline-flex;align-items:center;margin-left:6px;padding:1px 7px;border-radius:999px;background:#e7eef0;color:#36505a;font:800 11px/1.5 system-ui,sans-serif;letter-spacing:.01em;white-space:nowrap;text-transform:none}.pf-net-tigo{background:#00377b;color:#fff;box-shadow:inset 0 -2px 0 #00c8ff}.pf-net-masmovil{background:#0153ba;color:#fff}.pf-net-beber{background:#d8ecfb;color:#134d7a}.pf-net-cocinar{background:#d9f2ea;color:#14594a}.pf-net-preparada{background:#fde3cf;color:#8a3a09}.pf-net-ingredientes{background:#e6f3d5;color:#3c5a14}.pf-net-gasolina{background:#f2a900;color:#2b1d00}.pf-net-diesel{background:#2f3a40;color:#fff}.pf-net-tropigas{background:#e35205;color:#fff}.pf-net-panagas{background:#272974;color:#fff;box-shadow:inset 0 -2px 0 #e11e26}
 .pf-datanet{margin-top:10px}.pf-datanet-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:750;color:#173c46;margin-bottom:5px}.pf-datanet-label svg{color:#2d7f86}
 .pf-need input:focus-visible+span{outline:2px solid #2d7f86}.pf-repair span svg{color:#1f63c6}.pf-repair input:checked+span{border-color:#1f63c6;background:#e9f1fc}.pf-repair input:checked+span:after{background-color:#1f63c6;border-color:#1f63c6}.pf-need em{font-style:normal}.pf-need em small{display:block;font-size:11px;font-weight:700;color:#ae4f32}.pf-need em small.pf-dup{color:#677c83}.pf-otros[hidden]{display:none}.pf label.pf-otros{margin-top:8px}
@@ -148,10 +149,35 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   // Chip de una necesidad con marca (para las listas de cada página); '' si no lo es.
   const needChip = (part, cls = 'chip') => { const x = brandOf(part); return x ? `<span class="${cls}">${needIconOf(x.label)}${esc(x.label)}${brandBadge(x.label, x.brand)}</span>` : ''; };
   // «Verificado por equipo»: insignia dorada cuando alguien de un equipo creó o actualizó el punto o la necesidad (revisión
-  // más a fondo). Con acceso dice qué equipo y quién; en público, solo «Verificado por un equipo».
+  // más a fondo). Quien es de un equipo ve qué equipo y quién (el servidor solo se lo manda a ellos); los demás y el
+  // público, solo el ícono («Verificado», sin equipo, persona ni fecha).
   const AWARD = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6.5" fill="#f2b705" stroke="#a87400" stroke-width="1.5"/><path d="M8.2 14.2 6.5 22l5.5-3 5.5 3-1.7-7.8" fill="#f2b705" stroke="#a87400" stroke-width="1.5" stroke-linejoin="round"/><path d="m9.3 9 1.9 1.9 3.6-3.7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const verifiedTitle = x => { const d = new Date(x.verifiedAt), when = isNaN(d) ? '' : d.toLocaleDateString('es-PA', {day: 'numeric', month: 'short'}); return x.verifiedTeam ? `Verificado por el equipo ${x.verifiedTeam.replace(/^equipo\s+/i, '')}${x.verifiedBy ? ' · ' + x.verifiedBy : ''}${when ? ' · ' + when : ''}` : `Verificado por un equipo${when ? ' · ' + when : ''}`; };
-  const verifiedBadge = (x, {text = false} = {}) => x && x.verifiedAt ? `<span class="pf-verified${text ? ' text' : ''}" title="${esc(verifiedTitle(x))}" role="img" aria-label="${esc(verifiedTitle(x))}">${AWARD}${text ? `<span>${esc(x.verifiedTeam ? 'Equipo ' + x.verifiedTeam.replace(/^equipo\s+/i, '') : 'Verificado')}</span>` : ''}</span>` : '';
+  const verifiedTitle = x => { const d = new Date(x.verifiedAt), when = isNaN(d) ? '' : d.toLocaleDateString('es-PA', {day: 'numeric', month: 'short'}); return x.verifiedTeam ? `Verificado por el equipo ${x.verifiedTeam.replace(/^equipo\s+/i, '')}${x.verifiedBy ? ' · ' + x.verifiedBy : ''}${when ? ' · ' + when : ''}` : 'Verificado'; };
+  // Siempre solo el ícono. Con los datos del equipo (solo llegan a quien es de un equipo) es un botón: tocarlo muestra
+  // qué equipo, quién y cuándo. Sin ellos (público, sin equipo) es solo el ícono, sin detalles.
+  const verifiedBadge = x => !x || !x.verifiedAt ? '' : x.verifiedTeam
+    ? `<button type="button" class="pf-verified tap" data-verified="${esc(verifiedTitle(x))}" aria-expanded="false" aria-label="Verificado: ver qué equipo">${AWARD}</button>`
+    : `<span class="pf-verified" title="Verificado" role="img" aria-label="Verificado">${AWARD}</span>`;
+  const closeVerified = () => { document.querySelectorAll('.pf-vpop').forEach(x => x.remove()); document.querySelectorAll('.pf-verified.tap[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false')); };
+  // En captura: el toque en la insignia no abre ni cierra la fila o la tarjeta donde está.
+  if (typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+    const b = e.target.closest('.pf-verified.tap');
+    if (!b) { if (!e.target.closest('.pf-vpop')) closeVerified(); return; }
+    e.preventDefault(); e.stopPropagation();
+    const open = b.getAttribute('aria-expanded') === 'true';
+    closeVerified();
+    if (open) return;
+    const pop = document.createElement('div');
+    pop.className = 'pf-vpop';
+    pop.setAttribute('role', 'status');
+    pop.textContent = b.dataset.verified;
+    document.body.appendChild(pop);
+    b.setAttribute('aria-expanded', 'true');
+    const r = b.getBoundingClientRect();
+    pop.style.top = (r.bottom + scrollY + 6) + 'px';
+    pop.style.left = Math.max(8, Math.min(r.left + scrollX, document.documentElement.clientWidth - pop.offsetWidth - 8)) + 'px';
+  }, true);
+  if (typeof document.addEventListener === 'function') document.addEventListener('scroll', closeVerified, true);
   // Fichas de una lista de necesidades (texto «Agua (Para beber), Arroz»): ícono y opción de cada tipo; lo demás como
   // texto. Para páginas sin su propia versión (ficha pública).
   const needChipsHtml = text => `<div class="pf-chips">${String(text || '').split(/[,\n]+/).map(p => p.trim()).filter(Boolean).map(part => needChip(part, 'pf-chip') || (hit => hit ? `<span class="pf-chip">${icons[hit[1]]}${esc(hit[0])}</span>` : `<span class="pf-chip text">${esc(part)}</span>`)(NEEDS.find(([l]) => fold(l) === fold(part)))).join('')}</div>`;

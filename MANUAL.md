@@ -9,6 +9,13 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-16**
+- «Verificado por equipo» is now just the gold medal icon everywhere; team members tap it to see which team, who and
+  when; the public and people without a team get no details (§6, §15).
+- Command: home repairs show the builder's work («🔨 Obra»: progress, what's missing, materials, evaluations, photos)
+  and repair wording («🔨 En obra», «Asignar constructor») (§10).
+- Supply «Buscar» also finds who added the need, who reported it and the point's contacts (§8).
+- Supply «Por surtir»: most recently updated need first, with «🕓 Actualizada hace …» on each card; buttons and share
+  on one row; no «Reportado por» label; «🧭 Agregado por» with the medal and call/WhatsApp for team members (§8).
 - Scout: «🔍 Corroborar» on points «Por revisar» and «Ver más» on published ones open the point as a full screen
   (`/scout.html?punto=<id>`, «‹ Volver», Back/forward work); agents get «✏️ Editar» (Command edit mode, which returns
   to Scout); team members see «Contactos» with «📞 Llamar / 💬 WhatsApp» (§14).
@@ -280,7 +287,7 @@ other teams can't; the admin panel has no button for it).
 - `archived` («Archivados»): archived points and rejected reports («Rechazar»); hidden from the public and runners;
   «Recuperar punto» publishes it again.
 - `rejected` (tab «Duplicados»): merged into another existing point with «Duplicado…».
-- Signed-in code users can add points that publish immediately (with the gold medal badge «Equipo X», «Verificado por equipo», if they
+- Signed-in code users can add points that publish immediately (with the gold medal badge, «Verificado por equipo», if they
   are in a team, see §6).
 
 **GPS**
@@ -336,14 +343,16 @@ A need belongs to a point and says what is missing (item text: «Agua, Arroz, Ca
   admin), the server stores «Reparación de casa (materials)» as its own repair need, apart from any supplies. Builders see the requested materials on the
   card as «PIDEN hojas de zinc · varilla …». When editing a repair need, its materials can be changed.
 - **Urgency**: normal or urgent (shows «Urgente»).
-- **«Verificado por equipo»** (gold medal badge reading «Equipo X»; public pages: «Verificado por un equipo»): a point or need created or updated by someone in a team is marked
+- **«Verificado por equipo»** (a gold medal **icon only**, no text, anywhere): a point or need created or updated by someone in a team is marked
   as checked more thoroughly. Stamped by the server when:
   - a code user in a team adds a point (home or panels);
   - an agent in a team creates a point, edits a point, or creates/updates a need in Command;
   - a runner in a team records a new need after completing a run.
   An update by someone without a team removes the mark (the data changed without a team check); edits by admin with
-  the master password keep it. Panels with a session show the team, person and date («Equipo Norte»); public pages
-  show only «Verificado por un equipo», without names.
+  the master password keep it. **Who sees what**: people **on a team** (and Command/admin) can **tap the icon** to see
+  a small box «Verificado por el equipo Norte · Ana · 15 oct»; the server sends the team and person only to them.
+  The public, and signed-in people without a team, see only the icon (labeled «Verificado»), with no team, person or
+  date, and nothing to tap.
 - **Recurring services** (garbage, portable toilet, fumigation, medical round): repeat every N days; once completed
   they are scheduled and don't count as open until due.
 - **Services log («🧾 Servicios recibidos»)**: every time a service is given at a point it is logged with when, how much
@@ -514,7 +523,8 @@ nuevo)»); picking saves it right away. At the bottom of that list, **«⚙ Admi
 window to **rename** a center (for everyone on it, history included) or **archive** it: it disappears from the list
 to choose from, but nothing is deleted (people keep it, runs and history stay intact) and **«↺ Recuperar»** brings it
 back; both ask for confirmation. The **Solo mi equipo** switch sits at the right of the same line. **Buscar** (runner,
-point or phone) is in the header like other pages (🔍 on phones).
+point, need, who added it, who reported it or the point's contacts, by name or phone) is in the header like other pages
+(🔍 on phones).
 
 **Map**: the points of the open tab plus **your team's runners sharing live location** (orange trucks), even when they
 are not on a run of this center; with no points it centers on your team. Runners of other teams never appear.
@@ -552,7 +562,7 @@ before «Necesita», and contacts show the first 2 with «y N contactos más» t
 **Solo mi equipo** (my team only, remembered on the phone): «Por surtir» shows only points my team added; the other
 tabs show my team's points or runs by my team's runners; the runner picker shows only my team's runners.
 
-- **Order**: «Por surtir» is urgent first, then the longest waiting (unlike Runners, newest first); «¡A empacar!» shows
+- **Order**: «Por surtir» shows the **most recently updated need first** (created, edited, urgency changed, released…), and each card says when: «🕓 Actualizada hace 3 min» (exact date and time on hover; the people row has no separate «hace …» there). Its buttons are on one row: «🙋 ¡Yo abastezco!», «🏃 Asignar a runner» and the share-link button. On every Supply card the reporter shows as just name and phone (no «Reportado por» label); for people **on a team**, «Por surtir» cards also show **«🧭 Agregado por *name* 🏅 *phone*»** (the «Verificado» medal sits by that name instead of the point's title) (who added that need, from the change history, or else who added the point); tapping the phone opens «📞 Llamar / 💬 WhatsApp». People without a team don't get this line (the server doesn't send it); «¡A empacar!» shows
   the most recently taken run first.
 - **«✗ No puedo»** in «¡Abastéceme!»: this center stops seeing that ask; others can still answer. The tab counter turns
   orange while there are asks you haven't answered.
@@ -728,9 +738,14 @@ order, «Sin GPS», need chips) fold behind **«Filtros ▾»**, which shows how
 **Rows**: a short line «Revisado hace 1 h» (or «Creado / Suplido hace …»; exact date on hover) with a **badge of who
 added it** (full name; green with «(tú)» if it was you), the
 point name, a line with small icons for place, people and coordinator, then the counters, «Checkup» and «Editar».
-Point rows and need cards show the gold medal badge «Equipo X» (tooltip «Verificado por el equipo X · who · date»). A point a team is holding
+Point rows and need cards show the gold medal icon; tapping it shows «Verificado por el equipo X · who · date» (it doesn't open the row). A point a team is holding
 shows «🔒 Solo equipo X · se publica a las …» with **«🌐 Publicar ahora»** (asks first). Editing a repair need shows
-its materials, which can be changed. Works on phones (single column).
+its materials, which can be changed. **Home repairs** («Reparación de casa») read as a job, not a delivery: the card
+says «🔨 En obra» instead of «En camino» (and «🔨 Avance N%» in the row once the builder reports progress); opened, it
+shows a **«🔨 Obra»** box with what the builder documented in Constructores: progress bar, «Qué falta», materials,
+«Evaluaciones (N)» (who, when, work, materials, days, people, notes) and photos (Evaluación, Antes, Avance, Final), or
+«El constructor todavía no documentó la obra…». After reporting one, the follow-up asks «¿Quién hace la obra?» with
+«Asignar a un constructor» / «Asignar constructor» instead of «Despachar». Works on phones (single column).
 
 ---
 
@@ -784,8 +799,8 @@ Access: Donations role (single code box + «Entrar») or admin (menu «🎁 Dona
 ## 13. Admin (`admin.html`)
 
 - **Points**: cards with counters, filters, «Agregado por» (added by), map on the right, point editor with its needs
-  (list above the form) and services. Cards and needs show the gold medal badge «Equipo X» (tooltip «Verificado por el
-  equipo X · who · date»);
+  (list above the form) and services. Cards and needs show the gold medal icon (tap: «Verificado por el
+  equipo X · who · date», for team members only);
   editing a repair need shows its materials. As in Command, choosing a different runner for a need that already has
   one adds a run for that runner, and adding items to a runner's run saves them as a new open need (§6). Admin with
   the master password is not an agent: its edits apply directly, without change requests. The point page ends with
@@ -1028,8 +1043,8 @@ computer the map is on the left and the list on the right; on phones «Lista / M
   Recorrido GPS», kept 30 days), repairs.
 - **Scout contacts**: a point's contact names and phones (not cédula or age) are shown in Scout only to signed-in people
   **on a team**; signed-in people without a team (anyone can create an account) don't receive them.
-- **«Verificado por equipo»**: public pages show only that a team verified it («Verificado por un equipo»); which team,
-  who and when are visible only in panels with a session (Command, admin, Runners, Supply).
+- **«Verificado por equipo»**: the public and people without a team see only the medal icon; which team, who and
+  when reach only people on a team (Runners, Supply) and Command/admin, who tap the icon to see them.
 - Repair needs and their materials are never public.
 - A point held with «Nuestro equipo lo abastece» is hidden from the public and from other teams for 3 hours.
 - Anyone signed in with a code sees, on the home page, the runner's name, packing list and «Foto de partida» photos of

@@ -41,10 +41,16 @@ func TestTeamWritesMarkPointsAndNeedsVerified(t *testing.T) {
 	if pts := s.call("GET", "/api/points", "", false).Body.String(); !strings.Contains(pts, `"verifiedAt"`) || strings.Contains(pts, "Equipo Norte") || strings.Contains(pts, "Ana Agente") {
 		t.Fatalf("public points: badge only: %s", pts)
 	}
-	// Runners see the point's and the need's badge with names (private panel).
+	// Runners without a team see only the badge (like the public); on a team, with names.
 	rc := s.runnerLogin("Rui")
-	if _, _, b := rc.needs(); !strings.Contains(b, `"verifiedTeam":"Equipo Norte"`) {
-		t.Fatalf("runner needs carry the badge: %s", b)
+	if _, _, b := rc.needs(); !strings.Contains(b, `"verifiedAt"`) || strings.Contains(b, "Equipo Norte") || strings.Contains(b, "Ana Agente") {
+		t.Fatalf("runner with no team: badge only: %s", b)
+	}
+	tom := s.expect("POST", "/api/admin/users", `{"name":"Tom Runner","telephone":"6999-5555","roles":["runner"],"accessCode":"TOM123"}`, 201)["id"].(string)
+	s.team("Equipo Tom", tom)
+	tc, tcsrf := s.sessionLogin("/api/runner/session", "TOM123", "runner_session")
+	if b := s.crewCall("GET", "/api/runner/needs", "", tc, tcsrf).Body.String(); !strings.Contains(b, `"verifiedTeam":"Equipo Norte"`) || !strings.Contains(b, `"verifiedBy":"Ana Agente"`) {
+		t.Fatalf("runner on a team: badge with names: %s", b)
 	}
 	// Admin edits keep it; an agent without a team clears it.
 	s.expect("PATCH", "/api/admin/needs/"+id, `{"urgency":"urgente"}`, 200)

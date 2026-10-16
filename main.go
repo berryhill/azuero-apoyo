@@ -2691,10 +2691,13 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 				// Retenido para otro equipo: sus runners todavía no lo ven.
 				if p.Status == "approved" && !heldFrom(p, tv.team) {
 					contacts := campContacts(p)
-					// Paneles con sesión: el equipo y quién verificó sí se muestran (publicPoint los quita).
+					// Quien es de un equipo ve qué equipo y quién verificó; sin equipo, como el público: solo la insignia
+					// (publicPoint los quita).
 					vTeam, vBy := p.VerifiedTeam, p.VerifiedBy
 					p = publicPoint(p)
-					p.VerifiedTeam, p.VerifiedBy = vTeam, vBy
+					if tv.team != "" {
+						p.VerifiedTeam, p.VerifiedBy = vTeam, vBy
+					}
 					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Adults: p.Adults, Children: p.Children, Babies: p.Babies, OlderAdults: p.OlderAdults, Disabled: p.Disabled, Families: p.Families, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt}
 				}
 				return nil
@@ -2720,7 +2723,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					}
 				}
 				who := *c.assignee(&n)
-				item := runnerNeed{VerifiedTeam: n.VerifiedTeam, VerifiedBy: n.VerifiedBy, VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), OpenOffers: openOffersFor(tx, n), Supplier: supplierOf(tx, n.SupplierID), SupplyAskedAt: n.SupplyAskedAt, SupplyOffers: offersFor(tx, n), Also: alsoFor(tx, groups, n), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
+				item := runnerNeed{VerifiedTeam: teamOnly(tv, n.VerifiedTeam), VerifiedBy: teamOnly(tv, n.VerifiedBy), VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, DispatchedAt: n.DispatchedAt, RequestedAt: openRequest(n), OpenOffers: openOffersFor(tx, n), Supplier: supplierOf(tx, n.SupplierID), SupplyAskedAt: n.SupplyAskedAt, SupplyOffers: offersFor(tx, n), Also: alsoFor(tx, groups, n), Packing: n.Packing, Scope: n.Scope, Materials: n.Materials, Progress: n.Progress, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: who == s.runnerID, Camp: camp}
 				if item.Assigned {
 					item.Media = n.Media
 				}
@@ -3155,6 +3158,14 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 		return
 	}
 	response(w, 200, list)
+}
+
+// teamOnly: el dato (equipo o persona que verificó) solo para quien es de un equipo; el resto ve solo la insignia.
+func teamOnly(tv *teamView, v string) string {
+	if tv == nil || tv.team == "" {
+		return ""
+	}
+	return v
 }
 
 // viewerNeed: una necesidad tal como la ve quien mira (viewer vacío = público): sin reparaciones, runs de comida ni
