@@ -115,7 +115,7 @@ func (a *App) dispatchRoutes(mux *http.ServeMux) {
 				}
 			}
 			n = CampNeed{ID: randomToken(), CampID: pointID, Need: need, Status: "IN_PROGRESS", Urgency: "normal", RunnerID: runner.ID, SupplierID: me.ID,
-				CreatedAt: now, EnRouteAt: now, DispatchedAt: now, DispatchedBy: me.ID, DispatchedByName: me.Name, CreatedBy: me.ID, CreatedByName: me.Name}
+				CreatedAt: now, EnRouteAt: now, DispatchedAt: now, DispatchedBy: me.ID, DispatchedByName: me.Name, SupplyCenter: strings.TrimSpace(me.SupplyCenter), CreatedBy: me.ID, CreatedByName: me.Name}
 			verifyStamp(tx, &me, &n.VerifiedTeam, &n.VerifiedBy, &n.VerifiedAt)
 			if e := putNeed(tx.Bucket(needsBucket), &n); e != nil {
 				return e

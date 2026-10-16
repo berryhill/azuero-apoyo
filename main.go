@@ -277,6 +277,8 @@ type CampNeed struct {
 	DispatchedAt     string `json:"dispatchedAt,omitempty"`
 	DispatchedBy     string `json:"dispatchedBy,omitempty"`
 	DispatchedByName string `json:"dispatchedByName,omitempty"`
+	// Centro de acopio del que salió (el de quien la despachó en ese momento, o el de la importación).
+	SupplyCenter string `json:"supplyCenter,omitempty"`
 	// Acopio que lleva esta carrera (supplier.go): la pidió a los corredores (SupplierRequestedAt, mientras siga Abierta)
 	// o se la asignó en persona a un corredor. Solo esa persona de acopio la ve en «Por despachar».
 	SupplierID          string `json:"supplierId,omitempty"`
@@ -750,7 +752,7 @@ func migrateNeedUrgency(tx *bolt.Tx) error {
 func putNeed(b *bolt.Bucket, n *CampNeed) error {
 	n.UpdatedAt, n.RunnerName = nowStamp(), ""
 	if n.Status != "IN_PROGRESS" && n.Status != "COMPLETED" {
-		n.DispatchedAt, n.DispatchedBy, n.DispatchedByName = "", "", ""
+		n.DispatchedAt, n.DispatchedBy, n.DispatchedByName, n.SupplyCenter = "", "", "", ""
 	}
 	// Vuelve a Abierta: si venía de una oferta de acopio (o un pedido de antes), ese acopio sigue ofreciendo; si se la
 	// habían asignado en persona, queda libre. Abierta nunca tiene acopio fijo: solo ofertas.
@@ -1767,8 +1769,10 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		response(w, 201, map[string]string{"id": n.ID, "status": n.Status})
 	})
 	// Importación (solo administración, no agentes): «runnerName» / «runnerPhone» / «runnerTeam» enlazan o crean a quien
-	// llevó la entrega (importUser) y «at» pone la fecha real (pasada) de la necesidad y de su entrega.
-	importNeedFields := map[string]int{"runnerName": 120, "runnerPhone": 40, "runnerTeam": 120, "at": 40, "importRef": 64}
+	// llevó la entrega (importUser) y «at» pone la fecha real (pasada) de la necesidad y de su entrega. «dispatchedBy» /
+	// «dispatchedByPhone» / «dispatchedByTeam»: quién la despachó, solo si ya es de ese equipo (importDispatcher);
+	// «supplyCenter»: el centro de acopio del que salió.
+	importNeedFields := map[string]int{"runnerName": 120, "runnerPhone": 40, "runnerTeam": 120, "at": 40, "importRef": 64, "dispatchedBy": 120, "dispatchedByPhone": 40, "dispatchedByTeam": 120, "supplyCenter": 80}
 	for k, v := range needFields {
 		importNeedFields[k] = v
 	}
@@ -1791,6 +1795,22 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		}
 		runnerName, runnerPhone, runnerTeam := strings.Join(strings.Fields(fieldText(f, "runnerName")), " "), strings.TrimSpace(fieldText(f, "runnerPhone")), strings.TrimSpace(fieldText(f, "runnerTeam"))
 		n.ImportRef = strings.TrimSpace(fieldText(f, "importRef"))
+		dispName, dispPhone, dispTeam := strings.Join(strings.Fields(fieldText(f, "dispatchedBy")), " "), strings.TrimSpace(fieldText(f, "dispatchedByPhone")), strings.TrimSpace(fieldText(f, "dispatchedByTeam"))
+		center := strings.Join(strings.Fields(fieldText(f, "supplyCenter")), " ")
+		dispatcher := func(tx *bolt.Tx, x *CampNeed) (bool, error) {
+			set := false
+			if center != "" && x.SupplyCenter == "" {
+				x.SupplyCenter, set = center, true
+				if x.DispatchedAt == "" {
+					x.DispatchedAt = x.CreatedAt
+				}
+			}
+			if dispName == "" && dispPhone == "" || x.DispatchedBy != "" {
+				return set, nil
+			}
+			found, e := importDispatcher(tx, x, dispName, dispPhone, dispTeam)
+			return set || found, e
+		}
 		var again *CampNeed
 		if !validKind(fieldText(f, "kind")) {
 			failField(w, 400, "kind", "invalid kind")
@@ -1818,7 +1838,8 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			if !a.campExists(tx, n.CampID) {
 				return errMissing
 			}
-			// La misma entrega importada otra vez: se devuelve la que ya existe, sin crear otra.
+			// La misma entrega importada otra vez: se devuelve la que ya existe, sin crear otra (solo se le completa quién la
+			// despachó si no lo tenía, para lotes importados antes de que existiera ese dato).
 			if n.ImportRef != "" {
 				if e := tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
 					var x CampNeed
@@ -1826,8 +1847,14 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 						again = &x
 					}
 					return nil
-				}); e != nil || again != nil {
+				}); e != nil {
 					return e
+				}
+				if again != nil {
+					if set, e := dispatcher(tx, again); e != nil || !set {
+						return e
+					}
+					return putNeed(tx.Bucket(needsBucket), again)
 				}
 			}
 			if n.RunnerID == "" && (runnerName != "" || runnerPhone != "") {
@@ -1843,6 +1870,9 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			enRouteOnAssign(&n, "")
 			if at != "" && n.EnRouteAt != "" {
 				n.EnRouteAt = at
+			}
+			if _, e := dispatcher(tx, &n); e != nil {
+				return e
 			}
 			verifyStamp(tx, agentBy(r), &n.VerifiedTeam, &n.VerifiedBy, &n.VerifiedAt)
 			if e := putNeed(tx.Bucket(needsBucket), &n); e != nil || at == "" {
@@ -2255,21 +2285,57 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 // quien se crea; como en un equipo solo puede estar alguien con código, se le genera uno (administración lo ve con 🔑).
 // Seguridad: los datos importados solo se enlazan a alguien que YA está en ese equipo; si coincide (teléfono o nombre)
 // con alguien de fuera del equipo, se crea otra persona. Sin equipo nunca se enlaza a nadie: siempre se crea.
-func importUser(tx *bolt.Tx, name, phone, role, team string) (User, error) {
+// importTeamID: el equipo por su nombre ("" sin equipo); error si se nombra uno que no existe.
+func importTeamID(tx *bolt.Tx, team string) (string, error) {
+	if team == "" {
+		return "", nil
+	}
 	teamID := ""
-	if team != "" {
-		if e := tx.Bucket(teamsBucket).ForEach(func(_, v []byte) error {
-			var t Team
-			if json.Unmarshal(v, &t) == nil && runnerNameKey(t.Name) == runnerNameKey(team) {
-				teamID = t.ID
-			}
-			return nil
-		}); e != nil {
-			return User{}, e
+	if e := tx.Bucket(teamsBucket).ForEach(func(_, v []byte) error {
+		var t Team
+		if json.Unmarshal(v, &t) == nil && runnerNameKey(t.Name) == runnerNameKey(team) {
+			teamID = t.ID
 		}
-		if teamID == "" {
-			return User{}, userFieldError{"team", "No existe el equipo «" + team + "». Créalo en Usuarios → Equipos."}
-		}
+		return nil
+	}); e != nil {
+		return "", e
+	}
+	if teamID == "" {
+		return "", userFieldError{"team", "No existe el equipo «" + team + "». Créalo en Usuarios → Equipos."}
+	}
+	return teamID, nil
+}
+
+// importDispatcher: quién despachó una entrega importada. Regla de seguridad: solo se enlaza con alguien activo que YA
+// es de ese equipo (mismo teléfono o nombre único); nunca se crea a nadie ni se enlaza con gente de fuera (si no se
+// encuentra, la entrega queda sin despachador). Si es de un acopio, la entrega pasa a ser de su acopio: sale en su
+// Historial de Supply (y en el de su equipo).
+func importDispatcher(tx *bolt.Tx, n *CampNeed, name, phone, team string) (bool, error) {
+	if team == "" {
+		return false, userFieldError{"dispatchedByTeam", "Falta el equipo de quien despachó (dispatchedByTeam)."}
+	}
+	teamID, e := importTeamID(tx, team)
+	if e != nil {
+		return false, e
+	}
+	u, found, e := findImportUser(tx, name, phone, teamID)
+	if e != nil || !found {
+		return false, e
+	}
+	n.DispatchedBy, n.DispatchedByName, n.DispatchedAt = u.ID, u.Name, n.CreatedAt
+	if n.EnRouteAt != "" {
+		n.DispatchedAt = n.EnRouteAt
+	}
+	if n.SupplierID == "" && u.has(roleSupplier) {
+		n.SupplierID = u.ID
+	}
+	return true, nil
+}
+
+func importUser(tx *bolt.Tx, name, phone, role, team string) (User, error) {
+	teamID, e := importTeamID(tx, team)
+	if e != nil {
+		return User{}, e
 	}
 	u, created, e := findOrCreateImportUser(tx, name, phone, teamID)
 	if e != nil {
@@ -2309,6 +2375,20 @@ func importDate(v string) string {
 }
 
 func findOrCreateImportUser(tx *bolt.Tx, name, phone, teamID string) (User, bool, error) {
+	if u, found, e := findImportUser(tx, name, phone, teamID); e != nil || found {
+		return u, false, e
+	}
+	if name == "" {
+		name = "Sin nombre (" + phone + ")"
+	}
+	u := User{ID: randomToken(), Name: name, Telephone: strings.Join(strings.Fields(phone), " "), Roles: []string{}, CreatedAt: nowStamp(), Note: "Creado al importar datos (reportes o entregas): revisa sus accesos y su teléfono."}
+	u.UpdatedAt = u.CreatedAt
+	return u, true, putJSON(tx.Bucket(usersBucket), u.ID, u)
+}
+
+// findImportUser: alguien activo de ese equipo con ese teléfono (últimos 8 dígitos) o, sin teléfono, con ese nombre
+// si es el único. Sin equipo no encuentra a nadie.
+func findImportUser(tx *bolt.Tx, name, phone, teamID string) (User, bool, error) {
 	digits := func(t string) string {
 		d := strings.Map(func(r rune) rune {
 			if r >= '0' && r <= '9' {
@@ -2339,16 +2419,11 @@ func findOrCreateImportUser(tx *bolt.Tx, name, phone, teamID string) (User, bool
 	}
 	switch {
 	case len(byPhone) > 0:
-		return byPhone[0], false, nil
+		return byPhone[0], true, nil
 	case want == "" && len(byName) == 1:
-		return byName[0], false, nil
+		return byName[0], true, nil
 	}
-	if name == "" {
-		name = "Sin nombre (" + phone + ")"
-	}
-	u := User{ID: randomToken(), Name: name, Telephone: strings.Join(strings.Fields(phone), " "), Roles: []string{}, CreatedAt: nowStamp(), Note: "Creado al importar datos (reportes o entregas): revisa sus accesos y su teléfono."}
-	u.UpdatedAt = u.CreatedAt
-	return u, true, putJSON(tx.Bucket(usersBucket), u.ID, u)
+	return User{}, false, nil
 }
 
 // CheckupNote: una respuesta de checkup en el registro del punto.
@@ -3418,7 +3493,7 @@ func viewerNeed(tx *bolt.Tx, tv *teamView, viewer string, n CampNeed) (CampNeed,
 			n.RunnerName = u.Name
 		}
 	}
-	n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName, n.SupplierID, n.SupplierRequestedAt = "", "", "", "", "", ""
+	n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName, n.SupplierID, n.SupplierRequestedAt, n.SupplyCenter = "", "", "", "", "", "", ""
 	n.SupplyAskedAt, n.SupplyOffers, n.OpenOffers = "", nil, nil
 	n.VerifiedTeam, n.VerifiedBy, n.CreatedBy, n.CreatedByName, n.UpdatedBy, n.ImportRef = "", "", "", "", "", ""
 	n.CookID, n.Invites = "", nil

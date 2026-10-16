@@ -162,3 +162,93 @@ func TestDeliveryImportBackdatedWithRunners(t *testing.T) {
 		t.Fatalf("agents can't use import fields: %d %s", w.Code, w.Body.String())
 	}
 }
+
+// Imported deliveries say who dispatched them («dispatchedBy»): linked only to someone already in that team, and then
+// they show in the Supply «Historial» of that supply center and its team (no 30-day cut: the client picks the period).
+// Re-importing a delivery that's already there only fills in a missing dispatcher / supply center (the live fix).
+func TestImportedDispatchInSupplyHistory(t *testing.T) {
+	s := newServiceHarness(t)
+	julie := s.expect("POST", "/api/admin/users", `{"name":"Julie","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)["id"].(string)
+	yas := s.expect("POST", "/api/admin/users", `{"name":"yasmine jamai","telephone":"6821-2299","roles":["supplier"],"accessCode":"YASMI88"}`, 201)["id"].(string)
+	outsider := s.expect("POST", "/api/admin/users", `{"name":"Fuera Acopio","telephone":"6555-0101","roles":["supplier"],"accessCode":"FUERA9"}`, 201)["id"].(string)
+	s.team("Unidos por Azuero", julie, yas)
+	s.team("Otro", outsider)
+	day := "2026-08-01T15:00:00Z" // older than 30 days: still in the history
+	var p Point
+	if w := s.call("POST", "/api/admin/points", `{"area":"Tonosí","place":"Río Quema","created":"`+day+`"}`, true); json.Unmarshal(w.Body.Bytes(), &p) != nil || p.Status != "approved" {
+		t.Fatalf("point: %d %s", w.Code, w.Body.String())
+	}
+	post := func(body string) map[string]any {
+		w := s.call("POST", "/api/admin/camps/"+p.ID+"/needs", body, true)
+		var m map[string]any
+		if w.Code/100 != 2 || json.Unmarshal(w.Body.Bytes(), &m) != nil {
+			t.Fatalf("import delivery: %d %s", w.Code, w.Body.String())
+		}
+		return m
+	}
+	base := `"need":"Alimentos","urgency":"normal","status":"COMPLETED","runnerName":"Pucha","runnerTeam":"Unidos por Azuero","at":"` + day + `"`
+	a := post(`{` + base + `,"importRef":"imp:t:a","dispatchedBy":"Julie","dispatchedByTeam":"Unidos por Azuero","supplyCenter":"Donde Rubén"}`)["id"].(string)
+	// Imported before dispatchers existed, then imported again with one: filled in, not duplicated.
+	b := post(`{` + base + `,"importRef":"imp:t:b"}`)["id"].(string)
+	if m := post(`{` + base + `,"importRef":"imp:t:b","dispatchedBy":"Yas","dispatchedByPhone":"+507 6821 2299","dispatchedByTeam":"Unidos por Azuero","supplyCenter":"Donde Rubén"}`); m["duplicate"] != true || m["id"] != b {
+		t.Fatalf("re-import: %v", m)
+	}
+	// Security: a dispatcher only found outside the team is not linked, and nobody is created.
+	c := post(`{` + base + `,"importRef":"imp:t:c","dispatchedBy":"Fuera Acopio","dispatchedByPhone":"6555-0101","dispatchedByTeam":"Unidos por Azuero"}`)["id"].(string)
+	if w := s.call("POST", "/api/admin/camps/"+p.ID+"/needs", `{`+base+`,"dispatchedBy":"Julie"}`, true); w.Code != 400 {
+		t.Fatalf("dispatchedBy without its team: %d %s", w.Code, w.Body.String())
+	}
+	var users []adminUser
+	json.Unmarshal(s.call("GET", "/api/admin/users", "", true).Body.Bytes(), &users)
+	for _, u := range users {
+		if u.Name == "Fuera Acopio" && u.ID != outsider {
+			t.Fatal("a dispatcher is never created")
+		}
+	}
+	history := func(code string) map[string]string {
+		jc, jt := s.supplierLogin(code)
+		var data struct{ History []supplierRun }
+		json.Unmarshal(s.agentCall("GET", "/api/supplier/runs", "", jc, jt).Body.Bytes(), &data)
+		got := map[string]string{}
+		for _, r := range data.History {
+			got[r.ID] = r.DispatchedByName + " @ " + r.DispatchedAt + " · " + r.SupplyCenter
+		}
+		return got
+	}
+	for _, code := range []string{"JULIE77", "YASMI88"} { // the dispatcher's center and a teammate's
+		h := history(code)
+		if h[a] != "Julie @ "+day+" · Donde Rubén" || h[b] != "yasmine jamai @ "+day+" · Donde Rubén" || h[c] != "" || len(h) != 2 {
+			t.Fatalf("%s history: %v", code, h)
+		}
+	}
+	if h := history("FUERA9"); len(h) != 0 {
+		t.Fatalf("another team's center sees nothing: %v", h)
+	}
+}
+
+// «Despachada» and «＋ Nuevo despacho» record the supply center the run left from (the dispatcher's at that moment).
+func TestDispatchRecordsSupplyCenter(t *testing.T) {
+	s := newServiceHarness(t)
+	julie := s.expect("POST", "/api/admin/users", `{"name":"Julie","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)["id"].(string)
+	s.team("Unidos por Azuero", julie)
+	jc, jt := s.supplierLogin("JULIE77")
+	if w := s.agentCall("POST", "/api/supplier/center", `{"center":"Donde Rubén"}`, jc, jt); w.Code/100 != 2 {
+		t.Fatalf("center: %d %s", w.Code, w.Body.String())
+	}
+	w := s.agentCall("POST", "/api/supplier/dispatches", `{"pointId":"`+s.camp+`","runner":{"name":"Pucha"},"items":[{"item":"Agua","quantity":1}]}`, jc, jt)
+	var res struct{ ID string }
+	if w.Code != 201 || json.Unmarshal(w.Body.Bytes(), &res) != nil {
+		t.Fatalf("dispatch: %d %s", w.Code, w.Body.String())
+	}
+	var data struct{ Runs []supplierRun }
+	json.Unmarshal(s.agentCall("GET", "/api/supplier/runs", "", jc, jt).Body.Bytes(), &data)
+	found := false
+	for _, r := range data.Runs {
+		if r.ID == res.ID {
+			found = r.SupplyCenter == "Donde Rubén"
+		}
+	}
+	if !found {
+		t.Fatalf("supply center on the run: %+v", data.Runs)
+	}
+}

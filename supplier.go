@@ -154,8 +154,9 @@ func supplierOf(tx *bolt.Tx, id string) *supplierInfo {
 }
 
 // supplierRun: la carrera como la ve acopio, con quién la lleva y si ya salió del acopio.
-// Historial del acopio: runs completados en los últimos historyDays días, hasta historyMax.
-const historyDays, historyMax = 30, 60
+// Historial del acopio: todo lo entregado que despachó este acopio o alguien de su equipo (también lo importado), lo
+// último primero, hasta historyMax.
+const historyMax = 1000
 
 type supplierRun struct {
 	runnerNeed
@@ -168,6 +169,7 @@ type supplierRun struct {
 	RunnerPhone      string `json:"runnerPhone,omitempty"`
 	DispatchedAt     string `json:"dispatchedAt,omitempty"`
 	DispatchedByName string `json:"dispatchedByName,omitempty"`
+	SupplyCenter     string `json:"supplyCenter,omitempty"`
 	// Historial: cuándo la entregó el runner (runs completados de este acopio).
 	CompletedAt string `json:"completedAt,omitempty"`
 	// El runner es de mi equipo (para «Solo mi equipo»; el punto lo dice camp.team).
@@ -358,7 +360,6 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		}
 		runs, open, runners, asks, enroute, history := []supplierRun{}, []supplierRun{}, []supplierRunner{}, []supplierRun{}, []supplierRun{}, []supplierRun{}
 		now := time.Now()
-		since := now.AddDate(0, 0, -historyDays).UTC().Format(time.RFC3339)
 		live := map[string]liveLocation{}
 		a.mu.Lock()
 		for id, loc := range a.locations {
@@ -429,9 +430,9 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 					active[n.RunnerID]++
 				}
 				camp, ok := camps[n.CampID]
-				// Historial: runs de este acopio ya entregados (últimos días), con su carga, fotos y runner.
-				if ok && !isRepair(n) && n.Status == "COMPLETED" && n.SupplierID == me.ID && n.CompletedAt >= since {
-					run := supplierRun{runnerNeed: runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, CreatedAt: n.CreatedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName, CompletedAt: n.CompletedAt, RunnerTeam: tv.mate(n.RunnerID)}
+				// Historial: runs de este acopio o de su equipo ya entregados, con su carga, fotos y runner.
+				if ok && !isRepair(n) && n.Status == "COMPLETED" && (tv.mate(n.SupplierID) || tv.mate(n.DispatchedBy)) {
+					run := supplierRun{runnerNeed: runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, CreatedAt: n.CreatedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName, SupplyCenter: n.SupplyCenter, CompletedAt: n.CompletedAt, RunnerTeam: tv.mate(n.RunnerID)}
 					if u, found := getUser(tx, n.RunnerID); found {
 						run.RunnerName, run.RunnerPhone = u.Name, u.Telephone
 					}
@@ -447,7 +448,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				if n.Need, _ = splitRepair(n.Need); n.Need == "" {
 					return nil
 				}
-				run := supplierRun{runnerNeed: runnerNeed{Also: alsoFor(tx, groups, n), VerifiedTeam: teamOnly(tv, n.VerifiedTeam), VerifiedBy: teamOnly(tv, n.VerifiedBy), VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName}
+				run := supplierRun{runnerNeed: runnerNeed{Also: alsoFor(tx, groups, n), VerifiedTeam: teamOnly(tv, n.VerifiedTeam), VerifiedBy: teamOnly(tv, n.VerifiedBy), VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName, SupplyCenter: n.SupplyCenter}
 				if n.Status == "OPEN" {
 					run.Media, run.Packing = nil, nil
 					// «¡Yo abastezco!»: si este acopio ya ofreció y cuántos acopios ofrecen en total.
@@ -992,9 +993,9 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				return errNotARun
 			}
 			if undo {
-				n.DispatchedAt, n.DispatchedBy, n.DispatchedByName = "", "", ""
+				n.DispatchedAt, n.DispatchedBy, n.DispatchedByName, n.SupplyCenter = "", "", "", ""
 			} else {
-				n.DispatchedAt, n.DispatchedBy, n.DispatchedByName = nowStamp(), u.ID, strings.TrimSpace(u.Name)
+				n.DispatchedAt, n.DispatchedBy, n.DispatchedByName, n.SupplyCenter = nowStamp(), u.ID, strings.TrimSpace(u.Name), strings.TrimSpace(u.SupplyCenter)
 			}
 			return putNeed(b, &n)
 		})

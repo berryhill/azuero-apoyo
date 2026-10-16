@@ -1921,7 +1921,7 @@ test('packing list window: the needs on top grey out as items cover them; groupe
   assert.match(sup, /function needSection\(n\)\{return `<section class="sec sec-need\$\{allPacked\(n\)\?' packed':''\}">\$\{secHead\('h-need','🙌','Necesita'/);
   assert.match(sup, /\.sec-need\{background:#fdeef0;/, 'Necesita section is light pink');
   assert.match(sup, /function noMatch\(total\)\{[^\n]*Ninguna necesidad coincide con la búsqueda «[^\n]*data-clearfind>✕ Borrar búsqueda y ver todas \(\$\{total\}\)/, 'no results: says what was searched and offers to clear it');
-  for (const call of ['noMatch(todo().filter(teamOk).length)', 'noMatch(asks.filter(teamOk).length)', 'noMatch(open.filter(teamOk).length)', 'noMatch(history.filter(teamOk).length)']) assert.ok(sup.includes(call), call);
+  for (const call of ['noMatch(todo().filter(teamOk).length)', 'noMatch(asks.filter(teamOk).length)', 'noMatch(open.filter(teamOk).length)', 'noMatch(all.filter(teamOk).length)']) assert.ok(sup.includes(call), call);
   assert.match(sup, /\$\{needChips\(n\.need,n\.packing\|\|\[\]\)\}/, 'needs already in the packing list are crossed out');
   assert.match(sup, /packed&&pf\.covers&&packed\.some\(l=>pf\.covers\(part,l\.item\)\)/);
   assert.match(sup, /<section class="sec sec-need\$\{allPacked\(n\)\?' packed':''\}">/, 'all covered: light green');
@@ -1977,13 +1977,19 @@ test('Supply «+ Nuevo despacho»: 5 steps (destination new or existing, runner 
   assert.match(sup, /dsp\.step\+\+;dspDraw\(\);if\(dsp\.step===3&&!dsp\.items\.length\)dspOpenItems\(\);/, 'step 3 opens the packing list by itself');
   assert.match(sup, /dsp\.step>=3\?dsp\.items\.length>0:true/, 'no dispatch without packed items');
   assert.match(sup, /function histCard[^\n]*🚚 Despachada \$\{clean\(agoEs\(n\.dispatchedAt\)\)\}/, 'history cards say when they were dispatched');
+  assert.match(sup, /let mainTab=kept\('supplyTab',\['todo','asks','req','hist'\],'todo'\),histDays=\+kept\('supplyHistDays',\['7','30','0'\],'7'\);/, 'Supply keeps its tab and history period across a reload (default: last 7 days)');
+  assert.match(sup, /sessionStorage\.setItem\('supplyTab',mainTab\)/);
+  assert.equal((sup.match(/<\/svg><b class="cnthist"><\/b><\/button>/g) || []).length, 2, 'both history buttons carry the count');
+  assert.match(sup, /data-hdays="\$\{d\}"[^`]*`\)\.join\(''\)\}<\/div>`/, '7 días · 30 días · Todo');
+  assert.match(sup, /<p class="hmeta">\$\{n\.supplyCenter\?`🏬 \$\{clean\(n\.supplyCenter\)\} · `:''\}🏃/, 'history cards say which supply center it left from');
   assert.match(sup, /const again=mainTab===b\.dataset\.main;mainTab=b\.dataset\.main;[^\n]*tabTip\(b,again\)/, 'tapping a tab explains it; tapping the current tab again shows it even if hidden');
   for (const k of ['todo', 'asks', 'req', 'hist']) assert.match(sup, new RegExp(`\\n${k}:\\['`), `tip for ${k}`);
   assert.match(sup, /data-dsp="help" aria-label="Cómo funciona">❓<\/button>/);
   assert.match(sup, /dsp\.pushed=true;setTimeout\(\(\)=>dspHelp\(false\),200\);/, 'wizard explains itself the first time');
   assert.match(sup, /bottomOf:\$\('#feed'\)/, '«Por ubicar» stays at the bottom of the list');
   const navSrc = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
-  assert.match(navSrc, /localStorage\.setItem\('tip:' \+ key, '1'\)/, '«No mostrar de nuevo» is remembered');
+  assert.match(navSrc, /if \(!anchor \|\| \(!again && tipHidden\(key\)\)\) return;\n    tipsSeen\.add\(key\); try \{ localStorage\.setItem\('tip:' \+ key, '1'\); \} catch \{\}/, 'a tip shows by itself only once');
+  assert.doesNotMatch(navSrc, /No mostrar de nuevo/);
   assert.match(navSrc, /const wireSwipe = \(\) => swipeTabs\(document\.getElementById\('feed'\) \|\| document\.getElementById\('list'\), document\.getElementById\('mainTabs'\)\);/, 'side swipe switches tabs on every tabbed page');
   assert.match(sup, /data-dsp="newzone">🗺️ Destino es el área general de/, 'generic destination: only the zone');
   assert.match(sup, /function dspDestPreview\(p\)\{[^]*?<div class="dsp-mini" id="dspMini"><\/div>[^]*?📍 Sin GPS/, 'picked destination: mini map or «sin GPS»');
@@ -2390,7 +2396,7 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
   assert.match(page, /<title>Acopio · Azuero<\/title>/);
   assert.match(page, /<button type="button" role="tab" data-main="todo"[^>]*><span aria-hidden="true">📦<\/span> Empacando <b id="cntTodo"><\/b><\/button><button type="button" role="tab" data-main="asks"/, 'no «Despachadas» tab: dispatched runs are in the history');
-  assert.match(page, /if\(mainTab==='hist'\)\{const way=done\(\)\.filter\(match\),list=history\.filter\(match\);feed\.innerHTML=\(way\.length\?`<h3 class="listhead">🚚 Despachadas · en camino<\/h3>\$\{way\.map\(runCard\)\.join\(''\)\}`:''\)/);
+  assert.match(page, /if\(mainTab==='hist'\)\{const way=done\(\)\.filter\(match\),all=histRecent\(\),list=all\.filter\(match\);[^\n]*?feed\.innerHTML=\(way\.length\?`<h3 class="listhead">🚚 Despachadas · en camino<\/h3>\$\{way\.map\(runCard\)\.join\(''\)\}`:''\)/);
   assert.match(page, /<input class="topsearch" id="find" type="search" data-global="1" placeholder="Buscar en todo…"/, 'find the runner who just arrived (header search, like other pages)');
   assert.match(page, /<form id="gateForm" novalidate data-signin><h1>Entrar a Supply<\/h1><fieldset class="sg sg-code">/);
   assert.doesNotMatch(page.match(/<form id="gateForm"[^]*?<\/form>/)[0], /sg-new/, 'admin gives the role; no self sign-up here');
@@ -2715,7 +2721,7 @@ test('Supply tabs: Empacando, Despachadas, Solicitudes, Puntos con necesidades (
   assert.deepEqual(order, ['todo', 'asks', 'req', 'hist']);
   assert.match(page, /<button type="button" data-view="hist" class="mhist" aria-pressed="false" title="Historial" aria-label="Historial"><svg[^>]*><path d="M3 12a9 9 0 1 0 3-6\.7"\/>/, 'clock turning back');
   assert.match(page, /function mobileView\(view\)\{if\(view==='hist'\)\{mainTab='hist';highlightNeed=null;view='list'\}else if\(view==='list'&&mainTab==='hist'\)mainTab='todo';/);
-  assert.match(page, /if\(mainTab==='hist'\)\{const way=done\(\)\.filter\(match\),list=history\.filter\(match\);[^\n]*list\.map\(histCard\)/);
+  assert.match(page, /if\(mainTab==='hist'\)\{const way=done\(\)\.filter\(match\),all=histRecent\(\),list=all\.filter\(match\);[^\n]*?[^\n]*list\.map\(histCard\)/);
   assert.match(page, /<span class="hdone" title="[^"]*">✓ Entregada \$\{clean\(agoEs\(n\.completedAt\)\)\}<\/span>/);
   assert.match(page, /@media\(max-width:760px\)\{\.maintabs \.histtab\{display:none\}body\.in-hist #mainTabs\{display:none\}\}/, 'on phones history lives next to Lista/Mapa and shows only the history, no other tabs');
   assert.match(page, /markNav\(\);document\.body\.classList\.toggle\('in-hist',mainTab==='hist'\);/);

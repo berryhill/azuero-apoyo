@@ -17,7 +17,7 @@
 html:has(dialog[open]),html:has(.modalbg.open){overflow:hidden}html:has(dialog[open]) body,html:has(.modalbg.open) body{overflow:hidden}dialog[open],.modalbg.open,.modalbg.open .modal{overscroll-behavior:contain}
 .telnum{border:0;background:none;padding:0;color:#126e7c;font:inherit;font-weight:750;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;white-space:nowrap}.telnum:hover{color:#10263a}
 .navtelpop{position:absolute;z-index:4000;min-width:210px;background:#fff;border:1px solid #cad9d9;border-radius:12px;box-shadow:0 12px 30px #17354233;padding:10px 12px;font-family:Inter,system-ui,sans-serif;color:#173c46}.ntp-h{font-weight:800;font-size:14px}.ntp-num{font-size:17px;font-weight:800;margin:4px 0 8px;letter-spacing:.02em}.ntp-acts{display:flex;gap:8px}.ntp-acts a{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:9px;font-weight:800;font-size:13px;text-decoration:none}.ntp-call{background:#19745f;color:#fff}.ntp-wa{background:#25d366;color:#08331b}.ntp-copy{display:block;width:100%;margin-top:6px;padding:6px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#36505a;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
-.navtip{position:fixed;z-index:4100;background:#fff;color:#173542;border:1px solid #cad9d9;border-radius:14px;box-shadow:0 14px 34px #17354240;padding:12px 14px;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}.navtip-t{display:block;font-size:15px;margin-bottom:4px}.navtip-b p{margin:0 0 6px}.navtip-b ol{margin:4px 0 6px;padding-left:20px}.navtip-b li{margin:2px 0}.navtip-a{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}.navtip-a button{border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#35505e;font:inherit;font-size:13px;font-weight:700;padding:7px 10px;cursor:pointer}.navtip-a .ok{background:#126e7c;border-color:#126e7c;color:#fff}
+.navtip{position:fixed;z-index:4100;background:#fff;color:#173542;border:1px solid #cad9d9;border-radius:14px;box-shadow:0 14px 34px #17354240;padding:12px 14px;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}.navtip-t{display:block;font-size:15px;margin-bottom:4px}.navtip-b p{margin:0 0 6px}.navtip-b ol{margin:4px 0 6px;padding-left:20px}.navtip-b li{margin:2px 0}.navtip-a{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:8px}.navtip-a small{flex:1;color:#6b818a;font-size:12px}.navtip-a button{border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#35505e;font:inherit;font-size:13px;font-weight:700;padding:7px 10px;cursor:pointer}.navtip-a .ok{background:#126e7c;border-color:#126e7c;color:#fff}
 .swipe-l{animation:navSwipeL .22s ease-out}.swipe-r{animation:navSwipeR .22s ease-out}@keyframes navSwipeL{from{transform:translateX(28px);opacity:.35}}@keyframes navSwipeR{from{transform:translateX(-28px);opacity:.35}}@media (prefers-reduced-motion:reduce){.swipe-l,.swipe-r{animation:none}}
 .appconfirm{border:0;border-radius:16px;padding:0;width:min(380px,calc(92vw / var(--text-zoom,1)));box-shadow:0 20px 60px #10263a66;font-family:Inter,system-ui,sans-serif}.appconfirm::backdrop{background:#10263ab8}.appconfirm form{margin:0;padding:22px}.appconfirm h2{margin:0;font-size:19px;line-height:1.3;color:#152b3a}.appconfirm p{margin:8px 0 0;color:#667982;font-size:13px;line-height:1.45}.appconfirm p:empty{display:none}
 .textsize{position:relative;margin-left:8px;flex:none}.textsize>button{height:28px;padding:0 8px;border:1px solid #47657a;border-radius:8px;background:none;color:#c8d6db;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}.textsize>button:hover,.textsize>button[aria-expanded="true"]{background:#ffffff1a;color:#fff}
@@ -619,16 +619,18 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (!d.open) { d.showModal(); window.history.pushState({gs: 1}, ''); gs.pushed = true; }
     gsDraw(); await gsLoad(); gsDraw(); input.focus();
   }
-  // Ayuda de una pestaña o pantalla: nota junto a lo que se tocó, con «No mostrar de nuevo» (recordado en este
-  // teléfono). again=true (tocar la pestaña en la que ya estás, o ❓) la muestra aunque se haya ocultado.
-  const tipHidden = key => { try { return localStorage.getItem('tip:' + key) === '1'; } catch { return false; } };
+  // Ayuda de una pestaña o pantalla: sale sola UNA vez (la primera vez que se abre, recordado en este teléfono) y
+  // después solo a pedido: again=true (tocar la pestaña en la que ya estás, o ❓).
+  const tipsSeen = new Set();
+  const tipHidden = key => { if (tipsSeen.has(key)) return true; try { return localStorage.getItem('tip:' + key) === '1'; } catch { return false; } };
   const closeTip = () => document.querySelectorAll('.navtip').forEach(x => x.remove());
   function tip(anchor, key, title, html, again) {
     closeTip();
     if (!anchor || (!again && tipHidden(key))) return;
+    tipsSeen.add(key); try { localStorage.setItem('tip:' + key, '1'); } catch {}
     const d = document.createElement('div');
     d.className = 'navtip'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', title);
-    d.innerHTML = `<b class="navtip-t">${title}</b><div class="navtip-b">${html}</div><div class="navtip-a"><button type="button" data-tip="never">No mostrar de nuevo</button><button type="button" class="ok" data-tip="ok">Entendido</button></div>`;
+    d.innerHTML = `<b class="navtip-t">${title}</b><div class="navtip-b">${html}</div><div class="navtip-a"><small>${again ? '' : 'No volverá a salir sola.'}</small><button type="button" class="ok" data-tip="ok">Entendido</button></div>`;
     (anchor.closest('dialog') || document.body).appendChild(d);
     const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight, w = Math.min(340, vw - 24), r = anchor.getBoundingClientRect();
     d.style.width = w + 'px';
@@ -637,7 +639,6 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     d.style.top = (below + h > vh - 8 && r.top - h - 8 > 8 ? r.top - h - 8 : Math.max(8, Math.min(below, vh - h - 8))) + 'px';
     d.onclick = e => {
       const b = e.target.closest('[data-tip]'); if (!b) return;
-      if (b.dataset.tip === 'never') try { localStorage.setItem('tip:' + key, '1'); } catch {}
       closeTip();
     };
     setTimeout(() => document.addEventListener('pointerdown', function out(e) {
