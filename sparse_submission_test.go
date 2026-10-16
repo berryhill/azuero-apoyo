@@ -94,3 +94,45 @@ func TestPublicCoordinatorWithoutPrivateContacts(t *testing.T) {
 		t.Fatal("phone leaked through coordinator")
 	}
 }
+
+// Imported reports («📥 Importar reportes (por revisar)») may have no phone at all: they import as «Por revisar», can be
+// approved and edited from Checkup, get checkups and needs, and every page that lists them still loads.
+func TestImportedPointWithoutPhonesWorksEverywhere(t *testing.T) {
+	s := newServiceHarness(t)
+	var p Point
+	w := s.call("POST", "/api/admin/points?pending=1", `{"area":"Sin Teléfono","place":"Escuela vieja","needs":"Agua","coordinator":"Doña Rosa"}`, true)
+	if w.Code != 201 || json.Unmarshal(w.Body.Bytes(), &p) != nil || p.Status != "pending" {
+		t.Fatalf("import without phones: %d %s", w.Code, w.Body.String())
+	}
+	ana := s.expect("POST", "/api/admin/users", `{"name":"Ana Agente","telephone":"6999-1111","roles":["agent","runner","supplier"],"accessCode":"ANA123"}`, 201)["id"].(string)
+	s.team("Norte", ana)
+	ac, at := s.agentLogin("ANA123")
+	if w := s.agentCall("POST", "/api/agent/decisions", `{"id":"`+p.ID+`","decision":"approved"}`, ac, at); w.Code != 200 {
+		t.Fatalf("approve from Checkup: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.agentCall("PATCH", "/api/agent/camps/"+p.ID, `{"place":"Escuela nueva","people":"12"}`, ac, at); w.Code != 200 && w.Code != 202 {
+		t.Fatalf("edit without phones: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.agentCall("POST", "/api/agent/camps/"+p.ID+"/checkup", `{"result":"none"}`, ac, at); w.Code != 200 {
+		t.Fatalf("checkup: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.agentCall("POST", "/api/agent/camps/"+p.ID+"/needs", `{"need":"Alimentos","urgency":"normal"}`, ac, at); w.Code != 201 {
+		t.Fatalf("need: %d %s", w.Code, w.Body.String())
+	}
+	for _, path := range []string{"/api/points", "/api/camps/" + p.ID + "/needs"} {
+		if w := s.call("GET", path, "", false); w.Code != 200 || !strings.Contains(w.Body.String(), p.ID[:12]) && path == "/api/points" {
+			t.Fatalf("public %s: %d", path, w.Code)
+		}
+	}
+	rc, rcsrf := s.sessionLogin("/api/runner/session", "ANA123", "runner_session")
+	if w := s.crewCall("GET", "/api/runner/needs", "", rc, rcsrf); w.Code != 200 || !strings.Contains(w.Body.String(), "Sin Teléfono") {
+		t.Fatalf("Runners lists it: %d %s", w.Code, w.Body.String())
+	}
+	sc, _ := s.supplierLogin("ANA123")
+	if v := s.supplierView(sc); findRun(v.Open, "") == nil && len(v.Open) == 0 {
+		t.Fatalf("Supply lists its open needs: %+v", v.Open)
+	}
+	if w := s.as(s.viewerCookie("ANA123"), "GET", "/api/full/scout", ""); w.Code != 200 || !strings.Contains(w.Body.String(), "Sin Teléfono") {
+		t.Fatalf("Scout lists it: %d %s", w.Code, w.Body.String())
+	}
+}

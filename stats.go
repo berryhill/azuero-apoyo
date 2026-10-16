@@ -70,7 +70,7 @@ func computePublicStats(tx *bolt.Tx, now time.Time) (publicStats, error) {
 		if e := json.Unmarshal(v, &p); e != nil {
 			return e
 		}
-		if p.Status == "approved" && !heldFrom(p, "") {
+		if p.Status == "approved" && !hiddenFromPublic(p, "") {
 			published[p.ID] = true
 			pts[p.ID] = p
 		}

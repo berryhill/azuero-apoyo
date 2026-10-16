@@ -9,8 +9,12 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-16**
+- One «Buscar» for every page (per tab), with a floating «🔎 Filtrado por «…» ✕» while it's active; phones list
+  «🔒 Administración» in the page menu for admins (§2).
 - Supply «¡A empacar!» card: 🙌 Necesita (pink) → 📦 Para cargar (share next to «Despachada») → 📍 Destino (with «🧭
   Agregado por») → 🏃 Runner (§8).
+- User notes («Notas»): admin edits them in Usuarios and the team manager in «Mi equipo» (also open to the Admin role,
+  read-only); imports link «Agregado por» (with its phone) to existing users or create them (§12, §13).
 - Checkup on phones: filters collapse into a «Filtros» sheet from the bottom, «Orden» stays visible as a dropdown;
   cards show the last 3 checkups, tap → map, small «Detalles», «Actualizar» on each need, the checkup answer
   «Nadie contestó, pero no necesita nada», and every answer is logged (§10).
@@ -172,15 +176,17 @@ Everything the community reports is *reported* data, not verified, and the app p
 | `/team.html` («Mi equipo») | Team manager role | Invite people to the team, see members, change their roles, remove them. Lives in the ☰ menu. |
 | `/admin.html` | Admin (master password) | Everything: review reports, points, needs, users, teams, backups, newsletter; «🕓 Historial de cambios» per point. Its header has the same page switcher as the other pages but only with «🏠 Inicio» and «🔒 Administración ▾»; **«Administración» opens the admin tools menu** (there is no separate ☰): 👥 Usuarios, 🎁 Donaciones │ 📥 Importar reportes (por revisar)… │ 📰 Generar boletín, 🔗 Ver último boletín ↗ │ ✅ Requerir revisión de puntos, 🔑 Cambiar contraseña maestra │ 💾 Descargar respaldo, 📂 Importar respaldo… (lines between the groups). |
 
-The top bar links to the pages the person can use when signed in: «Inicio», «🧭 Scout», then one per role (signed out there is no page switcher). **«🔒 Administración»** appears for users with the **Admin** role, or in a browser that already has the admin session open (master password): last in the list on a computer and at the bottom of the ☰ menu on phones, small, dashed and faded, and it asks «¿Abrir Administración?» before going there, so it isn't opened by mistake. On phones rarely used ones (Mi equipo) are in the menu. **On phones the
+The top bar links to the pages the person can use when signed in: «Inicio», «🧭 Scout», then one per role (signed out there is no page switcher). **«🔒 Administración»** appears for users with the **Admin** role, or in a browser that already has the admin session open (master password): last in the list on a computer, and on phones both last in the «página ▾» list and at the bottom of the ☰ menu, small, dashed and faded, and it asks «¿Abrir Administración?» before going there, so it isn't opened by mistake. On phones rarely used ones (Mi equipo) are in the menu. **On phones the
 links are always collapsed into one «current page ▾» button** that opens the list as a dropdown, on every page alike,
 even when there are only two (with a single page it shows just the page name). Every page uses this same header,
 including `signup.html` and the public point page `camp.html` (whose «← Volver…» link is now just under the header),
 so the page action (＋ «Agregar punto»), 🔍 and the menu button always stay visible on the right.
 **«Buscar…»** in the header (Inicio, Scout, Runners, Supply, Checkup, admin) has a **✕** inside once something is typed,
-which clears it. What you type is **kept per page in this tab**: leave for another page (with the page menu, a link or
-Back) and come back, and the search is still there and applied (on phones the search bar opens with it). It's
-forgotten when the tab is closed. **While something is typed it stands out**, so empty results aren't a mystery: on phones the 🔍 button turns
+which clears it. There is **one search for every page** (per browser tab): type «erasmo» in Supply, open Checkup or Scout, and the
+same search is there and applied. While a search is active a **floating pill** at the bottom says **«🔎 Filtrado por
+«erasmo» ✕»**, so it's clear why a list is filtered even if the search was typed on another page or the search bar is
+hidden: tapping the text opens the search to change it, **✕** clears it on every page. It's forgotten when the tab
+is closed. **While something is typed it stands out**, so empty results aren't a mystery: on phones the 🔍 button turns
 orange with a yellow dot (even with the search bar hidden; its label says what is being searched), and on a computer the
 search box gets an orange outline. When signed in, the
 menu button shows the person's **initials** in a gold circle (e.g. «MS»; tooltip with the full name) instead of ☰. The
@@ -323,7 +329,14 @@ other teams can't; the admin panel has no button for it).
 
 - «Por revisar»: Approve, Edit, Reject, «Duplicado…» (merge into an approved point).
 - Select reports with checkboxes and **⬇ Exportar CSV** (all fields, including private ones).
-- «🔒 Administración ▾» menu → **📥 Importar reportes (por revisar)…**: an exported CSV or JSON, **dropped onto the dashed box** («Suelta aquí el archivo», which lights up green while dragging; other file types are refused with «Solo archivos .csv o .json.») or chosen by tapping it; the file name shows under it; always imported as «Por revisar»;
+- «🔒 Administración ▾» menu → **📥 Importar reportes (por revisar)…**: an exported CSV or JSON, **dropped onto the dashed box** («Suelta aquí el archivo», which lights up green while dragging; other file types are refused with «Solo archivos .csv o .json.») or chosen by tapping it; the file name shows under it; always imported as «Por revisar»; **«Agregado por»** (who reported it) and an optional **«Teléfono de quien agregó»**
+column (JSON: `addedByName`, `addedByPhone`) link each report to a user: the one with the same phone (last 8 digits),
+or with no phone the only user with that name; if there's none, the person is **created as a user** with no access
+code, roles or team («Pendiente de aprobación», with a notice that the import created them), so admin can later give
+them access; the preview shows «🧭 *name*» per row; `addedBy` (an existing user ID) still works; rows **without any phone** (no reporter phone, no contacts) import fine: the «at
+least one phone» rule only applies to new points from the public form, Runners, Checkup and Scout, not to imports,
+approvals or edits, so such a point can be approved and edited (also from Checkup), get checkups and needs, and shows
+«Sin teléfono registrado» / «Sin contactos registrados» where phones would go;
   re-importing the same file doesn't create duplicates.
 
 ---
@@ -843,7 +856,12 @@ Access: Donations role (single code box + «Entrar») or admin (menu «🎁 Dona
   outside the team (global agents, other teams) can only propose changes (§6), and every change by anyone is recorded
   in the change history. Teammates see each other's full names in a point's public activity log, and Scout can filter
   the team's points (§14).
-- A **Team manager** (must be in a team) opens **Mi equipo** from the ☰ menu:
+- **User notes** («Notas»): free text about a person (skills, vehicle, schedule, languages…). Admin writes them in
+  Usuarios (user form → «Notas»; shown in the user's view); the person's **team manager** writes them in «Mi equipo»
+  («📝 Notas» on each member, also their own). Never public; other teams don't see them.
+- A **Team manager** (must be in a team) opens **Mi equipo** from the ☰ menu (also shown to users with the **Admin**
+  role, read-only there; other team members don't get the page):
+  - **Notes**: each member's notes under their roles; «📝 Notas» opens a box to write them («Guardar notas»).
   - **Invite**: «Crear enlace» (expires in 24 h, 3 days (default) or 7 days; **single use**). Copy, share, or send via
     WhatsApp. The last 20 invites: «Pendiente · vence …», «Usada por …», «Vencida», «Anulada», «Creada … por …», with
     «Anular».

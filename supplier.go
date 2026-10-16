@@ -331,6 +331,8 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			return
 		}
 		s := a.startSupplierSession(w, r, u.ID)
+		// También la vista completa (/api/full), como al entrar con código en el inicio: «📍 Por ubicar», Scout…
+		a.startViewerSession(w, r, u.ID)
 		response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "telephone": u.Telephone, "roles": u.Roles, "panels": userPanels(u), "center": u.SupplyCenter, "csrf": s.csrf})
 	})
 	mux.HandleFunc("GET /api/supplier/session", func(w http.ResponseWriter, r *http.Request) {
@@ -411,7 +413,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 					if tv.team != "" {
 						p.VerifiedTeam, p.VerifiedBy = vTeam, vBy
 					}
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Adults: p.Adults, Children: p.Children, Babies: p.Babies, OlderAdults: p.OlderAdults, Disabled: p.Disabled, Families: p.Families, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt}
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Adults: p.Adults, Children: p.Children, Babies: p.Babies, OlderAdults: p.OlderAdults, Disabled: p.Disabled, Families: p.Families, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt, ToLocate: p.ToLocate}
 				}
 				return nil
 			}); e != nil {

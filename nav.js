@@ -25,11 +25,14 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 .madmin{display:flex;align-items:center;justify-content:center;gap:6px;margin:14px auto 0;padding:6px 12px;width:max-content;border:1px dashed #ffb4a366;border-radius:8px;color:#ffb4a3;font:700 12px Inter,system-ui,sans-serif;text-decoration:none;opacity:.75}
 .tswrap{position:relative;display:block}.tswrap:focus-within{border-color:#ec7651;background:#203c54}.tswrap .tsinput{display:block;width:100%;margin:0;padding:0 26px 0 0;border:0;background:none;color:inherit;font:inherit;outline:none}.tswrap .tsinput::placeholder{color:#9fb6c2}.tsbox{position:relative}.tsbox input{padding-right:34px!important}.tsinput::-webkit-search-cancel-button,.tsbox input::-webkit-search-cancel-button{display:none}
 .tswrap.tson,.tsbox.tson input{border-color:#ed7654!important;box-shadow:0 0 0 2px #ed765466}.msearchbtn.tson{position:relative;background:#ed7654;border-color:#ed7654;color:#fff}.msearchbtn.tson:after{content:'';position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;background:#ffd166;box-shadow:0 0 0 2px #10263a}
+.searchpill{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:3300;display:flex;align-items:center;max-width:calc(calc(100vw / var(--text-zoom,1)) - 24px);border-radius:999px;background:#10263a;color:#fff;box-shadow:0 8px 24px #10263a59;font:700 13px Inter,system-ui,sans-serif}.searchpill[hidden]{display:none}.searchpill button{border:0;background:none;color:inherit;font:inherit;cursor:pointer}.sp-what{min-width:0;padding:9px 6px 9px 14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sp-what b{color:#ffd166}.sp-x{flex:none;width:34px;height:34px;margin-right:2px;border-radius:50%!important;background:#ffffff1f!important}
+.gsdlg{border:0;border-radius:16px;padding:0;width:min(640px,calc(94vw / var(--text-zoom,1)));max-height:calc(92dvh / var(--text-zoom,1));overflow:auto;font-family:Inter,system-ui,sans-serif;color:#173c46;background:#f5f8f7}.gsdlg::backdrop{background:#10263ab8}.gs-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));background:#10263a;color:#fff}.gs-top b{flex:1;font-size:16px}.gs-back,.gs-x{border:1px solid #47657a;border-radius:9px;background:none;color:#fff;font:800 14px Inter,system-ui,sans-serif;padding:7px 11px;cursor:pointer}.gs-bar{position:sticky;top:52px;z-index:1;padding:10px 14px;background:#f5f8f7;border-bottom:1px solid #e1e9ea}.gs-bar input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #cad9d9;border-radius:10px;font:inherit;font-size:16px}.gs-count{margin:10px 14px;color:#5d7680;font-size:13px}.gs-list{display:grid;gap:8px;padding:0 14px 18px}.gs-card{padding:12px 14px;border:1px solid #dce5e4;border-radius:12px;background:#fff}.gs-when{color:#667982;font-size:12px}.gs-card h3{margin:4px 0;font-size:16px;line-height:1.3}.gs-badge{display:inline-block;vertical-align:middle;border-radius:20px;padding:2px 8px;background:#eef3f2;color:#566a71;font-size:11px;font-weight:800}.gs-badge.urg{background:#fde4dc;color:#a83c1f}.gs-badge.pend{background:#fff0e8;color:#ae4f32}.gs-needs{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}.gs-needs li{padding:8px 10px;border:1px solid #e4ecec;border-radius:10px;background:#fafcfc}.gs-st{display:inline-block;margin-right:6px;border-radius:20px;padding:2px 9px;background:#173c46;color:#fff;font-size:11px;font-weight:800}.gs-st.route{background:#e8f0fb;color:#1f4f9a}.gs-code{margin-left:6px;color:#7a8d94;font-weight:700}.gs-card p{margin:5px 0 0;font-size:13px;color:#36505a;overflow-wrap:anywhere}.gs-meta{color:#7a8d94!important;font-size:12px!important}.gs-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}.gs-btn{display:inline-flex;align-items:center;padding:7px 12px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#173c46;font-weight:800;font-size:13px;text-decoration:none}
+@media(max-width:760px){.gsdlg{width:calc(100vw / var(--text-zoom,1));max-width:calc(100vw / var(--text-zoom,1));height:calc(100dvh / var(--text-zoom,1));max-height:calc(100dvh / var(--text-zoom,1));margin:0;border-radius:0}}
 .tsclear{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#ffffff26;color:#fff;font:800 12px Inter,system-ui,sans-serif;cursor:pointer}.tsclear:hover{background:#ffffff40}.tsclear[hidden]{display:none}
 .mbar,.msheet{display:none}
 @media(max-width:760px){.top:has(>.mbar)>.appnav,.top:has(>.mbar) .textsize,.top:has(>.mbar)>.topright{display:none!important}.top:has(>.mbar) .brand{display:none!important}.top:has(>.mbar){gap:10px}
 .mbar{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.mlinks{flex:1;min-width:0;display:flex;gap:3px;overflow:hidden;background:#ffffff12;border-radius:11px;padding:3px}.mlinks a{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:9px;color:#c8d6db;text-decoration:none;font:800 14px Inter,system-ui,sans-serif;white-space:nowrap}.mlinks a[aria-current="page"]{background:#fff;color:#10263a}.mlinks .mi{display:inline-flex}.mbar .mtitle{display:none}.mbar.tight .mlinks{display:none}.mbar.tight .mtitle{display:flex}.mtitle{flex:1;min-width:0;align-items:center;gap:7px;margin:0;padding:8px 10px;border:0;border-radius:11px;background:none;color:#fff;font:800 17px Inter,system-ui,sans-serif;text-align:left;white-space:nowrap;overflow:hidden}.mtitle .mtl{min-width:0;overflow:hidden;text-overflow:ellipsis}.mtitle:not(:disabled){background:#ffffff12;cursor:pointer}.mtitle:disabled{opacity:1;cursor:default}.mtitle .chev{margin-left:auto;padding-left:4px;font-size:12px;opacity:.85}.mtitle[aria-expanded="true"]{background:#fff;color:#10263a}
-.mdrop{position:absolute;top:100%;left:8px;right:8px;z-index:3001;display:flex;flex-direction:column;gap:2px;padding:6px;background:#10263a;border-radius:0 0 14px 14px;box-shadow:0 16px 34px #0008}.mdrop[hidden]{display:none}.mdrop a{display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:10px;color:#e3ecef;text-decoration:none;font:800 16px Inter,system-ui,sans-serif}.mdrop a[aria-current="page"]{background:#fff;color:#10263a}.mdrop .ml{display:inline!important}
+.mdrop{position:absolute;top:100%;left:8px;right:8px;z-index:3001;display:flex;flex-direction:column;gap:2px;padding:6px;background:#10263a;border-radius:0 0 14px 14px;box-shadow:0 16px 34px #0008}.mdrop[hidden]{display:none}.mdrop a{display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:10px;color:#e3ecef;text-decoration:none;font:800 16px Inter,system-ui,sans-serif}.mdrop a[aria-current="page"]{background:#fff;color:#10263a}.mdrop .ml{display:inline!important}.mdrop .mdrop-admin{margin-top:6px;border:1px dashed #ffb4a366;color:#ffb4a3;font-size:14px;opacity:.85}
 .mmenu.me{border-radius:50%;background:#ffd166;border-color:#ffd166;color:#10263a;box-shadow:0 0 0 2px #10263a,0 0 0 3px #ffd16699}.minit{font:900 15px/1 Inter,system-ui,sans-serif;letter-spacing:.02em}.mmenu.me[aria-expanded="true"]{background:#fff;border-color:#fff}}
 .madd,.mmenu,.msearchbtn{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:12px;border:0;cursor:pointer;text-decoration:none}.madd{background:#ed7654;color:#fff}.madd[hidden]{display:none}.mmenu,.msearchbtn{background:#ffffff14;border:1px solid #47657a;color:#fff}.msearchbtn[aria-expanded="true"]{background:#fff;color:#10263a}.madd.text{width:auto;padding:0 14px;font:800 15px Inter,system-ui,sans-serif;white-space:nowrap}.top:has(>.mbar){flex-wrap:wrap;height:auto;min-height:62px;align-content:center}@media(max-width:760px){.top:has(>.mbar) .topsearch{display:none!important}}.top.msearch .topsearch{display:block!important;flex:1 0 100%;order:9;max-width:none;margin:0 0 10px}body:has(.top>.mbar) .addbar{display:none!important}.msuser .msoft{color:#c8d6db}.mlogin{display:none}.mbar.public .mlinks,.mbar.public .mtitle,.mbar.public .msearchbtn{display:none!important}.mbar.public .madd{order:-1}.mbar.public .mlogin{display:inline-flex;align-items:center;height:42px;margin-left:auto;padding:0 14px;border:1px solid #ffffff55;border-radius:12px;background:none;color:#fff;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.top.msearch:has(.mbar.public) .topsearch{display:none!important}.msuser .mgo{background:#ed7654;border-color:#ed7654;color:#fff}.mmenu[aria-expanded="true"]{background:#fff;color:#10263a}
 .msheet{position:absolute;top:100%;left:0;right:0;z-index:3000;background:#10263a;padding:6px 14px 16px;box-shadow:0 16px 34px #0008;border-radius:0 0 16px 16px;font-family:Inter,system-ui,sans-serif}.msheet:not([hidden]){display:block}
@@ -54,7 +57,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     ['/supplier.html', '📦', () => 'Supply', u => has(u, 'supplier')],
     ['/cook.html', '🍳', () => 'Cocina', u => has(u, 'cook')],
     ['/donations.html', '🎁', () => 'Donaciones', u => has(u, 'donations')],
-    ['/team.html', '👥', () => 'Mi equipo', u => has(u, 'teammanager'), 'menu'],
+    ['/team.html', '👥', () => 'Mi equipo', u => has(u, 'teammanager') || has(u, 'admin'), 'menu'],
   ];
   function user() {
     try { return JSON.parse(localStorage.getItem('codeUser') || 'null'); } catch { return null; }
@@ -79,7 +82,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   }
   // ¿Este navegador tiene abierta la sesión de administración? Se pregunta una vez por página (no en admin.html).
   let adminOK = false;
-  if (location.pathname !== '/admin.html') fetch('/api/admin/session', {credentials: 'same-origin', cache: 'no-store'}).then(r => { if (r.ok) { adminOK = true; draw(); } }).catch(() => {});
+  if (location.pathname !== '/admin.html') fetch('/api/admin/session', {credentials: 'same-origin', cache: 'no-store'}).then(r => { if (r.ok) { adminOK = true; draw(); drawTitle(); } }).catch(() => {});
   document.addEventListener('click', async e => {
     const a = e.target.closest('[data-admin-link]');
     if (!a) return;
@@ -278,11 +281,14 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const title = document.getElementById('mTitle'), drop = document.getElementById('mDrop'), links = document.getElementById('mLinks'), bar = document.getElementById('mBar');
     if (!title || !drop || !links) return;
     const u = user() || {}, here = location.pathname, page = pages.find(([url]) => url === here), label = page ? page[2](u) : document.title.replace(/^DEV · /, '').split('·')[0].trim();
-    const pick = bar.classList.contains('tight') && links.children.length > 1;
+    // Con el rol Admin (o la sesión de administración abierta) la lista de páginas termina con «🔒 Administración», como en
+    // la computadora (pide confirmar antes de ir).
+    const admin = (adminOK || (u.roles || []).includes('admin')) && here !== '/admin.html';
+    const pick = bar.classList.contains('tight') && (links.children.length > 1 || admin && !!user());
     title.disabled = !pick;
     title.innerHTML = `${page ? `<span class="mi" aria-hidden="true">${page[1]}</span>` : ''}<span class="mtl">${esc(label)}</span>${pick ? '<span class="chev" aria-hidden="true">▾</span>' : ''}`;
     title.setAttribute('aria-label', pick ? `${label}: cambiar de página` : label);
-    drop.innerHTML = pick ? links.innerHTML : '';
+    drop.innerHTML = pick ? links.innerHTML + (admin ? '<a href="/admin.html" class="mdrop-admin" data-admin-link><span class="mi" aria-hidden="true">🔒</span><span class="ml">Administración</span></a>' : '') : '';
     if (!pick) showDrop(false);
   }
   function showDrop(open) {
@@ -363,6 +369,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (cid) { document.getElementById('copyMyId')?.click(); cid.textContent = 'ID copiado'; return; }
     if (e.target.closest('#mAdd')) { showSheet(false); document.querySelector('.top .topright .add')?.click(); return; }
     const sb = e.target.closest('#mSearch');
+    if (sb && document.querySelector('header input[type=search][data-global]')) { showSheet(false); openGlobalSearch(document.querySelector('header input[type=search]').value); return; }
     if (sb) { const top = document.querySelector('header.top'), open = !top.classList.contains('msearch'); top.classList.toggle('msearch', open); sb.setAttribute('aria-expanded', String(open)); showSheet(false); if (open) top.querySelector('input[type=search]')?.focus(); return; }
     if (!sheet.hidden && (!sheet.contains(e.target) || e.target.closest('a'))) showSheet(false);
   });
@@ -490,7 +497,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       t.textContent = 'Tu acceso cambió: ya no puedes usar esa página. Tus páginas están en el menú.';
       document.body.appendChild(t);
       setTimeout(() => t.remove(), 7000);
-      history.replaceState(null, '', location.pathname + location.hash);
+      window.history.replaceState(null, '', location.pathname + location.hash);
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show); else show();
   }
@@ -523,9 +530,33 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     x.title = 'Borrar búsqueda';
     x.textContent = '✕';
     box.appendChild(x);
-    const here = location.pathname === '/index.html' ? '/' : location.pathname, key = 'search:' + here;
+    // Búsqueda global (Runners, Supply: data-global): Enter abre «Búsqueda global» encima de la página; no filtra la
+    // lista ni se guarda (cada página tiene su «Buscar en …» por pestaña).
+    if (input.dataset.global) {
+      x.hidden = true;
+      input.addEventListener('input', () => { x.hidden = !input.value; });
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); openGlobalSearch(input.value); } });
+      x.onclick = () => { input.value = ''; x.hidden = true; input.focus(); };
+      return;
+    }
+    // Una sola búsqueda para todas las páginas (por pestaña): lo que se escribe en una sigue puesto al ir a otra.
+    const key = 'search:all';
+    // Aviso flotante abajo mientras hay búsqueda («🔎 Filtrado por «…» ✕»): así se entiende por qué la lista está
+    // filtrada aunque la búsqueda se haya escrito en otra página o la barra esté oculta. ✕ la borra en todas.
+    let pill = document.getElementById('searchPill');
+    if (!pill) {
+      pill = document.createElement('div');
+      pill.id = 'searchPill';
+      pill.className = 'searchpill';
+      pill.hidden = true;
+      pill.setAttribute('role', 'status');
+      pill.innerHTML = '<button type="button" class="sp-what" title="Ver o cambiar la búsqueda">🔎 Filtrado por «<b></b>»</button><button type="button" class="sp-x" aria-label="Borrar búsqueda (en todas las páginas)" title="Borrar búsqueda">✕</button>';
+      document.body.appendChild(pill);
+      pill.querySelector('.sp-x').onclick = () => { input.value = ''; input.dispatchEvent(new Event('input', {bubbles: true})); };
+      pill.querySelector('.sp-what').onclick = () => { const top = input.closest('header.top'), sb = document.getElementById('mSearch'); if (top && sb && getComputedStyle(sb).display !== 'none') { top.classList.add('msearch'); sb.setAttribute('aria-expanded', 'true'); } input.focus(); input.select?.(); };
+    }
     // Con algo escrito se nota aunque la barra esté oculta: el 🔍 del teléfono en naranja con un punto, y la caja con borde.
-    const sync = () => { const on = !!input.value.trim(); x.hidden = !input.value; box.classList.toggle('tson', on); const sb = document.getElementById('mSearch'); if (sb) { sb.classList.toggle('tson', on); sb.setAttribute('aria-label', on ? `Buscar (buscando «${input.value.trim()}»)` : 'Buscar'); sb.title = on ? `Buscando «${input.value.trim()}»` : ''; } try { input.value ? sessionStorage.setItem(key, input.value) : sessionStorage.removeItem(key); } catch {} };
+    const sync = () => { const on = !!input.value.trim(); x.hidden = !input.value; box.classList.toggle('tson', on); pill.hidden = !on; pill.querySelector('b').textContent = input.value.trim().length > 30 ? input.value.trim().slice(0, 30) + '…' : input.value.trim(); const sb = document.getElementById('mSearch'); if (sb) { sb.classList.toggle('tson', on); sb.setAttribute('aria-label', on ? `Buscar (buscando «${input.value.trim()}»)` : 'Buscar'); sb.title = on ? `Buscando «${input.value.trim()}»` : ''; } try { input.value ? sessionStorage.setItem(key, input.value) : sessionStorage.removeItem(key); } catch {} };
     input.addEventListener('input', sync);
     input._tsSync = sync;
     x.onclick = () => { input.value = ''; input.dispatchEvent(new Event('input', {bubbles: true})); input.focus(); };
@@ -534,16 +565,59 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (saved && !input.value) {
       input.value = saved;
       // Después de que la página conectó su búsqueda: el aviso «input» vuelve a filtrar con lo restaurado.
-      const fire = () => setTimeout(() => {
-        input.dispatchEvent(new Event('input', {bubbles: true}));
-        const top = input.closest('header.top'), sb = document.getElementById('mSearch');
-        if (top && sb) { top.classList.add('msearch'); sb.setAttribute('aria-expanded', 'true'); }
-      });
+      const fire = () => setTimeout(() => input.dispatchEvent(new Event('input', {bubbles: true})));
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fire); else fire();
     }
     sync();
   }
-  window.AppNav = {draw: drawAll, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
+  // «🔎 Búsqueda global»: pantalla encima de la página (en el teléfono ocupa todo) con los puntos que coinciden en
+  // código, zona, lugar, indicaciones, quién reporta, necesidades o notas, como en Checkup. «‹ Volver», ✕ o Atrás del
+  // teléfono la cierran y se vuelve a lo que se estaba haciendo, sin cambiar nada.
+  const gs = {points: null, at: 0, pushed: false};
+  const gsFold = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  function gsDialog() {
+    let d = document.getElementById('gsDlg');
+    if (d) return d;
+    document.body.insertAdjacentHTML('beforeend', `<dialog id="gsDlg" class="gsdlg" aria-labelledby="gsTitle"><div class="gs-top"><button type="button" class="gs-back" data-gs-close>‹ Volver</button><b id="gsTitle">🔎 Búsqueda global</b><button type="button" class="gs-x" data-gs-close aria-label="Cerrar">✕</button></div><div class="gs-bar"><input type="search" id="gsInput" placeholder="Código, zona, lugar, necesidad, quién reporta…" autocomplete="off" aria-label="Buscar en todos los puntos"></div><p class="gs-count" id="gsCount" role="status"></p><div class="gs-list" id="gsList"></div></dialog>`);
+    d = document.getElementById('gsDlg');
+    d.addEventListener('click', e => { if (e.target.closest('[data-gs-close]') || e.target === d) d.close(); });
+    d.querySelector('#gsInput').addEventListener('input', gsDraw);
+    d.addEventListener('close', () => { if (gs.pushed) { gs.pushed = false; window.history.back(); } });
+    addEventListener('popstate', () => { if (d.open) { gs.pushed = false; d.close(); } });
+    return d;
+  }
+  async function gsLoad() {
+    if (gs.points && Date.now() - gs.at < 60000) return;
+    // Los mismos datos que Scout: puntos publicados (y los por revisar propios o del equipo) con sus necesidades activas;
+    // contactos solo para quien es de un equipo.
+    try { const r = await fetch('/api/full/scout', {credentials: 'same-origin', cache: 'no-store'}); gs.points = r.ok ? await r.json() : []; gs.at = Date.now(); } catch { gs.points = gs.points || []; }
+  }
+  const gsAgo = v => { const m = Math.round((Date.now() - Date.parse(v)) / 60000); return !v || isNaN(m) ? '' : m < 60 ? `hace ${Math.max(1, m)} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
+  const gsChips = t => window.PointForm?.needChipsHtml ? PointForm.needChipsHtml(t) : `<p>${esc(t)}</p>`;
+  // Tarjeta como una fila de Checkup: cuándo fue el último checkup, nombre y código, urgente / por revisar, lugar, quién
+  // reporta, personas, contactos y las necesidades activas con su estado; «Ficha» y Maps.
+  function gsCard(p) {
+    const pending = p.pointStatus === 'pending', needs = p.activeNeeds || [], maps = p.coords?.length === 2 ? `https://www.google.com/maps/search/?api=1&query=${p.coords.join(',')}` : p.gps || '';
+    const when = p.lastCheckup ? `Checkup ${gsAgo(p.lastCheckup)}` : `Creado ${gsAgo(p.created)}`;
+    const contacts = (p.contacts || []).map(c => c.name).filter(Boolean);
+    return `<article class="gs-card"><small class="gs-when">${esc(when)}</small><h3>${esc([p.area, p.place].filter(Boolean).join(' · ') || p.code)}${p.code && !/^P-[0-9a-f]{12}$/i.test(p.code) ? ` <small class="gs-code">${esc(p.code)}</small>` : ''}${p.highestUrgency === 'urgente' ? ' <span class="gs-badge urg">Urgente</span>' : ''}${pending ? ' <span class="gs-badge pend">Por revisar</span>' : ''}${p.coords?.length === 2 ? '' : ' <span class="gs-badge">📍 sin GPS</span>'}</h3><p class="gs-meta">${[p.directions && '📍 ' + esc(p.directions), p.coordinator && '📣 ' + esc(p.coordinator), p.people && '👥 ' + esc(p.people) + ' personas'].filter(Boolean).join(' · ')}</p>${contacts.length ? `<p class="gs-meta">👤 ${esc(contacts.slice(0, 3).join(', '))}${contacts.length > 3 ? ` y ${contacts.length - 3} más` : ''}</p>` : ''}${needs.length ? `<ul class="gs-needs">${needs.map(n => `<li><span class="gs-st${n.status === 'IN_PROGRESS' ? ' route' : ''}">${n.status === 'IN_PROGRESS' ? '🏃 En camino' + (n.runnerName ? ' · ' + esc(n.runnerName) : '') : 'Necesita'}</span>${n.urgency === 'urgente' ? '<span class="gs-badge urg">Urgente</span>' : ''}${gsChips(n.need)}</li>`).join('')}</ul>` : pending && p.needs ? `<div class="gs-needs">${gsChips(p.needs)}</div>` : '<p class="gs-meta">Sin necesidades abiertas</p>'}<div class="gs-acts"><a class="gs-btn" href="/camp.html?id=${encodeURIComponent(p.id)}">Ficha ›</a>${maps ? `<a class="gs-btn" target="_blank" rel="noopener noreferrer" href="${esc(maps)}">Abrir en Maps ↗</a>` : ''}</div></article>`;
+  }
+  function gsDraw() {
+    const raw = document.getElementById('gsInput').value.trim(), q = gsFold(raw), list = document.getElementById('gsList'), count = document.getElementById('gsCount');
+    if (!gs.points) { count.textContent = 'Cargando…'; list.innerHTML = ''; return; }
+    if (!q) { count.textContent = 'Escribe para buscar en todos los puntos: código, zona, lugar, necesidad, quién reporta o un contacto.'; list.innerHTML = ''; return; }
+    const hits = gs.points.filter(p => gsFold([p.code, p.area, p.place, p.directions, p.coordinator, p.needs, p.notes, p.extra, p.addedByMate, ...(p.activeNeeds || []).map(n => n.need), ...(p.contacts || []).map(c => c.name)].join(' ')).includes(q));
+    hits.sort((a, b) => (b.highestUrgency === 'urgente') - (a.highestUrgency === 'urgente') || (b.activeNeeds || []).length - (a.activeNeeds || []).length);
+    count.textContent = hits.length ? `${hits.length} ${hits.length === 1 ? 'punto' : 'puntos'} con «${raw}»` : `Ningún punto coincide con «${raw}».`;
+    list.innerHTML = hits.slice(0, 60).map(gsCard).join('') + (hits.length > 60 ? `<p class="gs-count">y ${hits.length - 60} más: escribe algo más preciso.</p>` : '');
+  }
+  async function openGlobalSearch(q) {
+    const d = gsDialog(), input = d.querySelector('#gsInput');
+    input.value = String(q || '').trim();
+    if (!d.open) { d.showModal(); window.history.pushState({gs: 1}, ''); gs.pushed = true; }
+    gsDraw(); await gsLoad(); gsDraw(); input.focus();
+  }
+  window.AppNav = {draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
   mountSearch();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); mountSearch(); document.querySelector('header input[type=search]')?._tsSync?.(); }); else { draw(); mountTextSize(); mountMobileBar(); document.querySelector('header input[type=search]')?._tsSync?.(); }

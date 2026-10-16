@@ -106,12 +106,25 @@ func (a *App) teamManager(w http.ResponseWriter, r *http.Request) (User, Team, b
 }
 
 func (a *App) teamInviteRoutes(mux *http.ServeMux) {
-	// «Mi equipo»: miembros e invitaciones del equipo del team manager.
+	// «Mi equipo»: solo para el team manager (o el rol Admin) de un equipo: miembros con sus notas, invitaciones y qué
+	// roles puede dar. Los demás miembros ven las notas de sus compañeros en Runners («Mi equipo»).
 	mux.HandleFunc("GET /api/full/team", func(w http.ResponseWriter, r *http.Request) {
-		_, team, ok := a.teamManager(w, r)
+		me, ok := a.viewer(w, r)
 		if !ok {
 			return
 		}
+		var team Team
+		var found bool
+		a.db.View(func(tx *bolt.Tx) error { team, found = getTeam(tx, me.TeamID); return nil })
+		if !found {
+			fail(w, 403, "No eres parte de un equipo.")
+			return
+		}
+		if !me.has(roleTeamManager) && !me.has(roleAdmin) {
+			fail(w, 403, errNotTeamManager.Error())
+			return
+		}
+		manager := me.has(roleTeamManager)
 		type member struct {
 			ID           string   `json:"id"`
 			Name         string   `json:"name"`
@@ -120,17 +133,21 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 			LastActiveAt string   `json:"lastActiveAt,omitempty"`
 			CreatedAt    string   `json:"createdAt,omitempty"`
 			Online       bool     `json:"online,omitempty"`
+			Notes        string   `json:"notes,omitempty"`
 		}
 		members, invites := []member{}, []teamInviteView{}
 		now := time.Now()
 		err := a.db.View(func(tx *bolt.Tx) error {
 			if e := eachUser(tx, func(u User) error {
 				if u.TeamID == team.ID && !u.Disabled {
-					members = append(members, member{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Roles: u.Roles, LastActiveAt: u.LastActiveAt, CreatedAt: u.CreatedAt, Online: a.withPresence(u.admin()).Online})
+					members = append(members, member{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Roles: u.Roles, LastActiveAt: u.LastActiveAt, CreatedAt: u.CreatedAt, Online: a.withPresence(u.admin()).Online, Notes: u.Notes})
 				}
 				return nil
 			}); e != nil {
 				return e
+			}
+			if !manager {
+				return nil
 			}
 			name := func(id string) string {
 				if u, ok := getUser(tx, id); ok {
@@ -155,7 +172,11 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 		}
 		sort.Slice(members, func(i, j int) bool { return runnerNameKey(members[i].Name) < runnerNameKey(members[j].Name) })
 		sort.Slice(invites, func(i, j int) bool { return invites[i].CreatedAt > invites[j].CreatedAt })
-		response(w, 200, map[string]any{"team": team, "members": members, "invites": invites, "grantable": teamManagerRoles})
+		grantable := []string{}
+		if manager {
+			grantable = teamManagerRoles
+		}
+		response(w, 200, map[string]any{"team": team, "members": members, "invites": invites, "grantable": grantable, "manager": manager, "me": me.ID})
 	})
 	// Nueva invitación de un solo uso; vence en hours horas (24, 72 o 168). El token se devuelve una vez.
 	mux.HandleFunc("POST /api/full/team/invites", func(w http.ResponseWriter, r *http.Request) {
@@ -289,6 +310,34 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 			m.Roles = roles
 			return nil
 		})
+	})
+	// Notas de un miembro: las escribe el team manager de su equipo (también las suyas); las ven todos en «Mi equipo».
+	mux.HandleFunc("PATCH /api/full/team/members/{id}/notes", func(w http.ResponseWriter, r *http.Request) {
+		_, team, ok := a.teamManager(w, r)
+		if !ok {
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"notes": userNotesMax})
+		if !ok {
+			return
+		}
+		var m User
+		err := a.db.Update(func(tx *bolt.Tx) error {
+			var found bool
+			if m, found = getUser(tx, r.PathValue("id")); !found || m.TeamID != team.ID {
+				return errMissing
+			}
+			m.Notes, m.UpdatedAt = strings.TrimSpace(fieldText(f, "notes")), nowStamp()
+			return putJSON(tx.Bucket(usersBucket), m.ID, m)
+		})
+		if errors.Is(err, errMissing) {
+			fail(w, 404, "Esa persona no está en tu equipo.")
+			return
+		}
+		if serviceError(w, err) {
+			return
+		}
+		response(w, 200, map[string]any{"id": m.ID, "notes": m.Notes})
 	})
 	mux.HandleFunc("POST /api/full/team/members/{id}/remove", func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := decodeFields(w, r, map[string]int{}); !ok {

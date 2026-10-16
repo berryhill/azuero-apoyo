@@ -87,6 +87,14 @@ type Point struct {
 	// Usuario con código de acceso que publicó el punto (ID y nombre completo); lo fija el servidor y solo lo ve administración.
 	AddedBy     string `json:"addedBy,omitempty"`
 	AddedByName string `json:"addedByName,omitempty"`
+	// Solo al importar (administración): teléfono de quien agregó el reporte, para enlazarlo o crearlo como usuario. No se guarda.
+	AddedByPhone string `json:"addedByPhone,omitempty"`
+	// «📍 Por ubicar»: entregas registradas sin saber todavía a qué lugar fueron (importadas sin destino). El punto está
+	// aprobado (guarda sus entregas) pero no es público ni sale en el mapa hasta que el runner, quien despachó, su equipo,
+	// Checkup o administración le ponen la ubicación o lo unen a un punto existente (locate).
+	ToLocate bool `json:"toLocate,omitempty"`
+	// Solo al importar: equipo (por nombre) para la persona que se crea como «Agregado por». No se guarda.
+	AddedByTeam string `json:"addedByTeam,omitempty"`
 	// Quien editó el punto por última vez desde Command (o aceptó una solicitud de cambio); privado. Un agente de otro
 	// equipo no lo cambia sin su visto bueno (changes.go).
 	UpdatedBy string `json:"updatedBy,omitempty"`
@@ -246,6 +254,8 @@ type CampNeed struct {
 	VerifiedAt   string `json:"verifiedAt,omitempty"`
 	// Cuándo cambió el pedido (texto) después de crearse, por ejemplo al fusionar un duplicado; se muestra como «Actualizado».
 	RevisedAt string `json:"revisedAt,omitempty"`
+	// Importación: identificador de la entrega en el archivo importado; volver a importarlo no la duplica. Privado.
+	ImportRef string `json:"importRef,omitempty"`
 	// Lista de empaque: lo que corredores y agentes preparan para cumplir la necesidad. Privada (no sale en público).
 	Packing []PackingLine `json:"packing,omitempty"`
 	// Fotos y videos de partida y entrega; privados (corredor asignado y administración).
@@ -405,9 +415,20 @@ func parseMapLink(link string) ([]float64, error) {
 // holdHours: cuánto se retiene la publicación de un punto que un equipo va a abastecer.
 const holdHours = 3
 
+// hiddenFromPublic: no se muestra en lo público (mapa, ficha, listas, boletín, Scout): retenido para otro equipo o
+// «por ubicar». Runners, Supply, Checkup y administración sí lo ven para poder completarlo.
+func hiddenFromPublic(p Point, team string) bool { return heldFrom(p, team) || p.ToLocate }
+
 // heldFrom: el punto está retenido para su equipo y quien mira (team, vacío para el público) no es de ese equipo.
 func heldFrom(p Point, team string) bool {
 	return p.HeldBy != "" && p.HeldUntil > nowStamp() && team != p.HeldBy
+}
+
+// campHiddenFromPublic: como hiddenFromPublic, buscando el punto por su ID.
+func campHiddenFromPublic(tx *bolt.Tx, id, team string) bool {
+	var p Point
+	v := tx.Bucket(submissions).Get([]byte(id))
+	return v != nil && json.Unmarshal(v, &p) == nil && hiddenFromPublic(p, team)
 }
 
 // campHeldFrom: como heldFrom, buscando el punto por su ID.
@@ -1050,7 +1071,7 @@ func (a *App) publicPoints(w http.ResponseWriter, viewer string) {
 			if e := json.Unmarshal(v, &p); e != nil {
 				return e
 			}
-			if p.Status == "approved" && !heldFrom(p, tv.team) {
+			if p.Status == "approved" && !hiddenFromPublic(p, tv.team) {
 				status, urgency, e := aggregateCamp(tx, p.ID)
 				if e != nil {
 					return e
@@ -1135,9 +1156,14 @@ func (a *App) routes() http.Handler {
 			failField(w, 400, "clientRef", "Identificador del envío demasiado largo.")
 			return
 		}
-		// Importación de administración: «addedBy» con el ID de un usuario existente deja anotado quién reportó el punto.
-		askedBy := strings.TrimSpace(p.AddedBy)
-		p.AddedBy, p.AddedByName = "", ""
+		// Importación de administración: «addedBy» con el ID de un usuario existente deja anotado quién reportó el punto; o
+		// «addedByName» / «addedByPhone»: se enlaza a quien ya existe (por teléfono, o por nombre si es único) o se crea.
+		askedBy, askedName, askedPhone, askedTeam := strings.TrimSpace(p.AddedBy), strings.Join(strings.Fields(p.AddedByName), " "), strings.TrimSpace(p.AddedByPhone), strings.TrimSpace(p.AddedByTeam)
+		p.AddedBy, p.AddedByName, p.AddedByPhone, p.AddedByTeam = "", "", "", ""
+		// Importación de administración: «created» con la fecha real del reporte (pasada) en vez de la de hoy, y
+		// «toLocate» para entregas sin destino todavía.
+		askedCreated, askedToLocate := importDate(p.Created), p.ToLocate
+		p.ToLocate = false
 		p.VerifiedTeam, p.VerifiedBy, p.VerifiedAt = "", "", ""
 		hold := p.HoldTeam
 		p.HoldTeam, p.HeldBy, p.HeldUntil = false, "", ""
@@ -1165,6 +1191,15 @@ func (a *App) routes() http.Handler {
 		}
 		p.Source = "submission"
 		p.Created = time.Now().UTC().Format(time.RFC3339)
+		if reviewed && by == nil && askedCreated != "" {
+			p.Created = askedCreated
+		}
+		if reviewed && by == nil && publish && askedToLocate {
+			p.ToLocate = true
+			if p.Area == "Sin ubicación" {
+				p.Area = "Por ubicar"
+			}
+		}
 		p.Status = "pending"
 		p.Decided, p.MergedInto, p.LastCheckup = "", "", ""
 		if publish {
@@ -1207,6 +1242,12 @@ func (a *App) routes() http.Handler {
 					return errUnknownUser
 				}
 				p.AddedBy, p.AddedByName = u.ID, u.Name
+			} else if reviewed && by == nil && (askedName != "" || askedPhone != "") {
+				u, e := importUser(tx, askedName, askedPhone, "", askedTeam)
+				if e != nil {
+					return e
+				}
+				p.AddedBy, p.AddedByName = u.ID, u.Name
 			}
 			verifyStamp(tx, by, &p.VerifiedTeam, &p.VerifiedBy, &p.VerifiedAt)
 			if hold && by != nil && publish {
@@ -1238,6 +1279,11 @@ func (a *App) routes() http.Handler {
 		if err != nil {
 			if err == errUnknownUser {
 				failField(w, 400, "addedBy", "No hay un usuario con ese ID.")
+				return
+			}
+			var uf userFieldError
+			if errors.As(err, &uf) {
+				failField(w, 400, uf.field, uf.msg)
 				return
 			}
 			if err.Error() == "duplicate code" {
@@ -1720,15 +1766,32 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		}
 		response(w, 201, map[string]string{"id": n.ID, "status": n.Status})
 	})
+	// Importación (solo administración, no agentes): «runnerName» / «runnerPhone» / «runnerTeam» enlazan o crean a quien
+	// llevó la entrega (importUser) y «at» pone la fecha real (pasada) de la necesidad y de su entrega.
+	importNeedFields := map[string]int{"runnerName": 120, "runnerPhone": 40, "runnerTeam": 120, "at": 40, "importRef": 64}
+	for k, v := range needFields {
+		importNeedFields[k] = v
+	}
 	mux.HandleFunc("POST /api/admin/camps/{id}/needs", func(w http.ResponseWriter, r *http.Request) {
 		if !a.adminWrite(w, r) {
 			return
 		}
-		f, ok := decodeFields(w, r, needFields)
+		allowed := needFields
+		if agentBy(r) == nil {
+			allowed = importNeedFields
+		}
+		f, ok := decodeFields(w, r, allowed)
 		if !ok {
 			return
 		}
 		n := CampNeed{ID: randomToken(), CampID: r.PathValue("id"), Need: fieldText(f, "need"), Status: "OPEN", Urgency: fieldText(f, "urgency"), RunnerID: fieldText(f, "runnerId"), BuilderID: fieldText(f, "builderId"), Kind: storedKind(fieldText(f, "kind")), CreatedAt: nowStamp()}
+		at := importDate(fieldText(f, "at"))
+		if at != "" {
+			n.CreatedAt = at
+		}
+		runnerName, runnerPhone, runnerTeam := strings.Join(strings.Fields(fieldText(f, "runnerName")), " "), strings.TrimSpace(fieldText(f, "runnerPhone")), strings.TrimSpace(fieldText(f, "runnerTeam"))
+		n.ImportRef = strings.TrimSpace(fieldText(f, "importRef"))
+		var again *CampNeed
 		if !validKind(fieldText(f, "kind")) {
 			failField(w, 400, "kind", "invalid kind")
 			return
@@ -1755,14 +1818,44 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 			if !a.campExists(tx, n.CampID) {
 				return errMissing
 			}
+			// La misma entrega importada otra vez: se devuelve la que ya existe, sin crear otra.
+			if n.ImportRef != "" {
+				if e := tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
+					var x CampNeed
+					if json.Unmarshal(v, &x) == nil && x.ImportRef == n.ImportRef {
+						again = &x
+					}
+					return nil
+				}); e != nil || again != nil {
+					return e
+				}
+			}
+			if n.RunnerID == "" && (runnerName != "" || runnerPhone != "") {
+				u, e := importUser(tx, runnerName, runnerPhone, roleRunner, runnerTeam)
+				if e != nil {
+					return e
+				}
+				n.RunnerID = u.ID
+			}
 			if !validAssignee(tx, n) {
 				return errInvalid
 			}
 			enRouteOnAssign(&n, "")
+			if at != "" && n.EnRouteAt != "" {
+				n.EnRouteAt = at
+			}
 			verifyStamp(tx, agentBy(r), &n.VerifiedTeam, &n.VerifiedBy, &n.VerifiedAt)
-			return putNeed(tx.Bucket(needsBucket), &n)
+			if e := putNeed(tx.Bucket(needsBucket), &n); e != nil || at == "" {
+				return e
+			}
+			n.UpdatedAt = at
+			return putJSON(tx.Bucket(needsBucket), n.ID, n)
 		})
 		if serviceError(w, err) {
+			return
+		}
+		if again != nil {
+			response(w, 200, map[string]any{"id": again.ID, "status": again.Status, "runnerId": again.RunnerID, "duplicate": true})
 			return
 		}
 		response(w, 201, n)
@@ -1874,7 +1967,7 @@ var campFields = map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8
 
 // campFieldError rechaza campos de solo lectura y coordenadas fuera de Panamá.
 func campFieldError(f map[string]json.RawMessage) (string, string) {
-	for _, key := range []string{"source", "status", "id", "created", "decided", "campStatus", "highestUrgency", "needStatuses", "mergedInto", "lastCheckup", "history", "checkups", "clientRef", "updatedBy"} {
+	for _, key := range []string{"source", "status", "id", "created", "decided", "campStatus", "highestUrgency", "needStatuses", "mergedInto", "lastCheckup", "history", "checkups", "checkupLog", "clientRef", "updatedBy"} {
 		if _, yes := f[key]; yes {
 			return key, "read-only field"
 		}
@@ -2155,6 +2248,109 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 	})
 }
 
+// importUser: quien agregó un reporte importado. Si ya hay un usuario con ese teléfono (mismos últimos 8 dígitos) o,
+// sin teléfono, uno solo con ese nombre, es ese; si no, se crea sin código, sin roles ni equipo (no puede entrar hasta
+// que administración le dé acceso) con un aviso de que vino de una importación.
+// role: rol que necesita (p. ej. runner para quien llevó una entrega): se agrega si le falta. team: nombre del equipo para
+// quien se crea; como en un equipo solo puede estar alguien con código, se le genera uno (administración lo ve con 🔑).
+// Seguridad: los datos importados solo se enlazan a alguien que YA está en ese equipo; si coincide (teléfono o nombre)
+// con alguien de fuera del equipo, se crea otra persona. Sin equipo nunca se enlaza a nadie: siempre se crea.
+func importUser(tx *bolt.Tx, name, phone, role, team string) (User, error) {
+	teamID := ""
+	if team != "" {
+		if e := tx.Bucket(teamsBucket).ForEach(func(_, v []byte) error {
+			var t Team
+			if json.Unmarshal(v, &t) == nil && runnerNameKey(t.Name) == runnerNameKey(team) {
+				teamID = t.ID
+			}
+			return nil
+		}); e != nil {
+			return User{}, e
+		}
+		if teamID == "" {
+			return User{}, userFieldError{"team", "No existe el equipo «" + team + "». Créalo en Usuarios → Equipos."}
+		}
+	}
+	u, created, e := findOrCreateImportUser(tx, name, phone, teamID)
+	if e != nil {
+		return u, e
+	}
+	changed := false
+	if role != "" && !u.has(role) {
+		u.Roles, changed = orderRoles(append(u.Roles, role)), true
+	}
+	if created && teamID != "" {
+		code := signupCode(u.Name)
+		for i := 0; i < 20; i++ {
+			if _, e := userByAccessCode(tx, code); e != nil {
+				break
+			}
+			code = signupCode(u.Name)
+		}
+		u.CodeHash, u.AccessCode, u.TeamID, changed = accessCodeHash(tx, normalizeAccessCode(code)), normalizeAccessCode(code), teamID, true
+		if len(u.Roles) == 0 {
+			u.Roles = []string{roleRunner}
+		}
+	}
+	if changed {
+		u.UpdatedAt = nowStamp()
+		return u, putJSON(tx.Bucket(usersBucket), u.ID, u)
+	}
+	return u, nil
+}
+
+// importDate: una fecha RFC 3339 pasada (o vacía si no lo es), para importar con la fecha real.
+func importDate(v string) string {
+	t, e := time.Parse(time.RFC3339, strings.TrimSpace(v))
+	if e != nil || t.After(time.Now()) {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339)
+}
+
+func findOrCreateImportUser(tx *bolt.Tx, name, phone, teamID string) (User, bool, error) {
+	digits := func(t string) string {
+		d := strings.Map(func(r rune) rune {
+			if r >= '0' && r <= '9' {
+				return r
+			}
+			return -1
+		}, t)
+		if len(d) > 8 {
+			d = d[len(d)-8:]
+		}
+		return d
+	}
+	want, key := digits(phone), runnerNameKey(name)
+	var byPhone, byName []User
+	if e := eachUser(tx, func(u User) error {
+		if teamID == "" || u.TeamID != teamID || u.Disabled {
+			return nil // solo gente activa del mismo equipo
+		}
+		if want != "" && len(want) >= 7 && digits(u.Telephone) == want {
+			byPhone = append(byPhone, u)
+		}
+		if key != "" && runnerNameKey(u.Name) == key {
+			byName = append(byName, u)
+		}
+		return nil
+	}); e != nil {
+		return User{}, false, e
+	}
+	switch {
+	case len(byPhone) > 0:
+		return byPhone[0], false, nil
+	case want == "" && len(byName) == 1:
+		return byName[0], false, nil
+	}
+	if name == "" {
+		name = "Sin nombre (" + phone + ")"
+	}
+	u := User{ID: randomToken(), Name: name, Telephone: strings.Join(strings.Fields(phone), " "), Roles: []string{}, CreatedAt: nowStamp(), Note: "Creado al importar datos (reportes o entregas): revisa sus accesos y su teléfono."}
+	u.UpdatedAt = u.CreatedAt
+	return u, true, putJSON(tx.Bucket(usersBucket), u.ID, u)
+}
+
 // CheckupNote: una respuesta de checkup en el registro del punto.
 type CheckupNote struct {
 	At     string `json:"at"`
@@ -2225,6 +2421,8 @@ type runnerCamp struct {
 	VerifiedTeam string `json:"verifiedTeam,omitempty"`
 	VerifiedBy   string `json:"verifiedBy,omitempty"`
 	VerifiedAt   string `json:"verifiedAt,omitempty"`
+	// «📍 Por ubicar»: la entrega no tiene lugar todavía; quien la llevó (o su equipo) la ubica.
+	ToLocate bool `json:"toLocate,omitempty"`
 }
 type runnerContact struct {
 	Name  string `json:"name,omitempty"`
@@ -2535,6 +2733,8 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.auditRoutes(mux)
 	a.campLogRoutes(mux)
 	a.scoutRoutes(mux)
+	a.locateRoutes(mux)
+	a.dispatchRoutes(mux)
 	a.teamRoutes(mux)
 	a.trackRoutes(mux)
 	a.agentRoutes(mux)
@@ -2731,7 +2931,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					if tv.team != "" {
 						p.VerifiedTeam, p.VerifiedBy = vTeam, vBy
 					}
-					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Adults: p.Adults, Children: p.Children, Babies: p.Babies, OlderAdults: p.OlderAdults, Disabled: p.Disabled, Families: p.Families, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt}
+					camps[p.ID] = runnerCamp{ID: p.ID, Code: p.Code, Area: p.Area, Place: p.Place, People: p.People, Adults: p.Adults, Children: p.Children, Babies: p.Babies, OlderAdults: p.OlderAdults, Disabled: p.Disabled, Families: p.Families, Directions: p.Directions, Coordinator: p.Coordinator, GPS: p.GPS, Coords: p.Coords, Contacts: contacts, Team: team[p.ID], VerifiedTeam: p.VerifiedTeam, VerifiedBy: p.VerifiedBy, VerifiedAt: p.VerifiedAt, ToLocate: p.ToLocate}
 				}
 				return nil
 			}); e != nil {
@@ -3065,7 +3265,7 @@ func (a *App) boletinRoutes(mux *http.ServeMux) {
 				if e := json.Unmarshal(v, &p); e != nil {
 					return e
 				}
-				if p.Status != "approved" || heldFrom(p, "") {
+				if p.Status != "approved" || hiddenFromPublic(p, "") {
 					return nil
 				}
 				p.Needs = withoutReservedItems(p.Needs, reserved[p.ID])
@@ -3148,8 +3348,11 @@ func serviceError(w http.ResponseWriter, err error) bool {
 		return false
 	}
 	var td teamDataError
+	var uf userFieldError
 	if errors.As(err, &td) {
 		fail(w, 403, err.Error())
+	} else if errors.As(err, &uf) {
+		failField(w, 400, uf.field, uf.msg)
 	} else if errors.Is(err, errMissing) {
 		fail(w, 404, err.Error())
 	} else if errors.Is(err, errInvalid) {
@@ -3166,7 +3369,7 @@ func (a *App) listNeeds(w http.ResponseWriter, id string, public bool, viewer st
 	list := []CampNeed{}
 	err := a.db.View(func(tx *bolt.Tx) error {
 		tv := newTeamView(tx, viewer)
-		if !a.campExists(tx, id) || public && campHeldFrom(tx, id, tv.team) {
+		if !a.campExists(tx, id) || public && campHiddenFromPublic(tx, id, tv.team) {
 			return errMissing
 		}
 		return tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
@@ -3217,7 +3420,7 @@ func viewerNeed(tx *bolt.Tx, tv *teamView, viewer string, n CampNeed) (CampNeed,
 	}
 	n.RunnerID, n.ReleasedBy, n.DispatchedBy, n.DispatchedByName, n.SupplierID, n.SupplierRequestedAt = "", "", "", "", "", ""
 	n.SupplyAskedAt, n.SupplyOffers, n.OpenOffers = "", nil, nil
-	n.VerifiedTeam, n.VerifiedBy, n.CreatedBy, n.CreatedByName, n.UpdatedBy = "", "", "", "", ""
+	n.VerifiedTeam, n.VerifiedBy, n.CreatedBy, n.CreatedByName, n.UpdatedBy, n.ImportRef = "", "", "", "", "", ""
 	n.CookID, n.Invites = "", nil
 	for i := range n.ServiceLog {
 		n.ServiceLog[i].ByID, n.ServiceLog[i].ByName = "", ""

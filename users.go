@@ -56,6 +56,9 @@ type User struct {
 	UpdatedAt  string `json:"updatedAt,omitempty"`
 	// Aviso para administración, por ejemplo cuando la migración creó al usuario sin datos.
 	Note string `json:"note,omitempty"`
+	// Notas sobre la persona (habilidades, disponibilidad, vehículo…): las escriben administración y el team manager de
+	// su equipo; las ven los compañeros de su equipo. Nunca son públicas.
+	Notes string `json:"notes,omitempty"`
 	// Orden en que la persona quiere hacer sus carreras en curso (IDs de necesidades).
 	RunOrder []string `json:"runOrder,omitempty"`
 	// Última actividad con sesión (panel de corredor/constructor o vista completa), guardada cada 2 minutos como máximo.
@@ -68,6 +71,9 @@ type User struct {
 }
 
 // adminUser es lo que ve el panel: sin el hash del código.
+// userNotesMax: largo máximo de las notas de un usuario.
+const userNotesMax = 4000
+
 type adminUser struct {
 	ID            string   `json:"id"`
 	Name          string   `json:"name"`
@@ -79,6 +85,7 @@ type adminUser struct {
 	CreatedAt     string   `json:"createdAt,omitempty"`
 	UpdatedAt     string   `json:"updatedAt,omitempty"`
 	Note          string   `json:"note,omitempty"`
+	Notes         string   `json:"notes,omitempty"`
 	LastActiveAt  string   `json:"lastActiveAt,omitempty"`
 	Online        bool     `json:"online"`
 	TeamID        string   `json:"teamId,omitempty"`
@@ -89,7 +96,7 @@ type adminUser struct {
 }
 
 func (u User) admin() adminUser {
-	return adminUser{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Email: u.Email, Roles: u.Roles, Disabled: u.Disabled, HasAccessCode: u.CodeHash != "", CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, Note: u.Note, LastActiveAt: u.LastActiveAt, TeamID: u.TeamID, LocationConsentAt: u.locationConsent()}
+	return adminUser{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Email: u.Email, Roles: u.Roles, Disabled: u.Disabled, HasAccessCode: u.CodeHash != "", CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, Note: u.Note, Notes: u.Notes, LastActiveAt: u.LastActiveAt, TeamID: u.TeamID, LocationConsentAt: u.locationConsent()}
 }
 
 // En línea: usó su sesión en los últimos 5 minutos (el panel de corredor consulta cada 30 s mientras está abierto).
@@ -611,6 +618,9 @@ func applyUserFields(tx *bolt.Tx, u *User, f map[string]json.RawMessage) error {
 	if _, ok := f["telephone"]; ok {
 		u.Telephone = strings.Join(strings.Fields(fieldText(f, "telephone")), " ")
 	}
+	if _, ok := f["notes"]; ok {
+		u.Notes = strings.TrimSpace(fieldText(f, "notes"))
+	}
 	if raw, ok := f["roles"]; ok {
 		var roles []string
 		if json.Unmarshal(raw, &roles) != nil {
@@ -681,7 +691,7 @@ func userError(w http.ResponseWriter, err error) bool {
 }
 
 func (a *App) userRoutes(mux *http.ServeMux) {
-	fields := map[string]int{"name": 120, "telephone": 40, "email": 160, "accessCode": 64, "roles": 0, "disabled": 0, "teamId": 120}
+	fields := map[string]int{"name": 120, "telephone": 40, "email": 160, "accessCode": 64, "roles": 0, "disabled": 0, "teamId": 120, "notes": userNotesMax}
 	mux.HandleFunc("GET /api/admin/users", func(w http.ResponseWriter, r *http.Request) {
 		if !a.admin(w, r) {
 			return

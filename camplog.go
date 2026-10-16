@@ -101,7 +101,7 @@ func (a *App) campLog(id, me string) ([]LogEntry, error) {
 		tv := newTeamView(tx, me)
 		var p Point
 		v := tx.Bucket(submissions).Get([]byte(id))
-		if v == nil || json.Unmarshal(v, &p) != nil || p.Status != "approved" || heldFrom(p, tv.team) {
+		if v == nil || json.Unmarshal(v, &p) != nil || p.Status != "approved" || hiddenFromPublic(p, tv.team) {
 			return errMissing
 		}
 		// Necesidades que se pueden mostrar: ni reparaciones, ni carreras reservadas de otro equipo (esas como el público).

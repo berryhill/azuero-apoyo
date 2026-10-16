@@ -88,7 +88,7 @@ func (a *App) scoutRoutes(mux *http.ServeMux) {
 				team := !mine && tv.mate(p.AddedBy)
 				status := p.Status
 				switch {
-				case status == "approved" && heldFrom(p, tv.team):
+				case status == "approved" && hiddenFromPublic(p, tv.team):
 					return nil
 				case status == "approved" && p.HeldBy != "" && p.HeldUntil > nowStamp():
 					status = "held"

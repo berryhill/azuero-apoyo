@@ -62,7 +62,10 @@
     mattress: svg('<rect x="2" y="8" width="20" height="9" rx="3"/><path d="M5 17v2.5M19 17v2.5M6.5 12.5h.01M10 12.5h.01M14 12.5h.01M17.5 12.5h.01"/>')
   };
   const style = `.pf-thumb{position:relative;margin:0;width:76px}.pf-thumb a{display:grid;place-items:center;width:76px;height:76px;border-radius:9px;overflow:hidden;background:#e7eef0;border:1px solid #d5e0e2;text-decoration:none}.pf-thumb img{width:100%;height:100%;object-fit:cover}.pf-thumb-icon{font-size:26px;color:#173c46}
-.pfp{border:0;border-radius:14px;padding:0;width:min(460px,calc(100% - 24px));max-height:calc(92dvh / var(--text-zoom,1));color:#173c46;font:inherit}@media(max-width:760px){.pfp{inset:0;width:auto;height:auto;max-width:none;max-height:none;margin:0;border-radius:0}.pfp-box{height:100%;box-sizing:border-box;padding:max(14px,env(safe-area-inset-top)) 14px 14px}.pfp-pick{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}.pfp-pick:has(+.pfp-qty:not([hidden])),.pfp-pick[hidden]{flex:none}.pfp .pfp-options{max-height:none;flex:1 1 auto;min-height:140px}.pfp-actions{margin-top:auto;padding-top:10px;background:#fff}}.pfp::backdrop{background:#10263ab8}.pfp-box{padding:20px;display:flex;flex-direction:column;gap:6px}.pfp h2{margin:0;font-size:20px}#pfPackTitle,.pfp-pick>label{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.pfp-for{display:none}.pfp-pick input{margin-top:0}.pfp h3{margin:6px 0 0;font-size:16px}.pfp-options .pfp-cat{display:flex;align-items:center;gap:8px;width:100%;margin:0;padding:12px;border:0;border-bottom:1px solid #eef3f3;background:#fff;color:#173c46;font:inherit;font-weight:750;text-align:left;cursor:pointer}.pfp-cat span:first-child{flex:1}.pfp-cat small{min-width:22px;padding:1px 7px;border-radius:999px;background:#eef3f2;color:#5d7680;font-size:12px;text-align:center}.pfp-crumbs{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#f7fafa;border-bottom:1px solid #eef3f3;font-size:13px;color:#5d7680}.pfp-options .pfp-crumb{width:auto;padding:4px 8px;border:1px solid #cad9d9;border-radius:8px;background:#fff;color:#173c46;font-weight:800}.pfp-group{padding:8px 12px 4px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#5d7680;background:#f7fafa;border-bottom:1px solid #eef3f3}.pfp-needs{margin:2px 0 6px;padding:8px 10px;border:1px solid #e1e9ea;border-radius:10px;background:#f7fafa}.pfp-needs-h{display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#5d7680}.pfp-needs-chips{display:flex;flex-wrap:wrap;gap:6px}.pfp-need{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid #d5e0e2;border-radius:16px;background:#fff;color:#1f3a46;font-size:12px;font-weight:700}.pfp-need svg{width:15px;height:15px;color:#2d7f86}.pfp-need.done{background:#eef1f1;color:#98a6aa;border-color:#e2e8e9;text-decoration:line-through}.pfp-need.done svg{color:#b5c0c3}
+.pfp{border:0;border-radius:14px;padding:0;width:min(460px,calc(100% - 24px));max-height:calc(92dvh / var(--text-zoom,1));color:#173c46;font:inherit}@media(max-width:760px){.pfp{inset:0;width:auto;height:auto;max-width:none;max-height:none;margin:0;border-radius:0}.pfp-box{height:100%;box-sizing:border-box;padding:max(14px,env(safe-area-inset-top)) 14px 14px}.pfp-pick{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}.pfp-pick:has(+.pfp-qty:not([hidden])),.pfp-pick[hidden]{flex:none}.pfp .pfp-options{max-height:none;flex:1 1 auto;min-height:140px}.pfp-actions{margin-top:auto;padding-top:10px;background:#fff}}.pfp::backdrop{background:#10263ab8}.pfp-box{padding:20px;display:flex;flex-direction:column;gap:6px}.pfp h2{margin:0;font-size:20px}#pfPackTitle,.pfp-pick>label{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.pfp-for{display:none}.pfp-pick input{margin-top:0}.pfp h3{margin:6px 0 0;font-size:16px}.pfp-options .pfp-cat{display:flex;align-items:center;gap:8px;width:100%;margin:0;padding:12px;border:0;border-bottom:1px solid #eef3f3;background:#fff;color:#173c46;font:inherit;font-weight:750;text-align:left;cursor:pointer}.pfp-cat span:first-child{flex:1}.pfp-cat small{min-width:22px;padding:1px 7px;border-radius:999px;background:#eef3f2;color:#5d7680;font-size:12px;text-align:center}.pfp-crumbs{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#f7fafa;border-bottom:1px solid #eef3f3;font-size:13px;color:#5d7680}.pfp-options .pfp-crumb{width:auto;padding:4px 8px;border:1px solid #cad9d9;border-radius:8px;background:#fff;color:#173c46;font-weight:800}.tlmount{padding:10px 12px 0}.tlmount[hidden]{display:none}.pf-tl-banner{display:flex;align-items:center;gap:8px;width:100%;margin:0 0 10px;padding:11px 14px;border:1px solid #f0c48a;border-radius:12px;background:#fff6e5;color:#7a4a00;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;text-align:left}.pf-tl-banner b{font-size:16px}.pf-tl-banner span{margin-left:auto;color:#a35c00;font-weight:800}
+.pf-tl{border:0;border-radius:16px;padding:0;width:min(560px,calc(94vw / var(--text-zoom,1)));max-height:calc(92dvh / var(--text-zoom,1));overflow:auto;font-family:Inter,system-ui,sans-serif;color:#173c46}.pf-tl::backdrop{background:#10263ab8}.pf-tl-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid #e1e9ea}.pf-tl-top b{font-size:16px}.pf-tl-body{padding:12px 14px 18px}.pf-tl-help{margin:0 0 12px;color:#5d7680;font-size:13px;line-height:1.45}.pf-tl-card{margin:0 0 12px;padding:12px;border:1px solid #e1e9ea;border-radius:12px;background:#fbfdfd}.pf-tl-head b{display:block;font-size:15px}.pf-tl-head small{color:#667982;font-size:12px}.pf-tl-extra{margin:6px 0 0;font-size:12px;color:#5d7680}.pf-tl-dl{margin:8px 0 0;padding:0 0 0 2px;list-style:none;font-size:12px;color:#36505a;display:grid;gap:6px}.pf-tl-dl span{color:#5d7680}.pf-tl-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.pf-tl-btn{border:1px solid #cad9d9;border-radius:10px;background:#fff;color:#173c46;font:800 13px Inter,system-ui,sans-serif;padding:9px 12px;cursor:pointer}.pf-tl-btn.go{background:#19745f;border-color:#19745f;color:#fff}.pf-tl-form{display:grid;gap:8px;margin-top:10px}.pf-tl-form label{display:grid;gap:4px;font-size:12px;font-weight:800;color:#5d7680}.pf-tl-form input{padding:10px;border:1px solid #cad9d9;border-radius:9px;font:inherit;font-size:15px;font-weight:500;color:#173c46}.pf-tl-gps{display:flex;gap:6px}.pf-tl-gps input{flex:1;min-width:0}.pf-tl-results{display:grid;gap:4px;max-height:calc(40dvh / var(--text-zoom,1));overflow:auto}.pf-tl-hit{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 10px;border:1px solid #e1e9ea;border-radius:9px;background:#fff;text-align:left;cursor:pointer;font:inherit}.pf-tl-hit small{color:#7a8d94}.pf-tl-msg{margin:6px 0 0;font-size:12px;color:#a33527}.pf-tl-msg:empty{display:none}
+@media(max-width:760px){.pf-tl{width:calc(100vw / var(--text-zoom,1));max-width:calc(100vw / var(--text-zoom,1));height:calc(100dvh / var(--text-zoom,1));max-height:calc(100dvh / var(--text-zoom,1));margin:0;border-radius:0}}
+.pfp-group{padding:8px 12px 4px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#5d7680;background:#f7fafa;border-bottom:1px solid #eef3f3}.pfp-needs{margin:2px 0 6px;padding:8px 10px;border:1px solid #e1e9ea;border-radius:10px;background:#f7fafa}.pfp-needs-h{display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#5d7680}.pfp-needs-chips{display:flex;flex-wrap:wrap;gap:6px}.pfp-need{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid #d5e0e2;border-radius:16px;background:#fff;color:#1f3a46;font-size:12px;font-weight:700}.pfp-need svg{width:15px;height:15px;color:#2d7f86}.pfp-need.done{background:#eef1f1;color:#98a6aa;border-color:#e2e8e9;text-decoration:line-through}.pfp-need.done svg{color:#b5c0c3}
 .pfp-for,.pfp-hint{margin:0;color:#667982;font-size:13px}
 .pfp label{display:block;font-size:12px;font-weight:750;margin:8px 0 0}.pfp input{width:100%;padding:11px;border:1px solid #cad9d9;border-radius:9px;font:inherit;background:#fff;box-sizing:border-box}
 .pfp-options{max-height:min(300px,calc(40dvh / var(--text-zoom,1)));overflow:auto;margin-top:6px;border:1px solid #e1e9ea;border-radius:10px}.pfp-options button{display:flex;align-items:center;gap:9px;width:100%;margin:0;padding:10px 12px;border:0;border-radius:0;border-bottom:1px solid #eef3f3;background:#fff;color:#173c46;font:inherit;font-weight:650;text-align:left;cursor:pointer}.pfp-options button:last-child{border-bottom:0}.pfp-options button.hl,.pfp-options button:hover{background:#eef6f4}.pfp-options svg,.pfp-line svg,.pfp-chosen svg{flex:none;color:#2d7f86}.pfp-options .pfp-new{color:#19745f}
@@ -1001,5 +1004,95 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
       } catch { box.textContent = 'No se pudo cargar el historial.'; }
     }, true);
   }
-  window.PointForm = {covers,trailHtml, watchTrails, changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
+  // «📍 Por ubicar»: entregas sin lugar en las que participó quien entró (o su equipo). toLocate(mount) pone en mount un
+  // aviso «📍 N entregas por ubicar»; tocarlo abre la lista y cada una se ubica en un lugar nuevo (zona, lugar,
+  // indicaciones, enlace o «Usar mi ubicación») o se une a un punto que ya existe. Nada se publica hasta ubicarla.
+  const tl = {list: [], points: null, mount: null, onDone: null, open: null, mode: ''};
+  async function toLocate(mount, {onDone} = {}) {
+    tl.mount = mount; tl.onDone = onDone;
+    if (Date.now() - (tl.at || 0) < 60000 && !document.getElementById('pfToLocate')?.open) return tlBanner();
+    tl.at = Date.now();
+    try { const r = await fetch('/api/full/tolocate', {credentials: 'same-origin', cache: 'no-store'}); tl.list = r.ok ? await r.json() : []; } catch { tl.list = []; }
+    tlBanner();
+  }
+  function tlBanner() {
+    if (!tl.mount) return;
+    const n = tl.list.length;
+    tl.mount.hidden = !n;
+    tl.mount.innerHTML = n ? `<button type="button" class="pf-tl-banner" data-tl-open>📍 <b>${n}</b> ${n === 1 ? 'entrega por ubicar' : 'entregas por ubicar'}<span>Ubicar ›</span></button>` : '';
+  }
+  const tlTitle = x => x.place && x.place !== x.area ? x.place : (x.members || []).map(m => m.name).filter(Boolean).join(', ') || 'Entrega sin nombre';
+  const tlDate = v => { const d = new Date(v); return isNaN(d) ? '' : d.toLocaleDateString('es-PA', {day: 'numeric', month: 'short'}); };
+  function tlCard(x) {
+    const zone = x.area && x.area !== 'Por ubicar' ? x.area : '', open = tl.open === x.id;
+    const items = ds => (ds.items || []).slice(0, 8).map(i => `${esc(i.item)} ×${i.quantity}`).join(' · ') + ((ds.items || []).length > 8 ? ` · y ${(ds.items || []).length - 8} más` : '');
+    return `<article class="pf-tl-card" data-tl-id="${esc(x.id)}"><div class="pf-tl-head"><b>${esc(tlTitle(x))}</b><small>${[zone && '📍 ' + esc(zone) + ' (sin confirmar)', x.people && esc(x.people) + ' personas', tlDate(x.created)].filter(Boolean).join(' · ')}</small></div>${x.extra ? `<p class="pf-tl-extra">${esc(x.extra)}</p>` : ''}<ul class="pf-tl-dl">${x.deliveries.map(d => `<li><b>🏃 ${esc(d.runnerName || 'Runner')}</b>${d.at ? ' · ' + tlDate(d.at) : ''}<br><span>${items(d) || esc(d.need)}</span></li>`).join('')}</ul>${open ? tlForm(x, zone) : `<div class="pf-tl-acts"><button type="button" class="pf-tl-btn go" data-tl-new="${esc(x.id)}">📍 Lugar nuevo</button><button type="button" class="pf-tl-btn" data-tl-pick="${esc(x.id)}">🔎 Es un punto que ya existe</button></div>`}<p class="pf-tl-msg" role="status"></p></article>`;
+  }
+  function tlForm(x, zone) {
+    if (tl.mode === 'pick') return `<div class="pf-tl-form"><label>Buscar el punto<input type="search" data-tl-q value="${esc(zone)}" placeholder="Zona, lugar o código" autocomplete="off"></label><div class="pf-tl-results" data-tl-results></div><button type="button" class="pf-tl-btn" data-tl-cancel>Cancelar</button></div>`;
+    return `<form class="pf-tl-form" data-tl-form="${esc(x.id)}"><label>Zona (pueblo o comunidad)<input name="area" required maxlength="80" value="${esc(zone)}" placeholder="Ej. Río Viejo"></label><label>Lugar<input name="place" maxlength="200" value="${esc(x.place && x.place !== x.area ? x.place : '')}" placeholder="Ej. Casa de la familia Nieto"></label><label>Indicaciones<input name="directions" maxlength="300" placeholder="Ej. después de la iglesia"></label><label>Enlace de Google Maps<span class="pf-tl-gps"><input name="gps" maxlength="1000" placeholder="https://maps.app.goo.gl/…"><button type="button" class="pf-tl-btn" data-tl-here>📍 Usar mi ubicación</button></span></label><div class="pf-tl-acts"><button type="button" class="pf-tl-btn" data-tl-cancel>Cancelar</button><button type="submit" class="pf-tl-btn go">Guardar ubicación</button></div></form>`;
+  }
+  function tlDialog() {
+    let d = document.getElementById('pfToLocate');
+    if (!d) {
+      document.body.insertAdjacentHTML('beforeend', '<dialog id="pfToLocate" class="pf-tl" aria-labelledby="pfTlTitle"></dialog>');
+      d = document.getElementById('pfToLocate');
+      d.addEventListener('click', tlClick);
+      d.addEventListener('input', e => { if (e.target.matches('[data-tl-q]')) tlResults(e.target); });
+      d.addEventListener('submit', tlSubmit);
+    }
+    return d;
+  }
+  function tlDraw() {
+    const d = tlDialog();
+    d.innerHTML = `<div class="pf-tl-top"><button type="button" class="pf-tl-btn" data-tl-close>‹ Atrás</button><b id="pfTlTitle">📍 Entregas por ubicar</b></div><div class="pf-tl-body"><p class="pf-tl-help">Entregas que llevaste o despachó tu equipo sin saber a qué lugar fueron. Elige el lugar: un punto nuevo o uno que ya existe. Hasta entonces no salen en el mapa.</p>${tl.list.map(tlCard).join('') || '<p class="pf-tl-help">No queda ninguna por ubicar. ¡Gracias!</p>'}</div>`;
+    const q = d.querySelector('[data-tl-q]');
+    if (q) tlResults(q);
+  }
+  async function tlResults(input) {
+    if (!tl.points) { try { tl.points = await (await fetch('/api/points', {cache: 'no-store'})).json(); } catch { tl.points = []; } }
+    const q = fold(input.value || ''), box = input.closest('.pf-tl-form').querySelector('[data-tl-results]');
+    const hits = tl.points.filter(p => p.status === 'approved' && (!q || fold([p.code, p.area, p.place].join(' ')).includes(q))).slice(0, 25);
+    box.innerHTML = hits.map(p => `<button type="button" class="pf-tl-hit" data-tl-target="${esc(p.id)}"><b>${esc([p.area, p.place].filter(Boolean).join(' · '))}</b><small>${esc(p.code || '')}${p.coords ? '' : ' · sin GPS'}</small></button>`).join('') || '<p class="pf-tl-help">Ningún punto coincide.</p>';
+  }
+  async function tlSend(id, body, card) {
+    const msg = card.querySelector('.pf-tl-msg');
+    msg.textContent = 'Guardando…';
+    try {
+      const r = await fetch('/api/full/camps/' + encodeURIComponent(id) + '/locate', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+      const res = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(res.error || 'No se pudo guardar.');
+      tl.list = tl.list.filter(x => x.id !== id); tl.open = null; tl.mode = '';
+      tlDraw(); tlBanner(); tl.onDone?.(res);
+    } catch (err) { msg.textContent = err.message; }
+  }
+  function tlClick(e) {
+    const d = tlDialog(), b = e.target.closest('button');
+    if (!b) return;
+    if (b.matches('[data-tl-close]')) return d.close();
+    if (b.matches('[data-tl-cancel]')) { tl.open = null; tl.mode = ''; return tlDraw(); }
+    if (b.matches('[data-tl-new]')) { tl.open = b.dataset.tlNew; tl.mode = 'new'; tlDraw(); return d.querySelector('[data-tl-form] [name=area]')?.focus(); }
+    if (b.matches('[data-tl-pick]')) { tl.open = b.dataset.tlPick; tl.mode = 'pick'; tlDraw(); return d.querySelector('[data-tl-q]')?.focus(); }
+    if (b.matches('[data-tl-here]')) {
+      const f = b.closest('form');
+      if (!navigator.geolocation) return;
+      b.disabled = true; b.textContent = 'Buscando…';
+      navigator.geolocation.getCurrentPosition(pos => { f.elements.gps.value = `https://maps.google.com/?q=${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`; b.disabled = false; b.textContent = '📍 Usar mi ubicación'; }, () => { b.disabled = false; b.textContent = '📍 Usar mi ubicación'; }, {enableHighAccuracy: true, timeout: 15000});
+      return;
+    }
+    const t = b.closest('[data-tl-target]');
+    if (t) {
+      const card = t.closest('[data-tl-id]'), p = (tl.points || []).find(x => x.id === t.dataset.tlTarget);
+      if (!window.confirm(`¿Unir esta entrega a «${[p?.area, p?.place].filter(Boolean).join(' · ')}»? Sus entregas y contactos pasan a ese punto.`)) return;
+      tlSend(card.dataset.tlId, {targetId: t.dataset.tlTarget}, card);
+    }
+  }
+  function tlSubmit(e) {
+    const f = e.target.closest('[data-tl-form]');
+    if (!f) return;
+    e.preventDefault();
+    tlSend(f.dataset.tlForm, {area: f.elements.area.value.trim(), place: f.elements.place.value.trim(), directions: f.elements.directions.value.trim(), gps: f.elements.gps.value.trim()}, f.closest('[data-tl-id]'));
+  }
+  if (typeof document.addEventListener === 'function') document.addEventListener('click', e => { if (e.target.closest('[data-tl-open]')) { tl.open = null; tl.mode = ''; tlDraw(); tlDialog().showModal(); } });
+  window.PointForm = {toLocate, covers,trailHtml, watchTrails, changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
 })();

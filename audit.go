@@ -153,7 +153,7 @@ func logAudit(tx *bolt.Tx, e AuditEntry) error {
 }
 
 // Campos que se calculan o que solo ordenan: no son cambios de datos.
-var auditSkip = map[string]bool{"id": true, "campId": true, "createdAt": true, "created": true, "source": true, "decided": true, "lastCheckup": true, "verifiedAt": true, "enRouteAt": true, "completedAt": true, "releasedAt": true, "supplierRequestedAt": true, "progressAt": true, "updatedAt": true, "runnerName": true, "campStatus": true, "highestUrgency": true, "needStatuses": true, "history": true, "team": true, "holdTeam": true, "row": true, "ordinal": true}
+var auditSkip = map[string]bool{"id": true, "importRef": true, "campId": true, "createdAt": true, "created": true, "source": true, "decided": true, "lastCheckup": true, "verifiedAt": true, "enRouteAt": true, "completedAt": true, "releasedAt": true, "supplierRequestedAt": true, "progressAt": true, "updatedAt": true, "runnerName": true, "campStatus": true, "highestUrgency": true, "needStatuses": true, "history": true, "team": true, "holdTeam": true, "row": true, "ordinal": true}
 
 var auditLabel = map[string]string{
 	// necesidades
