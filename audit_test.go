@@ -109,7 +109,7 @@ func TestTrailAndTeamDataGuards(t *testing.T) {
 	if p = pointNow(); p.People != "10" || p.Directions != "Por el río" || p.UpdatedBy != mar {
 		t.Fatalf("accepted point: %+v", p)
 	}
-	if !has(trail(), "Gus", "", "Command · aceptado por Mar", "Personas", "10") {
+	if !has(trail(), "Gus", "", "Checkup · aceptado por Mar", "Personas", "10") {
 		t.Fatalf("trail of the accepted change: %+v", trail())
 	}
 	// Mar (Fufo's team) may move the photo.

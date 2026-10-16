@@ -82,6 +82,8 @@ type Point struct {
 	History []FieldChange `json:"history,omitempty"`
 	// Cada clic en «Checkup» del panel, del más antiguo al más reciente; privado y de solo lectura.
 	Checkups []string `json:"checkups,omitempty"`
+	// Respuesta de cada checkup de Checkup (cuándo, qué se respondió y quién); privado y de solo lectura.
+	CheckupLog []CheckupNote `json:"checkupLog,omitempty"`
 	// Usuario con código de acceso que publicó el punto (ID y nombre completo); lo fija el servidor y solo lo ve administración.
 	AddedBy     string `json:"addedBy,omitempty"`
 	AddedByName string `json:"addedByName,omitempty"`
@@ -424,6 +426,7 @@ func publicPoint(p Point) Point {
 	p.Members = nil
 	p.History = nil
 	p.Checkups = nil
+	p.CheckupLog = nil
 	p.CoordinatorPhone = ""
 	p.Note = ""
 	p.Contact = ""
@@ -1867,7 +1870,7 @@ func (a *App) patchCamp(tx *bolt.Tx, id string, f map[string]json.RawMessage, by
 }
 
 // Campos editables de un punto aprobado y su largo máximo (0 = sin límite de texto o de solo lectura).
-var campFields = map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": noteLimit, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "needStatuses": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "families": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200, "members": 0, "coordinatorPhone": 40, "mergedInto": 0, "lastCheckup": 0, "history": 0, "checkups": 0, "clientRef": 0, "updatedBy": 0}
+var campFields = map[string]int{"code": 45, "area": 80, "place": 200, "needs": 8192, "people": 200, "note": noteLimit, "source": 0, "status": 0, "id": 0, "created": 0, "decided": 0, "campStatus": 0, "highestUrgency": 0, "needStatuses": 0, "service": 200, "serviceNotes": 8192, "children": 100, "babies": 100, "notes": 8192, "directions": 8192, "extra": 8192, "gps": 1000, "coords": 0, "row": 100, "ordinal": 100, "coordinator": 200, "contact": 200, "phone": 40, "adults": 100, "olderAdults": 100, "disabled": 100, "families": 100, "secondContact": 200, "secondPhone": 40, "thirdContact": 200, "thirdPhone": 40, "generator": 200, "members": 0, "coordinatorPhone": 40, "mergedInto": 0, "lastCheckup": 0, "history": 0, "checkups": 0, "checkupLog": 0, "clientRef": 0, "updatedBy": 0}
 
 // campFieldError rechaza campos de solo lectura y coordenadas fuera de Panamá.
 func campFieldError(f map[string]json.RawMessage) (string, string) {
@@ -2115,6 +2118,11 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 		if !a.adminWrite(w, r) {
 			return
 		}
+		var body struct {
+			Result string `json:"result"`
+		}
+		json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&body)
+		result := body.Result
 		var p Point
 		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(submissions)
@@ -2126,6 +2134,18 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 				return e
 			}
 			json.Unmarshal(b.Get([]byte(p.ID)), &p)
+			// Qué se respondió: «fine» (están bien), «needs» (necesitan cosas), «none» (nadie contestó, no necesita nada).
+			if res := checkupResults[result]; res != "" {
+				by := "Administración"
+				if ag := agentBy(r); ag != nil {
+					by = ag.Name
+				}
+				p.CheckupLog = append(p.CheckupLog, CheckupNote{At: p.LastCheckup, Result: res, By: by})
+				if len(p.CheckupLog) > 200 {
+					p.CheckupLog = p.CheckupLog[len(p.CheckupLog)-200:]
+				}
+				return putPointJSON(b, p)
+			}
 			return nil
 		})
 		if serviceError(w, err) {
@@ -2134,6 +2154,15 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 		response(w, 200, p)
 	})
 }
+
+// CheckupNote: una respuesta de checkup en el registro del punto.
+type CheckupNote struct {
+	At     string `json:"at"`
+	Result string `json:"result"`
+	By     string `json:"by,omitempty"`
+}
+
+var checkupResults = map[string]string{"fine": "Sí, están bien", "needs": "Sí, necesitan cosas", "none": "Nadie contestó · no necesita nada"}
 
 // markCheckup anota ahora como último checkup del punto (y en su registro de checkups); sin punto aprobado no hace nada.
 func markCheckup(tx *bolt.Tx, campID string, merge bool) error {
@@ -2147,6 +2176,10 @@ func markCheckup(tx *bolt.Tx, campID string, merge bool) error {
 	// Cada clic en «Checkup» sí queda anotado.
 	now := nowStamp()
 	if last, e := time.Parse(time.RFC3339, p.LastCheckup); merge && e == nil && time.Since(last) < time.Minute && len(p.Checkups) > 0 {
+		// La respuesta guardada de ese checkup se mueve con él.
+		if k := len(p.CheckupLog) - 1; k >= 0 && p.CheckupLog[k].At == p.Checkups[len(p.Checkups)-1] {
+			p.CheckupLog[k].At = now
+		}
 		p.LastCheckup = now
 		p.Checkups[len(p.Checkups)-1] = now
 		return putPointJSON(b, p)
@@ -2355,7 +2388,7 @@ func userPanels(u User) []map[string]string {
 		panels = append(panels, map[string]string{"label": "Constructores", "url": "/builder.html"})
 	}
 	if u.has(roleAgent) {
-		panels = append(panels, map[string]string{"label": "Command", "url": "/command.html"})
+		panels = append(panels, map[string]string{"label": "Checkup", "url": "/command.html"})
 	}
 	if u.has(roleSupplier) {
 		panels = append(panels, map[string]string{"label": "Supply", "url": "/supplier.html"})
@@ -2420,7 +2453,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 		}
 		if item.has(roleAgent) {
 			a.startAgentSession(w, r, item.ID)
-			panels = append(panels, map[string]string{"label": "Command", "url": "/command.html"})
+			panels = append(panels, map[string]string{"label": "Checkup", "url": "/command.html"})
 		}
 		if item.has(roleCook) {
 			a.startCookSession(w, r, item.ID)

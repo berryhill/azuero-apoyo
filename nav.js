@@ -15,9 +15,8 @@
 .appnav-list{display:none;position:absolute;top:100%;left:0;right:0;z-index:3000;flex-direction:column;align-items:stretch;gap:2px;background:#10263a;border-radius:0 0 14px 14px;padding:6px 10px 12px;box-shadow:0 14px 30px #0007}
 .appnav.open .appnav-list{display:flex}.appnav-list a{padding:13px 12px;font-size:15px;border-radius:10px;color:#e3ecef}.appnav-list a:active{background:#ffffff26}}
 html:has(dialog[open]),html:has(.modalbg.open){overflow:hidden}html:has(dialog[open]) body,html:has(.modalbg.open) body{overflow:hidden}dialog[open],.modalbg.open,.modalbg.open .modal{overscroll-behavior:contain}
-.telx{position:relative;display:inline-flex;align-items:center;gap:4px;vertical-align:middle;white-space:nowrap}.telnum{border:0;background:none;padding:0;color:#1d6f7a;font:inherit;font-weight:700;cursor:copy;text-decoration:underline dotted;text-underline-offset:3px}.telnum:hover{color:#10263a}
-.telico{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1px solid #cad9d9;background:#fff;color:#173c46;text-decoration:none}.telico svg{width:13px;height:13px}.telico:hover{filter:brightness(.95)}
-.teltip{position:absolute;left:0;bottom:calc(100% + 6px);z-index:3200;background:#10263a;color:#fff;border-radius:6px;padding:4px 8px;font:700 11px Inter,system-ui,sans-serif;white-space:nowrap;pointer-events:none}
+.telnum{border:0;background:none;padding:0;color:#126e7c;font:inherit;font-weight:750;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;white-space:nowrap}.telnum:hover{color:#10263a}
+.navtelpop{position:absolute;z-index:4000;min-width:210px;background:#fff;border:1px solid #cad9d9;border-radius:12px;box-shadow:0 12px 30px #17354233;padding:10px 12px;font-family:Inter,system-ui,sans-serif;color:#173c46}.ntp-h{font-weight:800;font-size:14px}.ntp-num{font-size:17px;font-weight:800;margin:4px 0 8px;letter-spacing:.02em}.ntp-acts{display:flex;gap:8px}.ntp-acts a{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:9px;font-weight:800;font-size:13px;text-decoration:none}.ntp-call{background:#19745f;color:#fff}.ntp-wa{background:#25d366;color:#08331b}.ntp-copy{display:block;width:100%;margin-top:6px;padding:6px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#36505a;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .appconfirm{border:0;border-radius:16px;padding:0;width:min(380px,calc(92vw / var(--text-zoom,1)));box-shadow:0 20px 60px #10263a66;font-family:Inter,system-ui,sans-serif}.appconfirm::backdrop{background:#10263ab8}.appconfirm form{margin:0;padding:22px}.appconfirm h2{margin:0;font-size:19px;line-height:1.3;color:#152b3a}.appconfirm p{margin:8px 0 0;color:#667982;font-size:13px;line-height:1.45}.appconfirm p:empty{display:none}
 .textsize{position:relative;margin-left:8px;flex:none}.textsize>button{height:28px;padding:0 8px;border:1px solid #47657a;border-radius:8px;background:none;color:#c8d6db;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}.textsize>button:hover,.textsize>button[aria-expanded="true"]{background:#ffffff1a;color:#fff}
 .textsize-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:3100;display:flex;align-items:center;gap:6px;background:#fff;border-radius:12px;padding:7px;box-shadow:0 10px 26px #0005}.textsize-pop[hidden]{display:none}.textsize-pop button{width:40px;height:36px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#173c46;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.textsize-pop button:disabled{opacity:.4;cursor:default}.textsize-pop span{min-width:46px;text-align:center;font:750 13px Inter,system-ui,sans-serif;color:#36505a}
@@ -25,6 +24,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 .appnav-list .appnav-admin{margin-left:10px;border:1px dashed #ffb4a366;font-size:12px!important;opacity:.7;color:#ffb4a3!important}.appnav-list .appnav-admin:hover{opacity:1}
 .madmin{display:flex;align-items:center;justify-content:center;gap:6px;margin:14px auto 0;padding:6px 12px;width:max-content;border:1px dashed #ffb4a366;border-radius:8px;color:#ffb4a3;font:700 12px Inter,system-ui,sans-serif;text-decoration:none;opacity:.75}
 .tswrap{position:relative;display:block}.tswrap:focus-within{border-color:#ec7651;background:#203c54}.tswrap .tsinput{display:block;width:100%;margin:0;padding:0 26px 0 0;border:0;background:none;color:inherit;font:inherit;outline:none}.tswrap .tsinput::placeholder{color:#9fb6c2}.tsbox{position:relative}.tsbox input{padding-right:34px!important}.tsinput::-webkit-search-cancel-button,.tsbox input::-webkit-search-cancel-button{display:none}
+.tswrap.tson,.tsbox.tson input{border-color:#ed7654!important;box-shadow:0 0 0 2px #ed765466}.msearchbtn.tson{position:relative;background:#ed7654;border-color:#ed7654;color:#fff}.msearchbtn.tson:after{content:'';position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;background:#ffd166;box-shadow:0 0 0 2px #10263a}
 .tsclear{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#ffffff26;color:#fff;font:800 12px Inter,system-ui,sans-serif;cursor:pointer}.tsclear:hover{background:#ffffff40}.tsclear[hidden]{display:none}
 .mbar,.msheet{display:none}
 @media(max-width:760px){.top:has(>.mbar)>.appnav,.top:has(>.mbar) .textsize,.top:has(>.mbar)>.topright{display:none!important}.top:has(>.mbar) .brand{display:none!important}.top:has(>.mbar){gap:10px}
@@ -50,7 +50,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     ['/scout.html', '🧭', () => 'Scout', u => !!u],
     ['/runner.html', '<svg class="walkico" style="color:#5b9be6" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="4" r="2"/><path d="M12.5 7.5 10 13"/><path d="m12 8 4 2.5 3-1"/><path d="m12 8-4 1.5-2 2.5"/><path d="m10 13 3.5 3-1 5"/><path d="m10 13-2.5 4H4"/></svg>', u => !u.roles || u.roles.includes('runner') ? 'Runners' : 'Empaque', u => has(u, 'runner') || has(u, 'agent')],
     ['/builder.html', '🔨', () => 'Constructores', u => has(u, 'builder')],
-    ['/command.html', '🧑‍💻', () => 'Command', u => has(u, 'agent')],
+    ['/command.html', '📞', () => 'Checkup', u => has(u, 'agent')],
     ['/supplier.html', '📦', () => 'Supply', u => has(u, 'supplier')],
     ['/cook.html', '🍳', () => 'Cocina', u => has(u, 'cook')],
     ['/donations.html', '🎁', () => 'Donaciones', u => has(u, 'donations')],
@@ -157,31 +157,41 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     applySize();
   }
   applySize();
-  // Teléfono en cualquier página: tocar el número lo copia (aviso «Copiado»); al lado, un botón con el ícono de teléfono que abre WhatsApp
-  // para escribirle (no hace llamada).
+  // Teléfono en cualquier página, igual en todas: tocar el número abre un cuadrito con el número, «📞 Llamar»,
+  // «💬 WhatsApp» y «📋 Copiar» (como «Reportado por» en Runners y los contactos de Scout y Supply).
   // Sin código de país se asume Panamá (507), como en administración.
   const waNumber = t => { const d = String(t).replace(/\D/g, ''); return String(t).trim().startsWith('+') || d.length > 8 ? d : '507' + d; };
-  const callIco = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>';
-  function phone(raw) {
+  function phone(raw, name = '') {
     const p = String(raw || '').trim(), dial = p.replace(/[^\d+]/g, '');
     if (!dial) return esc(p);
-    return `<span class="telx"><button type="button" class="telnum" data-copy-tel="${esc(p)}" title="Copiar número">${esc(p)}</button><a class="telico call" href="https://wa.me/${waNumber(p)}" target="_blank" rel="noopener noreferrer" title="Escribir por WhatsApp" aria-label="Escribir por WhatsApp al ${esc(p)}">${callIco}</a></span>`;
+    return `<button type="button" class="telnum" data-tel-pop="${esc(p)}" data-tel-name="${esc(name)}" title="Llamar o escribir por WhatsApp">${esc(p)}</button>`;
   }
+  const closeTelPop = () => document.querySelectorAll('.navtelpop').forEach(x => x.remove());
   document.addEventListener('click', async e => {
-    const b = e.target.closest('[data-copy-tel]');
-    if (!b) return;
-    e.preventDefault();
-    let text = 'Copiado';
-    try { await navigator.clipboard.writeText(b.dataset.copyTel); } catch { getSelection().selectAllChildren(b); text = 'Selecciónalo y cópialo'; }
-    const box = b.closest('.telx');
-    box.querySelector('.teltip')?.remove();
-    const tip = document.createElement('span');
-    tip.className = 'teltip';
-    tip.setAttribute('role', 'status');
-    tip.textContent = text;
-    box.appendChild(tip);
-    setTimeout(() => tip.remove(), 1500);
-  });
+    const cp = e.target.closest('[data-copy-tel]');
+    if (cp) {
+      e.preventDefault();
+      let text = '✓ Copiado';
+      try { await navigator.clipboard.writeText(cp.dataset.copyTel); } catch { text = 'Selecciona el número y cópialo'; }
+      cp.textContent = text;
+      setTimeout(closeTelPop, 900);
+      return;
+    }
+    const b = e.target.closest('[data-tel-pop]');
+    if (!b) { if (!e.target.closest('.navtelpop')) closeTelPop(); return; }
+    e.preventDefault(); e.stopPropagation();
+    closeTelPop();
+    const p = b.dataset.telPop, d = p.replace(/[^\d+]/g, ''), name = b.dataset.telName || '';
+    const pop = document.createElement('div');
+    pop.className = 'navtelpop';
+    pop.setAttribute('role', 'dialog');
+    pop.innerHTML = `${name ? `<div class="ntp-h">${esc(name)}</div>` : ''}<div class="ntp-num">${esc(p)}</div><div class="ntp-acts"><a class="ntp-call" href="tel:${esc(d)}">📞 Llamar</a><a class="ntp-wa" href="https://wa.me/${waNumber(p)}" target="_blank" rel="noopener noreferrer">💬 WhatsApp</a></div><button type="button" class="ntp-copy" data-copy-tel="${esc(p)}">📋 Copiar</button>`;
+    (b.closest('dialog[open]') || document.body).appendChild(pop);
+    const r = b.getBoundingClientRect(), host = pop.parentElement === document.body ? {x: scrollX, y: scrollY} : {x: -pop.parentElement.getBoundingClientRect().left + pop.parentElement.scrollLeft, y: -pop.parentElement.getBoundingClientRect().top + pop.parentElement.scrollTop};
+    pop.style.top = (r.bottom + host.y + 6) + 'px';
+    pop.style.left = Math.max(8, Math.min(r.left + host.x, (pop.parentElement === document.body ? document.documentElement.clientWidth : pop.parentElement.clientWidth) - pop.offsetWidth - 8)) + 'px';
+  }, true);
+  document.addEventListener('scroll', e => { if (!e.target.closest?.('.navtelpop')) closeTelPop(); }, true);
   // Con una ventana abierta (dialog o .modalbg.open) la página de atrás no se mueve: en iPhone overflow:hidden no basta,
   // así que el body queda fijo en su posición y al cerrar vuelve exactamente al mismo lugar.
   let locked = null;
@@ -514,8 +524,10 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     x.textContent = '✕';
     box.appendChild(x);
     const here = location.pathname === '/index.html' ? '/' : location.pathname, key = 'search:' + here;
-    const sync = () => { x.hidden = !input.value; try { input.value ? sessionStorage.setItem(key, input.value) : sessionStorage.removeItem(key); } catch {} };
+    // Con algo escrito se nota aunque la barra esté oculta: el 🔍 del teléfono en naranja con un punto, y la caja con borde.
+    const sync = () => { const on = !!input.value.trim(); x.hidden = !input.value; box.classList.toggle('tson', on); const sb = document.getElementById('mSearch'); if (sb) { sb.classList.toggle('tson', on); sb.setAttribute('aria-label', on ? `Buscar (buscando «${input.value.trim()}»)` : 'Buscar'); sb.title = on ? `Buscando «${input.value.trim()}»` : ''; } try { input.value ? sessionStorage.setItem(key, input.value) : sessionStorage.removeItem(key); } catch {} };
     input.addEventListener('input', sync);
+    input._tsSync = sync;
     x.onclick = () => { input.value = ''; input.dispatchEvent(new Event('input', {bubbles: true})); input.focus(); };
     let saved = '';
     try { saved = sessionStorage.getItem(key) || ''; } catch {}
@@ -534,7 +546,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   window.AppNav = {draw: drawAll, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
   mountSearch();
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); mountSearch(); }); else { draw(); mountTextSize(); mountMobileBar(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); mountSearch(); document.querySelector('header input[type=search]')?._tsSync?.(); }); else { draw(); mountTextSize(); mountMobileBar(); document.querySelector('header input[type=search]')?._tsSync?.(); }
   // Entrar o salir en otra pestaña actualiza esta.
   addEventListener('storage', e => { if (e.key === 'codeUser' || e.key === null) draw(); if (e.key === 'textZoom' || e.key === null) { zoom = sizes.includes(savedSize()) ? savedSize() : 1; applySize(); } });
 })();

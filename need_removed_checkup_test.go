@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -50,5 +51,33 @@ func TestCheckupThenRemovingNeedsLogsOnce(t *testing.T) {
 		if p.ID == s.camp && len(p.Checkups) != n {
 			t.Fatalf("one answer, one checkup: %d → %d", n, len(p.Checkups))
 		}
+	}
+}
+
+// Checkup answers are kept in the point's private log («Nadie contestó · no necesita nada» included) and follow the
+// checkup when needs are removed right after it; public points never carry the log.
+func TestCheckupAnswerLog(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","status":"OPEN"}`, 201)
+	var p Point
+	w := s.call("POST", "/api/admin/camps/"+s.camp+"/checkup", `{"result":"none"}`, true)
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil || len(p.CheckupLog) != 1 || p.CheckupLog[0].Result != "Nadie contestó · no necesita nada" || p.CheckupLog[0].At != p.LastCheckup {
+		t.Fatalf("checkup answer: %d %s", w.Code, w.Body.String())
+	}
+	for _, n := range s.needsOf(s.camp) {
+		s.expect("PATCH", "/api/admin/needs/"+n.ID, `{"status":"DELETED"}`, 200)
+	}
+	var pts []Point
+	json.Unmarshal(s.call("GET", "/api/admin/points", "", true).Body.Bytes(), &pts)
+	for _, x := range pts {
+		if x.ID == s.camp && (len(x.CheckupLog) != 1 || x.CheckupLog[0].At != x.Checkups[len(x.Checkups)-1]) {
+			t.Fatalf("answer follows the checkup: %+v / %v", x.CheckupLog, x.Checkups)
+		}
+	}
+	if pub := s.call("GET", "/api/points", "", false).Body.String(); strings.Contains(pub, "checkupLog") || strings.Contains(pub, "Nadie contestó") {
+		t.Fatalf("public points carry no checkup log: %s", pub)
+	}
+	if w := s.call("POST", "/api/admin/camps/"+s.camp+"/checkup", `{}`, true); w.Code != 200 || strings.Count(w.Body.String(), `"result"`) != 1 {
+		t.Fatalf("a checkup without an answer adds no note: %s", w.Body.String())
 	}
 }

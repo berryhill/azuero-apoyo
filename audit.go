@@ -83,7 +83,7 @@ func (a *App) write(r *http.Request, fn func(*bolt.Tx) error) error {
 // actorFor: la sesión de la página que hace la solicitud (sin rechazarla: eso lo hace el manejador).
 func (a *App) actorFor(r *http.Request) Actor {
 	if u := agentBy(r); u != nil {
-		return Actor{u.ID, "Command"}
+		return Actor{u.ID, "Checkup"}
 	}
 	session := func(cookie string, m map[string]runnerSession) string {
 		c, e := r.Cookie(cookie)
@@ -109,7 +109,7 @@ func (a *App) actorFor(r *http.Request) Actor {
 			}
 		}
 	case strings.HasPrefix(p, "/api/agent/"):
-		return Actor{session("agent_session", a.agentSessions), "Command"}
+		return Actor{session("agent_session", a.agentSessions), "Checkup"}
 	case strings.HasPrefix(p, "/api/runner/"):
 		return Actor{session("runner_session", a.runnerSessions), "Runners"}
 	case strings.HasPrefix(p, "/api/builder/"):
@@ -166,7 +166,7 @@ var auditLabel = map[string]string{
 	// puntos
 	"code": "Código", "area": "Zona", "place": "Lugar", "needs": "Necesidades", "people": "Personas", "coords": "Ubicación", "gps": "GPS",
 	"members": "Personas del grupo", "contact": "Contacto", "phone": "Teléfono", "coordinator": "Reportado por", "coordinatorPhone": "Teléfono de quien reporta",
-	"notes": "Notas", "directions": "Indicaciones", "heldBy": "Retenido por equipo", "heldUntil": "Retenido hasta", "checkups": "Checkups",
+	"notes": "Notas", "directions": "Indicaciones", "heldBy": "Retenido por equipo", "heldUntil": "Retenido hasta", "checkups": "Checkups", "checkupLog": "Respuestas de checkup",
 	"mergedInto": "Fusionado en", "children": "Niños", "babies": "Bebés", "adults": "Adultos", "olderAdults": "Adultos mayores", "families": "Familias",
 	"disabled": "Con discapacidad", "lastCheckup": "Última revisión", "note": "Nota de revisión", "decided": "Decidido",
 }

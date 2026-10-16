@@ -7,7 +7,7 @@
 // Volver: si llegaste desde otra página del sitio (Scout, Runners, Command…), los enlaces «←» regresan a ella con
 // el historial del navegador (conserva lista y filtros) y dicen a cuál; si no, van al inicio como siempre.
 const cameFrom=(()=>{try{const u=new URL(document.referrer);if(u.origin===location.origin&&u.pathname!=='/camp.html')return u}catch{}return null})();
-const BACK_NAMES={'/':'Inicio','/index.html':'Inicio','/scout.html':'Scout','/runner.html':'Runners','/command.html':'Command','/supplier.html':'Supply','/builder.html':'Constructores','/cook.html':'Cocina','/team.html':'Mi equipo','/admin.html':'Administración'};
+const BACK_NAMES={'/':'Inicio','/index.html':'Inicio','/scout.html':'Scout','/runner.html':'Runners','/command.html':'Checkup','/supplier.html':'Supply','/builder.html':'Constructores','/cook.html':'Cocina','/team.html':'Mi equipo','/admin.html':'Administración'};
 function backLinks(){if(!cameFrom)return;const name=BACK_NAMES[cameFrom.pathname];document.querySelectorAll('[data-back]').forEach(a=>{a.href=cameFrom.pathname+cameFrom.search+cameFrom.hash;a.textContent=name?`← Volver a ${name}`:'← Volver'})}
 document.addEventListener('click',e=>{const a=e.target.closest('[data-back]');if(a&&cameFrom&&history.length>1&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey){e.preventDefault();history.back()}});
 backLinks();

@@ -45,7 +45,7 @@ func publicWho(e AuditEntry) string {
 		who = "Un runner"
 	case strings.HasPrefix(e.Via, "Constructores"):
 		who = "Un constructor"
-	case strings.HasPrefix(e.Via, "Command"):
+	case strings.HasPrefix(e.Via, "Checkup"), strings.HasPrefix(e.Via, "Command"): // «Command» en el historial anterior
 		who = "Un agente"
 	case strings.HasPrefix(e.Via, "Supply"):
 		who = "Un acopio"
