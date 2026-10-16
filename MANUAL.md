@@ -9,6 +9,10 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-16**
+- Supply «¡A empacar!» card: 🙌 Necesita (pink) → 📦 Para cargar (share next to «Despachada») → 📍 Destino (with «🧭
+  Agregado por») → 🏃 Runner (§8).
+- Packing list window: needs on top that grey out as items cover them, grouped catalog, «Agua» and «Lonas» as starting
+  items, «Cancelar» goes back to the items (§6).
 - «Verificado por equipo» is now just the gold medal icon everywhere; team members tap it to see which team, who and
   when; the public and people without a team get no details (§6, §15).
 - Command: home repairs show the builder's work («🔨 Obra»: progress, what's missing, materials, evaluations, photos)
@@ -431,7 +435,15 @@ A need belongs to a point and says what is missing (item text: «Agua, Arroz, Ca
   after (names instead of IDs). Admin and Command show it per point, newest first, in a collapsed «🕓 Historial de
   cambios» (the point and all its needs). Admin can also read the supply-center trail (`/api/admin/centers/trail`; no
   screen yet). Recording started on 2026-10-15; earlier changes are not in it. Private: not on public pages.
-- **Packing list**: what is loaded for that run (item × quantity). Private.
+- **Packing list**: what is loaded for that run (item × quantity). Private. The «Agregar a lista de empaque» window
+  (Runners, Supply, Command, admin) shows **«Lo que necesitan»** at the top: the need's items as chips that turn grey
+  with ✓ once the saved list or what you're adding covers them (e.g. «Agua» covers Agua, «Bolsas alimentación» covers
+  Alimentos, «Carpas / toldas» or «Camping» cover Refugio; otherwise by matching words). With nothing typed, the
+  catalog is grouped: 💧 Agua y comida, ⛺ Refugio (carpas, lonas, camping, hamacas, mosquiteros, colchonetas, sillas),
+  🍳 Cocina, 🧼 Higiene y limpieza, 🍼 Bebé y salud, ☔ Lluvia, 🔦 Luz y energía, 📦 Otros; typing searches all. Starting
+  items now include **Agua** and **Lonas**. Choosing the quantity shows only «Agregar a la lista» and «Cancelar» (back
+  to the items); in the review, «Cancelar» also goes back to the items; on the item list it closes (asks if anything
+  isn't saved).
 - **Photos**: departure photos (when loading) and delivery photos (when completing). Private.
 
 ---
@@ -543,14 +555,17 @@ On phones each tab shows its icon above the name and the count below.
 **Cards** look like Runners cards: the 📍 map and Maps buttons at the top right, the people count with its breakdown
 before «Necesita», and contacts show the first 2 with «y N contactos más» to expand the rest (same on Runners).
 
-**Card in three parts** (runs of this center)
+**«¡A empacar!» card, in this order** (runs of this center)
 
-1. **Runner**: name, phone, «La tomó hace…» (taken … ago), live («📍 Ver runner en el mapa») if sharing location and on
-   your team, who
-   dispatched it, «👥 También va».
-2. **Destination**: point, directions, «Necesita», place contacts, show on map / Maps.
-3. **To load**: packing list, departure photos, «🚚 Despachada» (with confirmation) or «Salió del acopio» with
-   «Deshacer» (undo).
+1. **🙌 Necesita** (light pink): what the point needs, with «Urgente».
+2. **📦 Para cargar**: packing list, departure photos, «🚚 Despachada» (with confirmation) with the share-link button
+   next to it, or «Salió del acopio» with share and «Deshacer» (undo).
+3. **📍 Destino**: point, directions, people, contacts, «🧭 Agregado por» (team members, as in «Por surtir»), show on
+   map / Maps.
+4. **🏃 Runner**: name, phone, «La tomó hace…» (taken … ago), live («📍 Ver runner en el mapa») if sharing location and
+   on your team, who dispatched it, «👥 También va».
+
+«¡Abastéceme!» cards keep Runner, Destino (with «Necesita» and share) and «¿Puedes surtirlo?».
 
 **Each supply center only sees and dispatches the runs linked to it.** A run becomes linked to a center when:
 

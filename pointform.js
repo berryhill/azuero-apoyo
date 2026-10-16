@@ -28,6 +28,7 @@
     drop: svg('<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>'),
     food: svg('<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2 6 0 8v10"/>'),
     tent: svg('<path d="M3 20L12 4l9 16H3zM9 20l3-6 3 6"/>'),
+    tarp: svg('<path d="M3 8l9-3 9 3-2 7H5z"/><path d="M5 15l-2 6M19 15l2 6M12 5v3"/>'),
     repair: svg('<path d="M2 12l6.5-5.5L15 12"/><path d="M4 10.5V20h9v-9.5"/><path d="M7 20v-3.5h3V20"/><path d="M16 5h6v3h-6z"/><path d="M19 8v13"/>'),
     pot: svg('<path d="M4 10h16v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-6zM2 10h2M20 10h2M9 6c0-1 1-1 1-2M14 6c0-1 1-1 1-2"/>'),
     bottle: svg('<path d="M10 2h4M10 5h4l1 3v12a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V8l1-3zM9 12h6"/>'),
@@ -61,7 +62,8 @@
     mattress: svg('<rect x="2" y="8" width="20" height="9" rx="3"/><path d="M5 17v2.5M19 17v2.5M6.5 12.5h.01M10 12.5h.01M14 12.5h.01M17.5 12.5h.01"/>')
   };
   const style = `.pf-thumb{position:relative;margin:0;width:76px}.pf-thumb a{display:grid;place-items:center;width:76px;height:76px;border-radius:9px;overflow:hidden;background:#e7eef0;border:1px solid #d5e0e2;text-decoration:none}.pf-thumb img{width:100%;height:100%;object-fit:cover}.pf-thumb-icon{font-size:26px;color:#173c46}
-.pfp{border:0;border-radius:14px;padding:0;width:min(460px,calc(100% - 24px));max-height:calc(92dvh / var(--text-zoom,1));color:#173c46;font:inherit}@media(max-width:760px){.pfp{inset:0;width:auto;height:auto;max-width:none;max-height:none;margin:0;border-radius:0}.pfp-box{height:100%;box-sizing:border-box;padding:max(14px,env(safe-area-inset-top)) 14px 14px}.pfp-pick{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}.pfp-pick:has(+.pfp-qty:not([hidden])),.pfp-pick[hidden]{flex:none}.pfp .pfp-options{max-height:none;flex:1 1 auto;min-height:140px}.pfp-actions{margin-top:auto;padding-top:10px;background:#fff}}.pfp::backdrop{background:#10263ab8}.pfp-box{padding:20px;display:flex;flex-direction:column;gap:6px}.pfp h2{margin:0;font-size:20px}#pfPackTitle,.pfp-pick>label{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.pfp-for{display:none}.pfp-pick input{margin-top:0}.pfp h3{margin:6px 0 0;font-size:16px}.pfp-for,.pfp-hint{margin:0;color:#667982;font-size:13px}
+.pfp{border:0;border-radius:14px;padding:0;width:min(460px,calc(100% - 24px));max-height:calc(92dvh / var(--text-zoom,1));color:#173c46;font:inherit}@media(max-width:760px){.pfp{inset:0;width:auto;height:auto;max-width:none;max-height:none;margin:0;border-radius:0}.pfp-box{height:100%;box-sizing:border-box;padding:max(14px,env(safe-area-inset-top)) 14px 14px}.pfp-pick{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}.pfp-pick:has(+.pfp-qty:not([hidden])),.pfp-pick[hidden]{flex:none}.pfp .pfp-options{max-height:none;flex:1 1 auto;min-height:140px}.pfp-actions{margin-top:auto;padding-top:10px;background:#fff}}.pfp::backdrop{background:#10263ab8}.pfp-box{padding:20px;display:flex;flex-direction:column;gap:6px}.pfp h2{margin:0;font-size:20px}#pfPackTitle,.pfp-pick>label{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.pfp-for{display:none}.pfp-pick input{margin-top:0}.pfp h3{margin:6px 0 0;font-size:16px}.pfp-group{padding:8px 12px 4px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#5d7680;background:#f7fafa;border-bottom:1px solid #eef3f3}.pfp-needs{margin:2px 0 6px;padding:8px 10px;border:1px solid #e1e9ea;border-radius:10px;background:#f7fafa}.pfp-needs-h{display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#5d7680}.pfp-needs-chips{display:flex;flex-wrap:wrap;gap:6px}.pfp-need{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid #d5e0e2;border-radius:16px;background:#fff;color:#1f3a46;font-size:12px;font-weight:700}.pfp-need svg{width:15px;height:15px;color:#2d7f86}.pfp-need.done{background:#eef1f1;color:#98a6aa;border-color:#e2e8e9;text-decoration:line-through}.pfp-need.done svg{color:#b5c0c3}
+.pfp-for,.pfp-hint{margin:0;color:#667982;font-size:13px}
 .pfp label{display:block;font-size:12px;font-weight:750;margin:8px 0 0}.pfp input{width:100%;padding:11px;border:1px solid #cad9d9;border-radius:9px;font:inherit;background:#fff;box-sizing:border-box}
 .pfp-options{max-height:min(300px,calc(40dvh / var(--text-zoom,1)));overflow:auto;margin-top:6px;border:1px solid #e1e9ea;border-radius:10px}.pfp-options button{display:flex;align-items:center;gap:9px;width:100%;margin:0;padding:10px 12px;border:0;border-radius:0;border-bottom:1px solid #eef3f3;background:#fff;color:#173c46;font:inherit;font-weight:650;text-align:left;cursor:pointer}.pfp-options button:last-child{border-bottom:0}.pfp-options button.hl,.pfp-options button:hover{background:#eef6f4}.pfp-options svg,.pfp-line svg,.pfp-chosen svg{flex:none;color:#2d7f86}.pfp-options .pfp-new{color:#19745f}
 .pfp-chosen{display:flex;align-items:center;gap:8px;font-size:16px;margin-top:4px}.pfp-qtyrow{display:flex;gap:6px}.pfp-qtyrow input{text-align:center;font-size:18px;font-weight:800}.pfp-step{flex:none;width:48px;margin:0;border:1px solid #cad9d9;border-radius:9px;background:#fff;font-size:22px;font-weight:800;color:#173c46;cursor:pointer}
@@ -222,7 +224,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   }
   // «Necesidades» se guarda como texto: opciones marcadas y lo escrito en «Otros», separados por comas.
   // Lista de empaque: artículos iniciales con su ícono (los mismos nombres que defaultPackingItems en packing.go).
-  const PACKING = [['Bolsas alimentación', 'foodbag'], ['Kit aseo personal', 'hygiene'], ['Kit limpieza', 'cleaning'], ['Kit bebé', 'bottle'], ['Linternas', 'flashlight'], ['Carpas / toldas', 'tent'], ['Repelente', 'repellent'], ['Sillas', 'chair'], ['Hamacas', 'hammock'], ['Mosquiteros', 'net'], ['Extensiones', 'plug'], ['Camping', 'camping'], ['Toallas', 'towel'], ['Capotes / ponchos', 'poncho'], ['Paraguas', 'umbrella'], ['Medicamentos', 'medicine'], ['Utensilios', 'utensils'], ['Desechables', 'disposable'], ['Colchonetas', 'mattress']];
+  const PACKING = [['Agua', 'drop'], ['Bolsas alimentación', 'foodbag'], ['Kit aseo personal', 'hygiene'], ['Kit limpieza', 'cleaning'], ['Kit bebé', 'bottle'], ['Linternas', 'flashlight'], ['Carpas / toldas', 'tent'], ['Lonas', 'tarp'], ['Repelente', 'repellent'], ['Sillas', 'chair'], ['Hamacas', 'hammock'], ['Mosquiteros', 'net'], ['Extensiones', 'plug'], ['Camping', 'camping'], ['Toallas', 'towel'], ['Capotes / ponchos', 'poncho'], ['Paraguas', 'umbrella'], ['Medicamentos', 'medicine'], ['Utensilios', 'utensils'], ['Desechables', 'disposable'], ['Colchonetas', 'mattress']];
   const packIcon = name => { const hit = PACKING.find(([l]) => fold(l) === fold(String(name || ''))); return icons[hit ? hit[1] : 'box']; };
   // packingTotals suma las cantidades por artículo (sin distinguir mayúsculas ni acentos), en el orden en que se agregaron.
   const packingTotals = lines => { const out = []; (lines || []).forEach(l => { const hit = out.find(x => fold(x.item) === fold(l.item)); if (hit) hit.quantity += l.quantity; else out.push({item: l.item, quantity: l.quantity}); }); return out; };
@@ -233,15 +235,37 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   const pk = {items: [], draft: [], pick: '', save: null};
   const pq = sel => document.querySelector('#pfPack ' + sel);
   const packDraftHtml = edit => pk.draft.length ? `<div class="pfp-list">${pk.draft.map((l, i) => `<div class="pfp-line">${packIcon(l.item)}<span>${esc(l.item)}</span>${edit ? `<input type="number" min="1" max="100000" step="1" inputmode="numeric" value="${l.quantity}" data-qty="${i}" aria-label="Cantidad de ${esc(l.item)}">` : `<b>× ${l.quantity}</b>`}<button type="button" class="pfp-del" data-del="${i}" aria-label="Quitar ${esc(l.item)}">✕</button></div>`).join('')}</div>` : '<p class="pfp-hint">Todavía no agregaste artículos.</p>';
-  function packDraw(edit) { const n = pk.draft.length; pq('[data-act=review]').disabled = !n; pq('[data-act=review]').textContent = n ? `Revisar (${n})` : 'Revisar'; pq('.pfp-draft').innerHTML = packDraftHtml(edit); }
+  function packDraw(edit) { packNeeds(); const n = pk.draft.length; pq('[data-act=review]').disabled = !n; pq('[data-act=review]').textContent = n ? `Revisar (${n})` : 'Revisar'; pq('.pfp-draft').innerHTML = packDraftHtml(edit); }
+  // Grupos del catálogo de empaque (sin buscar, la lista se ve por grupos; lo que no está en ninguno va en «Otros»).
+  const PACK_GROUPS = [['💧 Agua y comida', ['Agua', 'Bolsas alimentación']], ['⛺ Refugio', ['Carpas / toldas', 'Lonas', 'Camping', 'Hamacas', 'Mosquiteros', 'Colchonetas', 'Sillas']], ['🍳 Cocina', ['Utensilios', 'Desechables']], ['🧼 Higiene y limpieza', ['Kit aseo personal', 'Kit limpieza', 'Toallas', 'Repelente']], ['🍼 Bebé y salud', ['Kit bebé', 'Medicamentos']], ['☔ Lluvia', ['Capotes / ponchos', 'Paraguas']], ['🔦 Luz y energía', ['Linternas', 'Extensiones']]];
   function packOptions() {
     const raw = pq('#pfPackSearch').value.trim().replace(/\s+/g, ' '), q = fold(raw), list = pk.items.filter(i => !q || fold(i.name).includes(q)), exact = pk.items.some(i => fold(i.name) === q);
-    pq('.pfp-options').innerHTML = list.map(i => `<button type="button" role="option" data-item="${esc(i.name)}">${packIcon(i.name)}${esc(i.name)}</button>`).join('') + (raw && !exact ? `<button type="button" role="option" class="pfp-new" data-item="${esc(raw)}">${icons.box}Agregar «${esc(raw)}» como artículo nuevo</button>` : '') + (!list.length && !raw ? '<p class="pfp-hint">No hay artículos guardados todavía.</p>' : '');
+    const btn = i => `<button type="button" role="option" data-item="${esc(i.name)}">${packIcon(i.name)}${esc(i.name)}</button>`;
+    const groupOf = i => PACK_GROUPS.findIndex(([, names]) => names.some(n => fold(n) === fold(i.name)));
+    const grouped = !q && list.some(i => groupOf(i) >= 0);
+    pq('.pfp-options').innerHTML = (grouped ? [...PACK_GROUPS.map(([label], g) => [label, list.filter(i => groupOf(i) === g)]), ['📦 Otros', list.filter(i => groupOf(i) < 0)]].filter(([, l]) => l.length).map(([label, l]) => `<div class="pfp-group" role="presentation">${label}</div>${l.map(btn).join('')}`).join('') : list.map(btn).join('')) + (raw && !exact ? `<button type="button" role="option" class="pfp-new" data-item="${esc(raw)}">${icons.box}Agregar «${esc(raw)}» como artículo nuevo</button>` : '') + (!list.length && !raw ? '<p class="pfp-hint">No hay artículos guardados todavía.</p>' : '');
     pq('.pfp-options [data-item]')?.classList.add('hl');
+  }
+  // Qué artículos de empaque cubren cada tipo de necesidad; lo demás se compara por palabras del nombre.
+  const NEED_PACK = {'Agua': ['Agua'], 'Alimentos': ['Bolsas alimentación'], 'Refugio (carpa / lona / toldo)': ['Carpas / toldas', 'Camping'], 'Kit de cocina': ['Utensilios'], 'Kit de bebé': ['Kit bebé']};
+  const covers = (part, item) => {
+    const base = needBase(part), it = fold(item);
+    if ((NEED_PACK[base] || []).some(x => fold(x) === it)) return true;
+    const words = fold(base).replace(/\(.*?\)/g, ' ').split(/[^a-z0-9ñ]+/).filter(w => w.length > 3);
+    return words.some(w => it.includes(w)) || it.length > 3 && fold(part).includes(it);
+  };
+  function packNeeds() {
+    const box = pq('.pfp-needs'), parts = String(pk.need || '').split(/[,\n]+/).map(x => x.trim()).filter(Boolean);
+    box.hidden = !parts.length;
+    if (!parts.length) return;
+    const have = [...pk.packed, ...pk.draft].map(l => l.item);
+    box.innerHTML = `<b class="pfp-needs-h">Lo que necesitan</b><div class="pfp-needs-chips">${parts.map(part => { const done = have.some(i => covers(part, i)); return `<span class="pfp-need${done ? ' done' : ''}">${done ? '✓ ' : ''}${needIconOf(needBase(part)) || ''}${esc(part)}</span>`; }).join('')}</div>`;
   }
   function packStep(step) {
     pq('.pfp-pick').hidden = step !== 'pick'; pq('.pfp-qty').hidden = step !== 'qty'; pq('.pfp-review').hidden = step !== 'review';
-    pq('[data-act=review]').hidden = step === 'review'; pq('[data-act=save]').hidden = pq('[data-act=more]').hidden = step !== 'review';
+    // Eligiendo la cantidad no hay «Cancelar» ni «Revisar»: ahí están «Agregar a la lista» y «Elegir otro artículo».
+    pq('[data-act=cancel]').hidden = step === 'qty';
+    pq('[data-act=review]').hidden = step === 'review' || step === 'qty'; pq('[data-act=save]').hidden = pq('[data-act=more]').hidden = step !== 'review';
     pq('.pfp-msg').textContent = ''; packDraw(step === 'review');
     if (step === 'pick') { pq('#pfPackSearch').value = ''; packOptions(); pq('#pfPackSearch').focus(); }
   }
@@ -268,7 +292,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   function packDialog() {
     let d = document.getElementById('pfPack');
     if (d) return d;
-    document.body.insertAdjacentHTML('beforeend', `<dialog id="pfPack" class="pfp" aria-labelledby="pfPackTitle"><div class="pfp-box"><h2 id="pfPackTitle">Agregar a lista de empaque</h2><p class="pfp-for"></p><div class="pfp-pick"><label for="pfPackSearch">Artículo</label><input id="pfPackSearch" autocomplete="off" spellcheck="false" placeholder="Escribe para buscar o agregar uno nuevo…" role="combobox" aria-controls="pfPackOptions" aria-expanded="true"><div id="pfPackOptions" class="pfp-options" role="listbox" aria-label="Artículos"></div></div><div class="pfp-qty" hidden><div class="pfp-chosen"></div><label for="pfPackQty">Cantidad</label><div class="pfp-qtyrow"><button type="button" class="pfp-step" data-step="-1" aria-label="Menos">−</button><input id="pfPackQty" type="number" min="1" max="100000" step="1" inputmode="numeric" value="1"><button type="button" class="pfp-step" data-step="1" aria-label="Más">+</button></div><button type="button" class="pfp-btn" data-act="add">Agregar a la lista</button><button type="button" class="pfp-btn pfp-plain" data-act="other">Elegir otro artículo</button></div><div class="pfp-review" hidden><h3>Revisa antes de guardar</h3><p class="pfp-hint">Ajusta cantidades o quita artículos. Al guardar se suman a la lista de empaque de esta necesidad.</p></div><div class="pfp-draft"></div><p class="pfp-msg" role="status"></p><div class="pfp-actions"><button type="button" class="pfp-btn pfp-plain" data-act="cancel">Cancelar</button><button type="button" class="pfp-btn pfp-plain" data-act="more" hidden>Seguir agregando</button><button type="button" class="pfp-btn" data-act="review" disabled>Revisar</button><button type="button" class="pfp-btn" data-act="save" hidden>Guardar lista</button></div></div></dialog>`);
+    document.body.insertAdjacentHTML('beforeend', `<dialog id="pfPack" class="pfp" aria-labelledby="pfPackTitle"><div class="pfp-box"><h2 id="pfPackTitle">Agregar a lista de empaque</h2><p class="pfp-for"></p><div class="pfp-needs" hidden></div><div class="pfp-pick"><label for="pfPackSearch">Artículo</label><input id="pfPackSearch" autocomplete="off" spellcheck="false" placeholder="Escribe para buscar o agregar uno nuevo…" role="combobox" aria-controls="pfPackOptions" aria-expanded="true"><div id="pfPackOptions" class="pfp-options" role="listbox" aria-label="Artículos"></div></div><div class="pfp-qty" hidden><div class="pfp-chosen"></div><label for="pfPackQty">Cantidad</label><div class="pfp-qtyrow"><button type="button" class="pfp-step" data-step="-1" aria-label="Menos">−</button><input id="pfPackQty" type="number" min="1" max="100000" step="1" inputmode="numeric" value="1"><button type="button" class="pfp-step" data-step="1" aria-label="Más">+</button></div><button type="button" class="pfp-btn" data-act="add">Agregar a la lista</button><button type="button" class="pfp-btn pfp-plain" data-act="other">Cancelar</button></div><div class="pfp-review" hidden><h3>Revisa antes de guardar</h3><p class="pfp-hint">Ajusta cantidades o quita artículos. Al guardar se suman a la lista de empaque de esta necesidad.</p></div><div class="pfp-draft"></div><p class="pfp-msg" role="status"></p><div class="pfp-actions"><button type="button" class="pfp-btn pfp-plain" data-act="cancel">Cancelar</button><button type="button" class="pfp-btn pfp-plain" data-act="more" hidden>Seguir agregando</button><button type="button" class="pfp-btn" data-act="review" disabled>Revisar</button><button type="button" class="pfp-btn" data-act="save" hidden>Guardar lista</button></div></div></dialog>`);
     d = document.getElementById('pfPack');
     pq('#pfPackSearch').addEventListener('input', packOptions);
     pq('#pfPackSearch').addEventListener('keydown', e => {
@@ -285,13 +309,16 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
       const act = e.target.closest('[data-act]')?.dataset.act;
       if (act === 'add') packAdd(); else if (act === 'other' || act === 'more') packStep('pick');
       else if (act === 'review' && pk.draft.length) packStep('review'); else if (act === 'save') packSave();
-      else if (act === 'cancel' && packDiscard()) d.close();
+      // Cancelar: revisando, vuelve a la lista de artículos; en la lista, cierra (pregunta si hay algo sin guardar).
+      else if (act === 'cancel') { if (!pq('.pfp-review').hidden) packStep('pick'); else if (packDiscard()) d.close(); }
     });
     d.addEventListener('cancel', e => { if (!packDiscard()) e.preventDefault(); });
     return d;
   }
-  function openPacking({subtitle = '', items = [], save}) {
-    const d = packDialog(); pk.items = items; pk.draft = []; pk.save = save;
+  // need: el texto de la necesidad («Agua (Para beber), Alimentos»); packed: la lista ya guardada. Arriba se ven las
+  // necesidades y cada una se pone gris (✓) cuando un artículo de la lista o de lo que se agrega la cubre.
+  function openPacking({subtitle = '', items = [], save, need = '', packed = []}) {
+    const d = packDialog(); pk.items = items; pk.draft = []; pk.save = save; pk.need = need || ''; pk.packed = packed || [];
     pq('.pfp-for').textContent = subtitle; d.showModal(); packStep('pick');
   }
   // Fotos y videos de una carrera (partida / entrega). Las fotos grandes se reducen a 2000 px en JPEG antes de subir

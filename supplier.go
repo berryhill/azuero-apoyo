@@ -161,7 +161,7 @@ type supplierRun struct {
 	runnerNeed
 	// «Por surtir»: última actualización de la necesidad (needActivity); ordena la lista y se muestra «hace …».
 	ActivityAt string `json:"activityAt,omitempty"`
-	// «Por surtir», solo para quien es de un equipo: quién agregó la necesidad (o, si no consta, el punto) y su teléfono.
+	// «Por surtir» y «¡A empacar!», solo para quien es de un equipo: quién agregó la necesidad (o el punto) y su teléfono.
 	AddedByName  string `json:"addedByName,omitempty"`
 	AddedByPhone string `json:"addedByPhone,omitempty"`
 	RunnerName       string `json:"runnerName,omitempty"`
@@ -377,6 +377,25 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				return e
 			}
 			camps, adders, creators := map[string]runnerCamp{}, map[string]string{}, map[string]map[string]string{}
+			// «Agregado por» (solo para quien es de un equipo): quién agregó la necesidad según el rastro, o si no consta
+			// quién agregó el punto; con su teléfono.
+			addedBy := func(run *supplierRun, n CampNeed) {
+				if tv.team == "" {
+					return
+				}
+				if creators[n.CampID] == nil {
+					creators[n.CampID] = creatorsIn(tx, n.CampID)
+				}
+				by := n.CreatedBy
+				for _, alt := range []string{creators[n.CampID][n.ID], adders[n.CampID], creators[n.CampID][n.CampID]} {
+					if by == "" {
+						by = alt
+					}
+				}
+				if u, found := getUser(tx, by); found {
+					run.AddedByName, run.AddedByPhone = u.Name, u.Telephone
+				}
+			}
 			if e := tx.Bucket(submissions).ForEach(func(_, v []byte) error {
 				var p Point
 				if e := json.Unmarshal(v, &p); e != nil {
@@ -440,24 +459,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 						}
 					}
 					run.ActivityAt = needActivity(n)
-					if tv.team != "" {
-						if creators[n.CampID] == nil {
-							creators[n.CampID] = creatorsIn(tx, n.CampID)
-						}
-						by := n.CreatedBy
-						if by == "" {
-							by = creators[n.CampID][n.ID]
-						}
-						if by == "" {
-							by = adders[n.CampID]
-						}
-						if by == "" {
-							by = creators[n.CampID][n.CampID]
-						}
-						if u, found := getUser(tx, by); found {
-							run.AddedByName, run.AddedByPhone = u.Name, u.Telephone
-						}
-					}
+					addedBy(&run, n)
 					open = append(open, run)
 					return nil
 				}
@@ -493,6 +495,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 					run.Supplier = supplierOf(tx, n.SupplierID)
 					enroute = append(enroute, run)
 				default:
+					addedBy(&run, n)
 					runs = append(runs, run)
 				}
 				return nil

@@ -819,7 +819,8 @@ test('packing list: every starting item has its own icon and matches the server 
   const goSrc = readFileSync(new URL('./packing.go', import.meta.url), 'utf8');
   const goNames = [...goSrc.match(/var defaultPackingItems = \[\]string\{([^}]*)\}/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
   assert.deepEqual(PointForm.PACKING.map(p => p[0]), goNames);
-  assert.equal(goNames.length, 19);
+  assert.equal(goNames.length, 21);
+  assert.equal(goNames[0], 'Agua', 'water is a starting item');
   const icons = new Set();
   for (const [name, key] of PointForm.PACKING) {
     assert.ok(PointForm.icons[key], `${name} icon ${key}`);
@@ -1895,6 +1896,21 @@ test('Command: home repairs show the builder\'s work (progress, what\'s missing,
   assert.match(cmd, /\$\{repair\?'¿Quién hace la obra\?':'¿La suplimos ahora\?'\}/);
   assert.match(cmd, /\$\{repair\?'🔨 En obra':icoWalk\+'En camino'\}/);
 });
+test('packing list window: the needs on top grey out as items cover them; grouped catalog; Cancelar goes back', () => {
+  const pf = readFileSync(new URL('./pointform.js', import.meta.url), 'utf8');
+  assert.match(pf, /function openPacking\(\{subtitle = '', items = \[\], save, need = '', packed = \[\]\}\)/);
+  assert.match(pf, /<span class="pfp-need\$\{done \? ' done' : ''\}">/);
+  assert.match(pf, /const NEED_PACK = \{'Agua': \['Agua'\], 'Alimentos': \['Bolsas alimentación'\]/);
+  assert.match(pf, /\['⛺ Refugio', \['Carpas \/ toldas', 'Lonas', 'Camping', 'Hamacas'/);
+  assert.match(pf, /data-act="other">Cancelar<\/button>/, 'choosing a quantity: «Cancelar» goes back to the items');
+  assert.match(pf, /pq\('\[data-act=cancel\]'\)\.hidden = step === 'qty';/);
+  assert.match(pf, /pq\('\[data-act=review\]'\)\.hidden = step === 'review' \|\| step === 'qty';/);
+  assert.match(pf, /else if \(act === 'cancel'\) \{ if \(!pq\('\.pfp-review'\)\.hidden\) packStep\('pick'\); else if \(packDiscard\(\)\) d\.close\(\); \}/);
+  for (const page of ['supplier.html', 'runner.html', 'command.html', 'admin.html']) assert.match(readFileSync(new URL('./' + page, import.meta.url), 'utf8'), /PointForm\.openPacking\(\{need:/, page + ' passes the need');
+  const sup = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  assert.match(sup, /function needSection\(n\)\{return `<section class="sec sec-need">\$\{secHead\('h-need','🙌','Necesita'/);
+  assert.match(sup, /\.sec-need\{background:#fdeef0;/, 'Necesita section is light pink');
+});
 test('Supply «Por surtir» cards show when the need was last updated («🕓 Actualizada hace …»)', () => {
   const sup = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
   assert.match(sup, /function reqCard\(n\)\{[^\n]*?\$\{n\.activityAt\?`<p class="reqwhen"[^`]*>🕓 Actualizada \$\{clean\(ago\(n\.activityAt\)\)\}<\/p>`:''\}/);
@@ -2281,12 +2297,12 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   assert.match(page, /AppNav\.choose\('¿Sale del acopio este run\?'/, 'confirm before dispatching');
   assert.match(page, /<button class="btn dispatch" type="button" data-dispatch="\$\{id\}">🚚 Despachada<\/button>/);
   // Card in three parts: runner (who, phone, when, live position) · destination (point, contacts, needs, map) · what to load (packing, photos, dispatch).
-  assert.match(page, /function runCard\(n\)\{return `<article class="scard split[^`]*\$\{runnerSection\(n\)\}\$\{destSection\(n\)\}\$\{loadSection\(n\)\}<\/article>`\}/);
+  assert.match(page, /function runCard\(n\)\{return `<article class="scard split[^`]*\$\{needSection\(n\)\}\$\{loadSection\(n\)\}\$\{destSection\(n,false,true\)\}\$\{runnerSection\(n\)\}<\/article>`\}/);
   assert.match(page, /secHead\('h-runner','🏃','Runner'/);
   assert.match(page, /<b class="rn">\$\{clean\(n\.runnerName\|\|'Runner'\)\}<\/b>\$\{n\.runnerPhone\?/, 'who carries it, with call buttons');
   assert.match(page, /La tomó \$\{clean\(agoEs\(n\.enRouteAt\)\)\}/);
   assert.match(page, /data-runnerlive="\$\{clean\(n\.id\)\}">📍 Ver runner en el mapa<\/button>/, 'live position on the map when shared');
-  assert.match(page, /secHead\('h-dest','📍','Destino'[^\n]*\$\{needDetails\(\{\.\.\.n,packing:null\},true,false\)\}<div class="actrow">\$\{needButtons\(n\)\}/, 'point, contacts and needs (no packing here), see on map');
+  assert.match(page, /secHead\('h-dest','📍','Destino'[^\n]*\$\{needDetails\(\{\.\.\.n,packing:null,noWhat:split\},true,false\)\}\$\{addedByLine\(n\)\}\$\{share\?`<div class="actrow">\$\{needButtons\(n\)\}/, 'point, contacts and needs (no packing here), see on map');
   assert.match(page, /secHead\('h-load','📦','Para cargar'[^\n]*PointForm\.packingHtml\(n\.packing\)[^\n]*\$\{mediaStrip\(n\)\}/, 'packing and departure photos together');
   assert.match(admin, /<input type="checkbox" name="roles" value="supplier"> 📦 Supply<\/label>/);
   assert.match(admin, /n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada · en camino'/);
@@ -2329,7 +2345,7 @@ test('runners: the «Completé» confirmation shows the packing list being deliv
 test('runner cards: «Necesita» (what the point needs) apart from «📦 Lo que llevas» (the runner packing list)', () => {
   for (const f of ['runner.html', 'supplier.html']) {
     const page = readFileSync(new URL('./' + f, import.meta.url), 'utf8');
-    assert.match(page, /<div class="grp g-what"><span class="needlbl">Necesita<\/span>\$\{needChips\(n\.need\)\}<\/div>\$\{\(n\.packing\|\|\[\]\)\.length&&typeof PointForm!=='undefined'\?`<div class="grp g-carry"><span class="needlbl">📦 Lo que llevas<\/span>\$\{PointForm\.packingHtml\(n\.packing\)\}<\/div>`:''\}/, f);
+    assert.match(page, /(?:\$\{n\.noWhat\?'':`)?<div class="grp g-what"><span class="needlbl">Necesita<\/span>\$\{needChips\(n\.need\)\}<\/div>(?:`\})?\$\{\(n\.packing\|\|\[\]\)\.length&&typeof PointForm!=='undefined'\?`<div class="grp g-carry"><span class="needlbl">📦 Lo que llevas<\/span>\$\{PointForm\.packingHtml\(n\.packing\)\}<\/div>`:''\}/, f);
   }
 });
 
@@ -2654,6 +2670,8 @@ test('«Reportado por» (megaphone) replaces «Coordinador» in labels; the stor
   assert.doesNotMatch(sup, /Reportado por/, 'Supply cards: the reporter is just the name and phone');
   assert.match(sup, /when=n\.activityAt\?'':n\.revisedAt\|\|n\.createdAt;/, 'Por surtir cards: no «hace …» in the people row (they have «Actualizada hace …»)');
   assert.match(sup, /🏃 Asignar a runner<\/button>\$\{needButtons\(n\)\}<\/div><\/article>`\}/, 'share button in the same row as ¡Yo abastezco! / Asignar a runner');
+  assert.match(sup, /<div class="dispatchrow"><button class="btn dispatch" type="button" data-dispatch="\$\{id\}">🚚 Despachada<\/button>\$\{needButtons\(n\)\}<\/div>/, '¡A empacar!: share next to Despachada');
+  assert.match(sup, /\$\{needDetails\(\{\.\.\.n,packing:null,noWhat:split\},true,false\)\}\$\{addedByLine\(n\)\}/, '«Agregado por» on ¡A empacar! too');
   assert.match(sup, /match=n=>teamOk\(n\)&&\(!q\|\|foldNeed\(\[n\.runnerName,n\.runnerPhone,n\.addedByName,/, 'search finds who added it');
   assert.match(sup, /const addedByLine=n=>n\.addedByName\?`<p class="reqby">🧭 Agregado por <b>\$\{clean\(n\.addedByName\)\}<\/b>\$\{verifiedOf\(n\)\}\$\{n\.addedByPhone\?` <button type="button" class="telbtn" data-tel=/, '«Agregado por» with a tappable phone (sent only to team members)');
   assert.match(sup, /href="tel:\$\{clean\(d\)\}">📞 Llamar<\/a><a class="btn small wa"[^>]*>💬 WhatsApp<\/a>/);

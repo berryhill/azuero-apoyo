@@ -312,7 +312,7 @@ async function uploadRunMedia(id,stage,files){const status=$('#up-'+CSS.escape(i
 // Lista de empaque: el diálogo es compartido (PointForm.openPacking); aquí se carga el catálogo y se guarda.
 const packIcon=name=>typeof PointForm!=='undefined'?PointForm.packIcon(name):'';
 function packButton(n){return `<button class="btn plain pack" type="button" data-pack="${clean(n.id)}" title="Agregar a lista de empaque">${packIcon('')}Lista de empaque</button>`}
-async function openPacking(id){const n=findNeed(id);if(!n)return;let items;try{items=await api('/api/runner/packing-items')}catch(err){flash(err.message);render();return}PointForm.openPacking({subtitle:`${n.camp.code} · ${n.camp.area}`,items,save:async lines=>{await api('/api/runner/needs/'+encodeURIComponent(n.id)+'/packing','POST',{items:lines});await refresh();flash(`Lista de empaque guardada (${lines.length} ${lines.length===1?'artículo':'artículos'}).`);render()}})}
+async function openPacking(id){const n=findNeed(id);if(!n)return;let items;try{items=await api('/api/runner/packing-items')}catch(err){flash(err.message);render();return}PointForm.openPacking({need:n.need,packed:n.packing,subtitle:`${n.camp.code} · ${n.camp.area}`,items,save:async lines=>{await api('/api/runner/needs/'+encodeURIComponent(n.id)+'/packing','POST',{items:lines});await refresh();flash(`Lista de empaque guardada (${lines.length} ${lines.length===1?'artículo':'artículos'}).`);render()}})}
 
 // Sin señal en pleno recorrido: si tienes carreras en camino y se pierde la conexión, una pantalla cubre la página y te
 // deja solo tu recorrido. Ahí puedes tomar fotos de partida y marcar «Completé» (con fotos de entrega); todo queda en el

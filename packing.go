@@ -16,7 +16,7 @@ var packingBucket = []byte("packing_items")
 
 // Artículos iniciales; sus íconos están en pointform.js (PointForm.PACKING) con estos mismos nombres.
 var defaultPackingItems = []string{
-	"Bolsas alimentación", "Kit aseo personal", "Kit limpieza", "Kit bebé", "Linternas", "Carpas / toldas",
+	"Agua", "Bolsas alimentación", "Kit aseo personal", "Kit limpieza", "Kit bebé", "Linternas", "Carpas / toldas", "Lonas",
 	"Repelente", "Sillas", "Hamacas", "Mosquiteros", "Extensiones", "Camping", "Toallas", "Capotes / ponchos",
 	"Paraguas", "Medicamentos", "Utensilios", "Desechables", "Colchonetas",
 }
