@@ -9,6 +9,10 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-15**
+- Manual checked against the change history, team-data guards, activity log and Scout: pages table, top bar, roles
+  (no-role Scout, global agents), teams (trusted teammates) (§2, §3, §12).
+- Point page «🕓 Actividad del punto»: public activity log since the point was reported (who as a role only; full names
+  for your teammates). New «🧭 Scout» page for anyone signed in: your and your team's points, list and map (§2, §14).
 - Change history: every change to points, needs, runs, packing, photos and supply is recorded with who, team, page and
   when; «🕓 Historial de cambios» on each point in admin and Command. Global agents (no team) and other teams can't
   overwrite a team's data: point edits are change requests too, and they can't delete/move others' photos, merge into
@@ -94,16 +98,17 @@ Everything the community reports is *reported* data, not verified, and the app p
 | --- | --- | --- |
 | `/` (home) | Public and everyone | Map and list of points, «📊 Resumen» figures (the first view on phones), «¡Ayuda!» to report a point, «Reportar necesidad» on a selected point, «Login». |
 | `/signup.html` | Anyone (link to share) | Sign in with a code or create an account. When signed in, shows which pages the person can open. Also accepts team invites (`?invite=…`). |
-| `/camp.html?id=…` | Public | Public page of an approved point (no private data): need chips with their options, «Verificado por un equipo» badge, link to Google/Apple Maps. |
-| `/runner.html` («Runners») | Runner role (and agents, for packing lists only) | Take runs, route, packing list, photos, complete. |
-| `/builder.html` («Constructores») | Builder role | Repair jobs: assess, take, progress, materials, photos. |
+| `/camp.html?id=…` | Public | Public page of an approved point (no private data): need chips with their options, «Verificado por un equipo» badge, link to Google/Apple Maps, and **«🕓 Actividad del punto»** (§14). |
+| `/scout.html` («🧭 Scout») | Anyone signed in with a code (no role needed) | The points you or your team added, in a list and on a map (§14). Kept apart from the home page. |
+| `/runner.html` («Runners») | Runner role (and agents, for packing lists only) | Take runs, route, packing list, photos, complete; answer «📝 Cambios propuestos». |
+| `/builder.html` («Constructores») | Builder role | Repair jobs: assess, take, progress, materials, photos; answer «📝 Cambios propuestos». |
 | `/supplier.html` («Supply») | Supply role | Collection center: request runners, assign in person, answer runner requests, pack, dispatch. |
-| `/command.html` («Command») | Agent role | Call center: points, needs, checkups, report needs. |
+| `/command.html` («Command») | Agent role | Call center: points, needs, checkups, report needs; change requests to other teams' data and «🕓 Historial de cambios» per point. |
 | `/donations.html` («Donaciones») | Donations role and admin | Donation tickets: offered → confirmed → at center → on the way → delivered. |
 | `/team.html` («Mi equipo») | Team manager role | Invite people to the team, see members, change their roles, remove them. Lives in the ☰ menu. |
-| `/admin.html` | Admin (master password) | Everything: review reports, points, needs, users, teams, backups, newsletter. |
+| `/admin.html` | Admin (master password) | Everything: review reports, points, needs, users, teams, backups, newsletter; «🕓 Historial de cambios» per point. |
 
-On phones the top bar links to the pages the person can use; rarely used ones (Mi equipo) are in the menu. If the links
+The top bar links to the pages the person can use: «Inicio» for everyone, «🧭 Scout» for anyone signed in with a code, then one per role. On phones rarely used ones (Mi equipo) are in the menu. If the links
 don't fit, they shrink to icons and then collapse into one «current page ▾» button that opens the list as a dropdown,
 so the page action (＋ «Agregar punto»), 🔍 and the menu button always stay visible on the right. When signed in, the
 menu button shows the person's **initials** in a gold circle (e.g. «MS»; tooltip with the full name) instead of ☰. The
@@ -130,6 +135,10 @@ menu shows the signed-in name and **roles**, «Copiar mi ID», «Salir» and tex
   role shows up in the menu; a removed role ends its sessions immediately and sends the person home with the notice
   «Tu acceso cambió…».
 - Sessions live in server memory: after a server restart, anyone with a remembered code signs back in automatically.
+- **No role needed**: anyone signed in with a code gets the home page's full view and **Scout** (their own and their
+  team's points, §14).
+- **Global agent**: an agent with no team. Agents help verify data, but an agent outside the team of whoever updated a
+  need or point last (a global agent, or one from another team) sends a change request instead of overwriting it (§6).
 
 ---
 
@@ -509,12 +518,16 @@ Access: Donations role or admin.
 
 - **Teams**: admin creates them in Usuarios → 👥 Equipos and assigns users (one team per user; code users only).
   Teams drive «Solo mi equipo» (Runners, Supply) and who sees the team's live locations.
+- **Teammates trust each other's data**: their edits to each other's points, needs and runs apply directly. People
+  outside the team (global agents, other teams) can only propose changes (§6), and every change by anyone is recorded
+  in the change history. Teammates see each other's full names in a point's public activity log, and Scout lists the
+  team's points (§14).
 - A **Team manager** (must be in a team) opens **Mi equipo** from the ☰ menu:
   - **Invite**: «Crear enlace» (expires in 24 h, 3 days or 7 days; **single use**). Copy, share, or send via
     WhatsApp. Invite list: pending, used by…, expired, revoked («Anular»).
   - **Members**: a quick search above the list filters as you type by name, phone (3+ digits) or role, ignoring
     accents and case (the counter shows e.g. «1 de 3»). Each member shows phone, role chips with the page icons
-    (🏃 Runner, 🔨 Constructor, 📦 Supply, 👥 Team manager, 🎧 Agente, 🎁 Donaciones), activity; «Roles» (can grant or remove Runner, Builder, Supply, Team manager; Agent
+    (🏃 Runner, 🔨 Constructor, 📦 Supply, 👥 Team manager, 🧑‍💻 Agente, 🎁 Donaciones), activity; «Roles» (can grant or remove Runner, Builder, Supply, Team manager; Agent
     and Donations are locked) and «Quitar del equipo» (remove from team). They can't change themselves. Removing a
     team manager from the team also removes that role.
 - **Opening an invite** (`/signup.html?invite=…`) requires a code session. If the person is already signed in they
@@ -601,6 +614,35 @@ specific point):
   view, and tapping a point on the map opens nothing. A shared link to a specific point (`/?punto=…`) still opens it,
   without the needs list. The view updates by itself when a role is added or removed (checked every 45 s).
 
+**«🕓 Actividad del punto»** (on the public point page `/camp.html`): everything that happened at the point since it
+was reported, newest first, each with date and time, who, and what changed (before → after). It comes from the change
+history (§6) but shows **only public data**: the point's code, zone, place, needs, head counts, GPS/location
+(«actualizada», without numbers), public notes and directions, approval and «Checkup registrado»; for needs, the
+request, state, urgency, «Despachada» and the runner only as «asignado / sin asignar». Never contacts, phones, the
+people list, private notes, runner or supply names, packing lists, photos or repairs; another team's reserved run shows
+as «Necesidad de un equipo».
+- **Who, for the public**: only the role, never a name or phone: «Un runner», «Un agente», «Un acopio», «Un
+  constructor», «Un voluntario» (code user on the home page), «Alguien del público», «Administración», «Sistema», plus
+  «de un equipo» when that person is on a team.
+- **Who, when signed in with a code**: the full name of people on **your own team** (in green, «(tu equipo)») and of
+  yourself; everyone else as for the public. (`/api/full/camps/{id}/log`, falling back to `/api/camps/{id}/log`.)
+- The first 15 entries show; «Ver toda la actividad (N)» shows the rest.
+- History is recorded from 2026-10-15. For older points and needs, the log is rebuilt from their saved dates
+  (reported, approved, checkups, en camino, despachada, completada), with who only when known.
+
+**«🧭 Scout»** (`/scout.html`): for anyone signed in with a code, no new role; it's in the top bar after «Inicio». It
+lists the points **you** added (with your code, from the home page or a panel) and the ones **your team** added, newest
+first, apart from the home page:
+- Filters «Todos / Míos / Equipo» with counts, and a search (code, zone, place, need, who added it).
+- Each card: name, state («Publicado», «Por revisar», «🔒 Solo tu equipo hasta …» while held), «Urgente», the crossed
+  pin when it has no GPS, place and people, need chips, «Lo agregaste tú» or «Agregado por *full name* (tu equipo)», how
+  long ago, last checkup, **«Ver ficha y actividad»** (the public point page with its activity log) and **«📍 Ver en el
+  mapa»**.
+- **«🗺️ Mapa»** tab: your points in orange, your team's in green; tapping one opens a popup with the link to its page.
+  Points without GPS stay in the list only.
+- **«+ Agregar punto»** opens the home page's point form (`/?agregar=1`).
+- Signed out, it asks to sign in from the home page. No contacts or phones are shown.
+
 ---
 
 ## 15. Privacy
@@ -614,6 +656,8 @@ specific point):
 - Repair needs and their materials are never public.
 - A point held with «Nuestro equipo lo abastece» is hidden from the public and from other teams for 3 hours.
 - Code users see more (e.g. the runner's name on their team's needs).
+- The point activity log on `/camp.html` is public but only with public fields and no names or phones; teammates see
+  each other's full names (§14).
 - Who updated a need or point last (`updatedBy`) and change requests are private: only the people involved see a
   request. The change history is only in admin and Command.
 - Who added a need by changing someone's run is private: admin and Command show «Agregada por …» on that need; the
@@ -633,6 +677,9 @@ specific point):
 - Change requests (`changes.go`, bucket `change_requests`): `/api/runner/…`, `/api/builder/…` and
   `/api/agent/change-requests` (list; `POST …/{id}/accept|reject`). An agent's `PATCH /api/agent/needs/{id}` or
   `PATCH /api/agent/camps/{id}` answers 202 with the request when it needs the owner's OK.
+- Point activity log and Scout (`camplog.go`): `GET /api/camps/{id}/log` (public), `GET /api/full/camps/{id}/log`
+  and `GET /api/full/scout` (code session). New pages must be added to the static allowlist in `main.go` and to the
+  `Dockerfile` COPY line (`scout.html` is).
 - Change history (`audit.go`, bucket `audit`, keyed by point and time): every need and point write goes through
   `putNeed` / `putPoint`, which compare with what was stored; `a.write(r, …)` records who made the request.
   `GET /api/admin/camps/{id}/trail` (also for agents) and `GET /api/admin/centers/trail`.

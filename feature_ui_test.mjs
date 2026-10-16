@@ -2799,3 +2799,23 @@ test('«🕓 Historial de cambios» on a point in admin and Command; builders an
   assert.match(bld, /<div class="crqbox" id="changeReqs" hidden><\/div>/);
   assert.match(bld, /fetch\('\/api\/builder\/change-requests'/);
 });
+
+test('camp page «🕓 Actividad del punto» (public log, teammates by name) and the «🧭 Scout» page (my and my team\'s points, list and map)', () => {
+  const camp = readFileSync(new URL('./camp.html', import.meta.url), 'utf8');
+  const scout = readFileSync(new URL('./scout.html', import.meta.url), 'utf8');
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  const go = readFileSync(new URL('./main.go', import.meta.url), 'utf8');
+  const docker = readFileSync(new URL('./Dockerfile', import.meta.url), 'utf8');
+  assert.match(camp, /<section id="campLog"><h2>🕓 Actividad del punto<\/h2>/);
+  assert.match(camp, /get\('\/api\/full\/camps\/'\+encodeURIComponent\(id\)\+'\/log'\)/);
+  assert.match(camp, /if\(!r\|\|!r\.ok\)r=await get\('\/api\/camps\/'\+encodeURIComponent\(id\)\+'\/log'\)/);
+  assert.match(camp, /Por privacidad no se muestran nombres ni teléfonos/);
+  assert.match(scout, /fetch\('\/api\/full\/scout'/);
+  assert.match(scout, /data-tab="list" class="on">☰ Lista<\/button><button type="button" data-tab="map">🗺️ Mapa<\/button>/);
+  assert.match(scout, /\['all',`Todos \$\{all\}`\],\['mine',`Míos \$\{mine\}`\],\['team',`Equipo \$\{all-mine\}`\]/);
+  assert.match(scout, /<a class="btn" href="\/\?agregar=1">\+ Agregar punto<\/a>/);
+  assert.match(template, /get\('agregar'\)\)\{history\.replaceState\(null,'',location\.pathname\);setTimeout\(\(\)=>\$\('#addBtn'\)\.click\(\),300\)\}/);
+  assert.match(nav, /\['\/scout\.html', '🧭', \(\) => 'Scout', u => !!u\]/);
+  assert.match(go, /"\/camp\.html", "\/scout\.html",/);
+  assert.match(docker, /camp\.html scout\.html /);
+});

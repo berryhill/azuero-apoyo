@@ -34,17 +34,19 @@ type Actor struct {
 }
 
 type AuditEntry struct {
-	At      string       `json:"at"`
-	Kind    string       `json:"kind"` // punto, necesidad, acopio
-	Ref     string       `json:"ref"`
-	CampID  string       `json:"campId,omitempty"`
-	Label   string       `json:"label,omitempty"`
-	Action  string       `json:"action"` // creó, cambió
-	ByID    string       `json:"byId,omitempty"`
-	ByName  string       `json:"byName"`
-	ByTeam  string       `json:"byTeam,omitempty"`
-	Via     string       `json:"via,omitempty"`
-	Changes []ChangeLine `json:"changes"`
+	At     string `json:"at"`
+	Kind   string `json:"kind"` // punto, necesidad, acopio
+	Ref    string `json:"ref"`
+	CampID string `json:"campId,omitempty"`
+	Label  string `json:"label,omitempty"`
+	Action string `json:"action"` // creó, cambió
+	ByID   string `json:"byId,omitempty"`
+	ByName string `json:"byName"`
+	ByTeam string `json:"byTeam,omitempty"`
+	// Equipo por su ID (para reconocer a los compañeros aunque el equipo cambie de nombre).
+	ByTeamID string       `json:"byTeamId,omitempty"`
+	Via      string       `json:"via,omitempty"`
+	Changes  []ChangeLine `json:"changes"`
 }
 
 // El actor de la transacción de escritura en curso. bbolt hace una escritura a la vez, así que basta con recordar la
@@ -140,7 +142,7 @@ func logAudit(tx *bolt.Tx, e AuditEntry) error {
 	default:
 		e.ByID, e.ByName, e.Via = who.ID, nameOf(tx, who.ID), who.Via
 		if t, found := getTeam(tx, teamOf(tx, who.ID)); found {
-			e.ByTeam = t.Name
+			e.ByTeam, e.ByTeamID = t.Name, t.ID
 		}
 	}
 	return putJSON(b, e.CampID+"\x00"+e.At+"\x00"+randomToken()[:6], e)

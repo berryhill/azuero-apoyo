@@ -1544,7 +1544,7 @@ func (a *App) routes() http.Handler {
 		switch r.URL.Path {
 		case "/", "/index.html":
 			name = "index.html"
-		case "/admin.html", "/donations.html", "/supplier.html", "/signup.html", "/team.html", "/camp.html", "/runner.html", "/builder.html", "/command.html", "/pointform.js", "/nav.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
+		case "/admin.html", "/donations.html", "/supplier.html", "/signup.html", "/team.html", "/camp.html", "/scout.html", "/runner.html", "/builder.html", "/command.html", "/pointform.js", "/nav.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
 			name = strings.TrimPrefix(r.URL.Path, "/")
 		default:
 			http.NotFound(w, r)
@@ -2472,6 +2472,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.fullNeedRoutes(mux)
 	a.changeRoutes(mux, runners, builders)
 	a.auditRoutes(mux)
+	a.campLogRoutes(mux)
 	a.teamRoutes(mux)
 	a.trackRoutes(mux)
 	a.agentRoutes(mux)

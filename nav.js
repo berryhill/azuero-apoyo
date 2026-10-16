@@ -42,6 +42,8 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   // Agentes sin rol de runner entran al panel de runners solo para las listas de empaque.
   const pages = [
     ['/', '🏠', () => 'Inicio', () => true],
+    // Scout: los puntos que agregaste tú o tu equipo; cualquiera que entró con código (no es un rol).
+    ['/scout.html', '🧭', () => 'Scout', u => !!u],
     ['/runner.html', '<svg class="walkico" style="color:#5b9be6" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="4" r="2"/><path d="M12.5 7.5 10 13"/><path d="m12 8 4 2.5 3-1"/><path d="m12 8-4 1.5-2 2.5"/><path d="m10 13 3.5 3-1 5"/><path d="m10 13-2.5 4H4"/></svg>', u => !u.roles || u.roles.includes('runner') ? 'Runners' : 'Empaque', u => has(u, 'runner') || has(u, 'agent')],
     ['/builder.html', '🔨', () => 'Constructores', u => has(u, 'builder')],
     ['/command.html', '🧑‍💻', () => 'Command', u => has(u, 'agent')],

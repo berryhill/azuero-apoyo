@@ -1,0 +1,51 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10263a"><title>Scout · Azuero Apoyo</title>
+<link rel="stylesheet" href="./leaflet.css"><style>
+/* Scout: los puntos que agregaste tú o tu equipo, en lista y en mapa. No pide un rol nuevo: basta entrar con código. */
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#152b3a;background:#f5f8f7}*{box-sizing:border-box}body{margin:0;min-height:calc(100vh / var(--text-zoom,1));background:#f5f8f7}button,input{font:inherit}[hidden]{display:none!important}
+.top{height:62px;background:#10263a;color:#fff;display:flex;align-items:center;gap:12px;padding:0 18px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;color:#fff;text-decoration:none}.logo{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#ed7654;color:#fff;font-size:20px}
+.wrap{max-width:900px;margin:0 auto;padding:16px 16px 40px}h1{margin:0 0 2px;font-size:22px}.sub{margin:0 0 12px;color:#4b6670;font-size:14px;line-height:1.45}
+.card{background:#fff;border:1px solid #dfe8e7;border-radius:14px;padding:14px 16px;margin:0 0 10px}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:800;font-size:14px;background:#ed7654;color:#fff;cursor:pointer;text-decoration:none;display:inline-block}.btn.ghost{background:#fff;color:#173c46;border:1px solid #cad9d9}.btn.small{padding:6px 10px;font-size:13px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}.tabs{display:flex;background:#e8efee;border-radius:10px;padding:3px}.tabs button{border:0;background:none;padding:8px 14px;border-radius:8px;font-weight:800;color:#36505a;cursor:pointer}.tabs button.on{background:#173c46;color:#fff}
+.who{display:flex;gap:6px}.who button{border:1px solid #cad9d9;background:#fff;border-radius:999px;padding:6px 12px;font-weight:750;font-size:13px;color:#36505a;cursor:pointer}.who button.on{background:#19745f;border-color:#19745f;color:#fff}
+.find{flex:1;min-width:160px;padding:9px 12px;border:1px solid #cad9d9;border-radius:10px;background:#fff}
+.pt h2{margin:0;font-size:17px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.pt .meta{font-size:13px;color:#4b6670;margin:4px 0}.pt .needs{margin:6px 0}.pt .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.st{border-radius:999px;padding:2px 9px;font-size:12px;font-weight:800;background:#e3f4ec;color:#19745f}.st.pending{background:#fff4dc;color:#8a5a00}.st.held{background:#efe6fb;color:#5b2e9a}.st.urgent{background:#c62828;color:#fff}.mine{color:#19745f;font-weight:750}
+#map{height:calc(100vh - 220px);min-height:360px;border-radius:14px;border:1px solid #dfe8e7}.nogps{display:inline-flex;align-items:center;gap:4px;color:#8a5a00;font-size:12px;font-weight:750}
+.empty{color:#4b6670;text-align:center;padding:30px 10px}
+</style></head><body>
+<header class="top"><a class="brand" href="/"><span class="logo">✚</span>Azuero Apoyo</a><nav class="appnav" id="appNav" hidden></nav></header>
+<main class="wrap">
+<section id="gate" hidden class="card"><h1>🧭 Scout</h1><p class="sub">Entra con tu código de acceso para ver los puntos que agregaste tú o tu equipo. Si no tienes cuenta, créala en «Login» del inicio.</p><a class="btn" href="/">Ir al inicio</a></section>
+<div id="app" hidden>
+<h1>🧭 Scout</h1><p class="sub" id="sub">Los puntos que agregaste tú o tu equipo. Toca uno para ver su ficha y toda su actividad.</p>
+<div class="bar"><div class="tabs" role="tablist"><button type="button" data-tab="list" class="on">☰ Lista</button><button type="button" data-tab="map">🗺️ Mapa</button></div><div class="who" id="who"></div><input class="find" id="find" type="search" placeholder="Buscar código, zona, lugar o necesidad" aria-label="Buscar"><a class="btn" href="/?agregar=1">+ Agregar punto</a></div>
+<div id="list"></div>
+<div id="mapBox" hidden><div id="map" aria-label="Mapa de mis puntos"></div><p class="sub" id="mapHint"></p></div>
+</div>
+</main>
+<script src="./leaflet.js"></script><script src="./pointform.js"></script><script src="./nav.js"></script><script>
+const $=s=>document.querySelector(s),clean=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fold=v=>String(v??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const ago=v=>{const ms=Date.now()-Date.parse(v);if(!v||isNaN(ms))return '';const m=Math.round(ms/6e4);return m<60?`hace ${Math.max(1,m)} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} d`};
+const noGpsIco='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-12.3-4.6"/><path d="M5.2 7.6A7 7 0 0 0 5 10c0 5.9 7 12 7 12"/><circle cx="12" cy="10" r="2.5"/><path d="M3 3l18 18"/></svg>';
+const autoCode=c=>/^P-[0-9a-f]{12}$/i.test(String(c||''));
+const STATUS={approved:['','Publicado'],pending:['pending','Por revisar'],held:['held','🔒 Solo tu equipo']};
+let points=[],who='all',tab='list',map=null,layer=null;
+const hasCoords=p=>Array.isArray(p.coords)&&p.coords.length===2;
+function shown(){const q=fold($('#find').value.trim());return points.filter(p=>(who==='all'||(who==='mine')===!!p.addedByMe)&&(!q||fold([p.code,p.area,p.place,p.needs,p.addedByMate].join(' ')).includes(q)))}
+function title(p){return clean(autoCode(p.code)?[p.area,p.place].filter(Boolean).join(' · ')||'Punto':`${p.code} · ${p.area||''}`)}
+function card(p){const [cls,label]=STATUS[p.pointStatus]||['',p.pointStatus];const held=p.pointStatus==='held'&&p.heldUntil?` hasta ${new Date(p.heldUntil).toLocaleTimeString('es-PA',{hour:'numeric',minute:'2-digit'})}`:'';
+return `<article class="card pt" data-id="${clean(p.id)}"><h2>${title(p)} <span class="st ${cls}">${clean(label+held)}</span>${p.highestUrgency==='urgente'?'<span class="st urgent">Urgente</span>':''}${hasCoords(p)?'':`<span class="nogps" title="Sin GPS">${noGpsIco} Sin GPS</span>`}</h2><div class="meta">${clean(p.place||'')}${p.people?` · ${clean(p.people)} personas`:''}</div><div class="needs">${p.needs?PointForm.needChipsHtml(p.needs):'<span class="meta">Sin necesidades reportadas</span>'}</div><div class="meta">${p.addedByMe?'<span class="mine">Lo agregaste tú</span>':`Agregado por <b>${clean(p.addedByMate||'tu equipo')}</b> (tu equipo)`} · ${clean(ago(p.created))}${p.lastCheckup?` · Última revisión ${clean(ago(p.lastCheckup))}`:''}</div><div class="acts">${p.pointStatus!=='pending'?`<a class="btn small" href="/camp.html?id=${encodeURIComponent(p.id)}">Ver ficha y actividad</a>`:''}${hasCoords(p)?`<button type="button" class="btn small ghost" data-onmap="${clean(p.id)}">📍 Ver en el mapa</button>`:''}</div></article>`}
+function draw(){const all=points.length,mine=points.filter(p=>p.addedByMe).length;$('#who').innerHTML=[['all',`Todos ${all}`],['mine',`Míos ${mine}`],['team',`Equipo ${all-mine}`]].map(([k,l])=>`<button type="button" data-who="${k}" class="${who===k?'on':''}">${l}</button>`).join('');const list=shown();
+$('#list').innerHTML=list.length?list.map(card).join(''):`<p class="empty">${all?'Ningún punto con esa búsqueda.':'Todavía no agregaste puntos. Toca «+ Agregar punto» para reportar uno.'}</p>`;if(tab==='map')drawMap(list)}
+function drawMap(list){if(typeof L==='undefined'){$('#mapHint').textContent='Mapa no disponible sin conexión. La lista sigue accesible.';return}if(!map){map=L.map('map').setView([7.46,-80.33],10);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);layer=L.layerGroup().addTo(map)}setTimeout(()=>map.invalidateSize(),30);layer.clearLayers();const withGps=list.filter(hasCoords);
+withGps.forEach(p=>{const m=L.circleMarker(p.coords,{radius:9,weight:2,color:'#fff',fillColor:p.addedByMe?'#ed7654':'#19745f',fillOpacity:1});m._pid=p.id;m.bindPopup(`<b>${title(p)}</b><br>${p.pointStatus!=='pending'?`<a href="/camp.html?id=${encodeURIComponent(p.id)}">Ver ficha y actividad</a>`:'Por revisar'}`).addTo(layer)});
+if(withGps.length)map.fitBounds(L.latLngBounds(withGps.map(p=>p.coords)).pad(.2),{maxZoom:14});const missing=list.length-withGps.length;$('#mapHint').textContent=`🟠 Tuyos · 🟢 De tu equipo${missing?` · ${missing} sin GPS: solo en la lista.`:''}`}
+function setTab(t){tab=t;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));$('#list').hidden=t!=='list';$('#mapBox').hidden=t!=='map';draw()}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-tab]');if(t)return setTab(t.dataset.tab);const w=e.target.closest('[data-who]');if(w){who=w.dataset.who;return draw()}const m=e.target.closest('[data-onmap]');if(m){setTab('map');const p=points.find(x=>x.id===m.dataset.onmap);if(p&&map){map.setView(p.coords,16);layer.eachLayer(l=>{if(l._pid===p.id)l.openPopup()})}}});
+$('#find').addEventListener('input',draw);
+async function load(){let r;try{r=await fetch('/api/full/scout',{credentials:'same-origin',cache:'no-store'})}catch{$('#list').innerHTML='<p class="empty">Sin conexión. Vuelve a intentarlo.</p>';$('#app').hidden=false;return}if(r.status===401){$('#gate').hidden=false;$('#app').hidden=true;return}points=await r.json().catch(()=>[]);$('#gate').hidden=true;$('#app').hidden=false;draw()}
+window.AppNav?.watchAccess('/api/full/me',null);
+load();
+</script></body></html>
