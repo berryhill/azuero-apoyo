@@ -1975,6 +1975,7 @@ test('Supply «+ Nuevo despacho»: 5 steps (destination new or existing, runner 
   assert.match(sup, /data-dsp="newrunner">＋ Runner nuevo/);
   assert.match(sup, /dsp\.step\+\+;dspDraw\(\);if\(dsp\.step===3&&!dsp\.items\.length\)dspOpenItems\(\);/, 'step 3 opens the packing list by itself');
   assert.match(sup, /dsp\.step>=3\?dsp\.items\.length>0:true/, 'no dispatch without packed items');
+  assert.match(sup, /function histCard[^\n]*🚚 Despachada \$\{clean\(agoEs\(n\.dispatchedAt\)\)\}/, 'history cards say when they were dispatched');
   assert.match(sup, /data-dsp="newzone">🗺️ Destino es el área general de/, 'generic destination: only the zone');
   assert.match(sup, /function dspDestPreview\(p\)\{[^]*?<div class="dsp-mini" id="dspMini"><\/div>[^]*?📍 Sin GPS/, 'picked destination: mini map or «sin GPS»');
   assert.match(sup, /function dspMiniMap\(\)\{dsp\.mini\?\.remove\(\);/);
