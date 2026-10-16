@@ -9,6 +9,10 @@ This manual is updated with every new feature or behavior change (see "Keeping t
 ## What's new
 
 **2026-10-15**
+- Home Resumen: no «Resumen» title or «Al …» timestamp above the figures (§14).
+- Home: «¡Ayuda!» is now «Reportar punto»; the header «Login» button is gone (sign in from «¡Empieza!»). Tabs on
+  every page share one design: Runners/Supply pills for views, Supply underlined tabs with icons above names on
+  phones for sections (§2, §14).
 - Manual checked against the change history, team-data guards, activity log and Scout: pages table, top bar, roles
   (no-role Scout, global agents), teams (trusted teammates) (§2, §3, §12).
 - Point page «🕓 Actividad del punto»: public activity log since the point was reported (who as a role only; full names
@@ -17,7 +21,7 @@ This manual is updated with every new feature or behavior change (see "Keeping t
   when; «🕓 Historial de cambios» on each point in admin and Command. Global agents (no team) and other teams can't
   overwrite a team's data: point edits are change requests too, and they can't delete/move others' photos, merge into
   or «Publicar ahora» another team's point (§6, §10).
-- Home: signed-out visitors see «🙌 ¿Quieres ayudar?» above the Resumen, with «Crear mi cuenta» and «Ya tengo código» (§14).
+- Home: signed-out visitors see «🙌 ¿Quieres ayudar?» above the Resumen (it can't be closed), with one «¡Empieza!» button that opens the sign-in window (§14).
 - Change requests: an agent outside the team of whoever last updated a need can't overwrite it; the change goes to
   that person as «📝 Cambios propuestos» (Runners, Command) to accept or reject. Applies to every Command need change,
   including «Checkup» and «Ya no necesita nada» (§3, §6, §7, §10).
@@ -96,7 +100,7 @@ Everything the community reports is *reported* data, not verified, and the app p
 
 | Page | Who | What it does |
 | --- | --- | --- |
-| `/` (home) | Public and everyone | Map and list of points, «📊 Resumen» figures (the first view on phones), «¡Ayuda!» to report a point, «Reportar necesidad» on a selected point, «Login». |
+| `/` (home) | Public and everyone | Map and list of points, «📊 Resumen» figures (the first view on phones), «Reportar punto» (signed in: «+ Agregar punto») to report a point, «Reportar necesidad» on a selected point; signed out, the «🙌 ¿Quieres ayudar?» card's «¡Empieza!» opens the sign-in window. |
 | `/signup.html` | Anyone (link to share) | Sign in with a code or create an account. When signed in, shows which pages the person can open. Also accepts team invites (`?invite=…`). |
 | `/camp.html?id=…` | Public | Public page of an approved point (no private data): need chips with their options, «Verificado por un equipo» badge, link to Google/Apple Maps, and **«🕓 Actividad del punto»** (§14). |
 | `/scout.html` («🧭 Scout») | Anyone signed in with a code (no role needed) | The points you or your team added, in a list and on a map (§14). Kept apart from the home page. |
@@ -113,6 +117,12 @@ don't fit, they shrink to icons and then collapse into one «current page ▾» 
 so the page action (＋ «Agregar punto»), 🔍 and the menu button always stay visible on the right. When signed in, the
 menu button shows the person's **initials** in a gold circle (e.g. «MS»; tooltip with the full name) instead of ☰. The
 menu shows the signed-in name and **roles**, «Copiar mi ID», «Salir» and text size (90 %–150 %).
+
+**Tabs look the same on every page.** View switchers («Lista / Mapa», «Lista / Mapa / Resumen» on the home page,
+«📍 Puntos / 📊 Overview» in Command on phones, «☰ Lista / 🗺️ Mapa» in Scout) are rounded buttons on a light grey bar;
+the open one is dark with a shadow. Section tabs (Runners, Supply, Constructores, admin Usuarios) are underlined: the
+open one has an orange line and its count in an orange pill; on phones each shows its icon above the name and the
+count below.
 
 ---
 
@@ -144,7 +154,7 @@ menu shows the signed-in name and **roles**, «Copiar mi ID», «Salir» and tex
 
 ## 4. Signing in and creating an account
 
-Every sign-in (home «Login», Runners, Constructores, Command, Supply, `signup.html`) shows two groups side by side,
+Every sign-in (the home «¡Empieza!» window, Runners, Constructores, Command, Supply, `signup.html`) shows two groups side by side,
 with no hidden fields:
 
 - **«Ya tengo código»** (I have a code): access code + «Recordar mi código de acceso» + «Entrar».
@@ -225,7 +235,7 @@ A need belongs to a point and says what is missing (item text: «Agua, Arroz, Ca
 | `COMPLETED` («Completada») | Delivered. |
 | `DELETED` | Removed (not shown). |
 
-- **Need checklist**: the same one everywhere a need is entered (home «¡Ayuda!» and «Reportar necesidad», Command,
+- **Need checklist**: the same one everywhere a need is entered (home «Reportar punto» and «Reportar necesidad», Command,
   admin point and need editors, runner follow-up after a run). Grouped as «Agua y comida», «Refugio y cuidado»,
   «Energía y comunicación», «Casa» and «¿Algo más?» (Otros), two per row. Checking a need that has options makes it
   full width and shows its options as buttons to tap (one or several):
@@ -587,14 +597,17 @@ Access: Donations role or admin.
 
 ## 14. Public summary (home)
 
-«📊 Resumen» is the home sidebar (on phones, the 📊 view, which is where the home page opens unless the link points to a
-specific point):
+«📊 Resumen» is the home sidebar (on phones, the «Resumen» view, which is where the home page opens unless the link
+points to a specific point). On phones the views are switched with «Lista / Mapa / Resumen» (icon and name; «Lista» only
+for Runners). There is no «Login» button in the header any more: signed out, the header has «Reportar punto» and ☰,
+and signing in starts from «¡Empieza!» below. The summary has no title or timestamp: it starts with the card (signed
+out), then the note «Cifras reunidas por voluntarios: úsalas como guía, no como datos oficiales.» and the figures.
 
-- **«🙌 ¿Quieres ayudar?»** (only when not signed in): a card at the top inviting visitors to sign up: «Crea tu cuenta
-  con tu nombre y teléfono. Te sumamos a un equipo y empiezas a ayudar…». **«Crear mi cuenta»** opens «Login» with the
-  cursor in «Crear cuenta nueva»; **«Ya tengo código»** opens it on the code field. New accounts appear to admin in
-  «📡 Registros en vivo» to be given a team and roles (§13). «×» hides the card for this visit; it disappears once
-  signed in.
+- **«🙌 ¿Quieres ayudar?»** (only when not signed in): a card at the top inviting visitors to join: «Crea tu cuenta
+  con tu nombre y teléfono. Te sumamos a un equipo y empiezas a ayudar: identifica y reporta necesidades, entrega
+  donaciones o ayuda a actualizar datos por teléfono.» One button, **«¡Empieza!»**, opens «Login», where they enter
+  their access code or create an account. New accounts appear to admin in «📡 Registros en vivo» to be given a team
+  and roles (§13). It can't be closed; it disappears once signed in.
 
 - **Reach**: people (children, babies, elderly), points (how many mapped), zones.
 - **Estimated consumption\***: liters of water per day (babies 0.75 L, children 1.5 L, adults 3 L, elderly 2.5 L, for

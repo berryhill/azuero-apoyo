@@ -367,11 +367,11 @@ test('point form: numbered 3 steps, persona fields ordered nombre, teléfono, ed
 });
 test('¡Ayuda! form has no intro and only confirms "Se ha enviado tu solicitud" after sending', () => {
   const modal = template.slice(template.indexOf('id="modal"'), template.indexOf('<form id="form">'));
-  assert.match(modal, /<h2 id="addTitle">¡Ayuda!<\/h2><button type="submit" form="form" class="addsave">Guardar<\/button><\/div><div class="addbody"><div class="notice sent"/);
-  assert.match(template, /id="addBtn">¡Ayuda!<\/button>/);
+  assert.match(modal, /<h2 id="addTitle">Reportar punto<\/h2><button type="submit" form="form" class="addsave">Guardar<\/button><\/div><div class="addbody"><div class="notice sent"/);
+  assert.match(template, /id="addBtn">Reportar punto<\/button>/);
   assert.doesNotMatch(template, /formIntro/);
   // Signed in with a code, the button reads «+ Agregar punto» like the admin and runner pages; otherwise «¡Ayuda!».
-  assert.match(template, /\$\('#addBtn'\)\.textContent=\$\('#addBtnBar'\)\.textContent=u\?'\+ Agregar punto':'¡Ayuda!';/);
+  assert.match(template, /\$\('#addBtn'\)\.textContent=\$\('#addBtnBar'\)\.textContent=u\?'\+ Agregar punto':'Reportar punto';/);
   assert.doesNotMatch(template, /Un administrador la revisará/);
   assert.match(modal, /<div class="notice sent" id="sentNotice" role="status" hidden><b id="sentTitle">Se ha enviado tu solicitud\.<\/b>/);
   assert.doesNotMatch(template, /Se envía a revisión/);
@@ -409,7 +409,7 @@ test('admin: no pending points means a plain Puntos por revisar box', () => {
   assert.match(els['#adminStats'].innerHTML, /^<button type="button" class="review  " data-view="pending" aria-pressed="false"><b>0<\/b><span>Por revisar<\/span>/);
 });
 test('¡Ayuda! window matches Runners: Cancelar · title · Guardar bar on top, full screen on a phone, both Guardar disable while sending', () => {
-  assert.match(template, /<div class="addhead"><button type="button" class="addcancel" id="cancelTop">Cancelar<\/button><h2 id="addTitle">¡Ayuda!<\/h2><button type="submit" form="form" class="addsave">Guardar<\/button><\/div>/);
+  assert.match(template, /<div class="addhead"><button type="button" class="addcancel" id="cancelTop">Cancelar<\/button><h2 id="addTitle">Reportar punto<\/h2><button type="submit" form="form" class="addsave">Guardar<\/button><\/div>/);
   assert.equal((template.slice(template.indexOf('<form id="form">'), template.indexOf('</form>', template.indexOf('<form id="form">'))).match(/type="submit">Guardar punto/g) || []).length, 1, 'one Guardar punto at the bottom; the top one is in the bar');
   assert.match(template, /const subs=\[\.\.\.document\.querySelectorAll\('#form \[type=submit\],\[form="form"\]\[type=submit\]'\)\];subs\.forEach\(x=>x\.disabled=true\)/, 'both disable while sending');
   assert.match(template, /@media\(max-width:760px\)\{#modal\.modalbg\{padding:0;align-items:stretch\}\.addmodal\{width:100%;max-height:none;border-radius:0\}/, 'full screen on a phone, like Runners');
@@ -1230,7 +1230,7 @@ test('share a point link: public ?punto= opens its detail, runner ?punto= focuse
 });
 test('narrow screens: ¡Ayuda! / + Agregar punto gets its own full-width row under the header', () => {
   assert.match(template, /function placeNav\(\)\{const nav=\$\('#appNav'\);if\(narrowNav\.matches\)\$\('\.addbar'\)\.prepend\(nav\);else \$\('\.top \.brand'\)\.after\(nav\)\}/, 'phone: page menu in the second row (hidden by the app bar); computer: next to the logo');
-  assert.match(template, /<\/header>\n?<div class="addbar"><button type="button" class="navbtn loginbtn" id="loginBtnBar">Login<\/button><button type="button" class="add" id="addBtnBar">¡Ayuda!<\/button><\/div><nav class="mobile-nav"/);
+  assert.match(template, /<\/header>\n?<div class="addbar"><button type="button" class="add" id="addBtnBar">Reportar punto<\/button><\/div><nav class="mobile-nav"/);
   assert.match(template, /\.addbar\{display:none\}/, 'desktop keeps it in the header');
   assert.match(template, /@media\(max-width:760px\)\{body\{overflow:hidden\}\.addbar\{display:flex;gap:8px;height:54px;[^}]*\}\.addbar \.add\{flex:1;[^}]*\}[^@]*\.topright #addBtn,\.topright #runnerNav,\.topright #loginBtn\{display:none\}/);
   assert.match(template, /\.app\{height:calc\(calc\(100dvh \/ var\(--text-zoom,1\)\) - 166px\);/, 'header 62 + add row 54 + tabs 50 (screen height divided by the text zoom)');
@@ -1307,7 +1307,7 @@ test('«Solo Nuestro Equipo»: code users can limit the public list/map and runn
   assert.match(runner, /if\(!localStorage\.getItem\('runnerCode'\)\)teamOnly=false;/);
 });
 test('public narrow view: 📊 tab holds the totals, Lista keeps only filters; tapping your name copies your user ID', () => {
-  assert.match(template, /<button type="button" data-view="map" title="Mapa" aria-label="Mapa"><svg[^]*?<\/button><button type="button" data-view="stats" title="Resumen" aria-label="Resumen"><svg[^]*?<\/button><\/nav>/, 'Lista, Mapa and Resumen as icons');
+  assert.match(template, /<button type="button" data-view="map"><svg[^]*?<span>Mapa<\/span><\/button><button type="button" data-view="stats"><svg[^]*?<span>Resumen<\/span><\/button><\/nav>/, 'Lista, Mapa and Resumen: icon and name, like Runners');
   assert.match(template, /<div class="sidehead"><button type="button" class="filtertoggle" id="filterToggle" aria-expanded="false" aria-controls="filterPanel" aria-label="Filtros">[^]*?<\/button><div class="filterpanel" id="filterPanel"><div class="stats pointstats">/, 'filters fold into one summary line; the list gets the space');
   assert.match(template, /\.filterpanel\{display:none;padding-top:12px\}\.filterpanel\.open,\.mobile-stats \.filterpanel\{display:block\}/, 'open on tap; always open in the stats view');
   assert.match(template, /<\/select><\/label><button type="button" class="filterdone" id="filterDone">Listo<\/button><\/div><p id="gpsMessage"/, 'messages stay visible outside the folded panel');
@@ -1651,7 +1651,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /if\(map&&hasCoords\(p\)\)\{if\(map\.getContainer\(\)\.offsetWidth\)map\.flyTo\(p\.coords/);
   assert.match(agent, /\.on\('click',\(\)=>\{if\(narrowCmd\.matches\)showCView\('points'\);focusPoint\(p\.id,true\)\}\)/, 'a pin scrolls to its row (switching to Puntos on a phone)');
   // Phone: no side column on the points view; «Overview» tab holds the map and monitors.
-  assert.match(agent, /<nav class="cmdtabs" aria-label="Vista"><button type="button" data-cview="points" aria-pressed="true">Puntos<\/button><button type="button" data-cview="overview" aria-pressed="false">Overview<\/button><\/nav>/);
+  assert.match(agent, /<nav class="cmdtabs" aria-label="Vista"><button type="button" data-cview="points" aria-pressed="true"><span aria-hidden="true">📍<\/span> Puntos<\/button><button type="button" data-cview="overview" aria-pressed="false"><span aria-hidden="true">📊<\/span> Overview<\/button><\/nav>/);
   assert.match(agent, /body:not\(\.cview-overview\) \.mapcorner\{display:none\}body\.cview-overview \.boardmain\{display:none\}/);
   // Phone: the need windows are full-screen with a fixed bar: «‹ Atrás» left, title, main action right.
   assert.match(agent, /<div class="dlghead"><button type="button" class="dlgback" data-act="cancel">‹ Atrás<\/button><div class="dlgtitle">[^`]*<\/div><button type="submit" class="dlgsave">\$\{n\?'Guardar':'Reportar'\}<\/button>/);
@@ -1901,7 +1901,7 @@ test('runner «Se necesita» filter: a plain select Todas / Solo mi equipo', () 
 
 test('phone header (nav.js, panels): logo · page name · «+» page action · ☰ menu with name + Salir, pages and text size', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
-  assert.match(nav, /bar\.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"><\/nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled><\/button>\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"[^`]*` : ''\}<button type="button" class="madd" id="mAdd" hidden><\/button>\$\{document\.getElementById\('loginBtn'\) \? '<button type="button" class="mlogin" id="mLogin">Login<\/button>' : ''\}<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">/, 'pages · 🔍 (public page) · action · ☰');
+  assert.match(nav, /bar\.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"><\/nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled><\/button>\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"[^`]*` : ''\}<button type="button" class="madd" id="mAdd" hidden><\/button><button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">/, 'pages · 🔍 (public page) · action · ☰');
   assert.match(nav, /if \(!top \|\| !document\.getElementById\('appNav'\) \|\| document\.getElementById\('mBar'\)\) return;/, 'panels and the public map share the same phone header');
   assert.match(nav, /if \(over\(\)\) bar\.classList\.add\('compact'\);\s*if \(over\(\)\) \{ bar\.classList\.remove\('compact'\); bar\.classList\.add\('tight'\); \}/, 'pages in the bar if they fit; icons only; then a dropdown');
   assert.match(nav, /const pick = bar\.classList\.contains\('tight'\) && links\.children\.length > 1;/, 'when they do not fit: «current page ▾» opens the list');
@@ -1943,11 +1943,12 @@ test('runner card icons: megaphone for who reported it, saluting figure for the 
   assert.doesNotMatch(runner, /ico\('coordinator'\)/, 'coordinator lines use the salute');
 });
 
-test('public page on a phone, signed out: ¡Ayuda! first, then Login, then ☰; no title or search', () => {
+test('public page on a phone, signed out: «Reportar punto» then ☰; no Login button (sign-in is the «¡Empieza!» card); no title or search', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
   assert.match(nav, /classList\.toggle\('public', !user\(\) && !!document\.getElementById\('loginBtn'\)\)/);
   assert.match(nav, /\.mbar\.public \.mlinks,\.mbar\.public \.mtitle,\.mbar\.public \.msearchbtn\{display:none!important\}\.mbar\.public \.madd\{order:-1\}/);
-  assert.match(nav, /if \(e\.target\.closest\('#mLogin'\)\) \{ showSheet\(false\); document\.getElementById\('loginBtn'\)\?\.click\(\); return; \}/);
+  assert.doesNotMatch(nav, /mLogin/);
+  assert.match(template, /id="loginBtn" hidden aria-hidden="true" tabindex="-1">Login<\/button>/, 'kept only as the hidden opener of the Login window');
 });
 
 test('header color system: orange only for help/add, teal confirms sign-in, ghost buttons for secondary header controls', () => {
@@ -2032,7 +2033,7 @@ test('runner without signal on a run: locked «Sin señal · Tu recorrido» scre
 
 test('builders: like Runners but for house repairs — tabs, progress %, what is missing, materials, before/progress/final photos', () => {
   const builder = readFileSync(new URL('./builder.html', import.meta.url), 'utf8');
-  assert.match(builder, /<nav class="maintabs" id="mainTabs"[^>]*><button[^>]*data-main="mine"[^>]*>🔨 Mis obras <b id="cntMine"><\/b><\/button><button[^>]*data-main="open"[^>]*>🚩 Obras <b id="cntOpen"><\/b><\/button><\/nav>/);
+  assert.match(builder, /<nav class="maintabs" id="mainTabs"[^>]*><button[^>]*data-main="mine"[^>]*><span aria-hidden="true">🔨<\/span> Mis obras <b id="cntMine"><\/b><\/button><button[^>]*data-main="open"[^>]*><span aria-hidden="true">🚩<\/span> Obras <b id="cntOpen"><\/b><\/button><\/nav>/);
   assert.match(builder, /<input type="range" class="prog" min="0" max="100" step="5" value="\$\{p\}" data-progress="\$\{id\}"/, 'progress slider');
   assert.match(builder, /<textarea class="scope" data-scope="\$\{id\}"/, 'what is still needed');
   assert.match(builder, /PointForm\.openPacking\(\{subtitle:'Materiales',items,save:/, 'materials with the packing-list picker');
@@ -2648,7 +2649,7 @@ test('«Nuestro equipo lo abastece»: team members can hold a new point from the
 });
 
 test('admin Usuarios: tabs Usuarios / Equipos, live refresh every 10 s, and «🆕 Recién registrados» to assign team and roles in one step', () => {
-  assert.match(admin, /<nav class="utabs" id="userTabs" role="tablist"[^>]*><button type="button" role="tab" data-utab="users" aria-selected="true">👤 Usuarios<\/button><button type="button" role="tab" data-utab="teams" aria-selected="false">👥 Equipos/);
+  assert.match(admin, /<nav class="utabs" id="userTabs" role="tablist"[^>]*><button type="button" role="tab" data-utab="users" aria-selected="true"><span aria-hidden="true">👤<\/span> Usuarios<\/button><button type="button" role="tab" data-utab="teams" aria-selected="false"><span aria-hidden="true">👥<\/span> Equipos/);
   assert.match(admin, /<span class="livetag" id="liveTag"[^>]*>● En vivo/);
   assert.match(admin, /\},10000\);/, 'refresh every 10 s');
   assert.match(admin, /const newcomers=\(\)=>\{const now=Date\.now\(\);return users\.filter\(u=>!u\.disabled&&now-Date\.parse\(u\.createdAt\|\|0\)<NEW_WINDOW\)/, 'everyone from the last 3 days, assigned or not');
@@ -2687,7 +2688,7 @@ test('admin Equipos: quick search by team name or by person (name, phone, ID) fi
 });
 
 test('admin «📡 Registros en vivo» tab (with its own filter) and «🔗 Invitar a un equipo»: one-use 24 h link only for that user ID', () => {
-  assert.match(admin, /<button type="button" role="tab" data-utab="live" aria-selected="false">📡 Registros en vivo <b class="livecount" id="liveTabCount" hidden><\/b><\/button>/);
+  assert.match(admin, /<button type="button" role="tab" data-utab="live" aria-selected="false"><span aria-hidden="true">📡<\/span> Registros en vivo <b class="livecount" id="liveTabCount" hidden><\/b><\/button>/);
   assert.match(admin, /#operations:not\(\.tab-live\) #newcomers\{display:none!important\}/, 'the sign-ups list is its own tab');
   assert.match(admin, /<input id="ncFind" type="search" value="\$\{clean\(ncQuery\)\}" placeholder="🔍 Filtrar: nombre, teléfono, código o equipo…"/);
   assert.match(admin, /nq\?all\.filter\(u=>fold\(u\.name\+' '\+\(u\.telephone\|\|''\)\+' '\+u\.id\+' '\+\(codeCache\.get\(u\.id\)\|\|''\)\+' '\+teamName\(u\.teamId\)\)\.includes\(nq\)\):all/);
@@ -2718,7 +2719,7 @@ test('admin team picker: under 9 teams, one tap button per team with its initial
 });
 
 test('admin «🔗 Invitaciones» tab: create invites there and monitor all of them (pending, used, expired, revoked) with «Anular»', () => {
-  assert.match(admin, /data-utab="invites" aria-selected="false">🔗 Invitaciones <small id="invTabCount"><\/small><\/button>/);
+  assert.match(admin, /data-utab="invites" aria-selected="false"><span aria-hidden="true">🔗<\/span> Invitaciones <small id="invTabCount"><\/small><\/button>/);
   assert.match(admin, /#operations:not\(\.tab-invites\) #inviteBox,#operations:not\(\.tab-invites\) #invitesPane\{display:none!important\}/);
   assert.match(admin, /invites=await adminRequest\('\/api\/admin\/invites'\)/);
   assert.match(admin, /const INV_STATES=\[\['pending','⏳ Pendientes'\],\['used','✓ Usadas'\],\['expired','⌛ Vencidas'\],\['revoked','✕ Anuladas'\],\['','Todas'\]\];/);
@@ -2775,12 +2776,15 @@ test('change requests: agents from another team send «Cambios propuestos» to w
   assert.match(cmd, /askedOwner\.kind==='punto'\?'este punto':'esta necesidad'/);
 });
 
-test('home: signed-out visitors see «🙌 ¿Quieres ayudar?» above the Resumen; «Crear mi cuenta» opens Login on the new-account form', () => {
-  assert.match(template, /box\.innerHTML=joinCard\(\)\+`<div class="sumhead">/);
-  assert.match(template, /hide=!!localStorage\.getItem\('codeUser'\)\|\|sessionStorage\.getItem\('joinHidden'\)==='1'/);
+test('home: signed-out visitors see «🙌 ¿Quieres ayudar?» above the Resumen; «¡Empieza!» opens Login', () => {
+  assert.match(template, /box\.innerHTML=joinCard\(\)\+`<p class="sumnote" role="note">/, 'no «Resumen» title or timestamp above the summary');
+  assert.doesNotMatch(template, /<h2>Resumen<\/h2>/);
+  assert.match(template, /hide=!!localStorage\.getItem\('codeUser'\)\}catch\{\}return hide/);
+  assert.doesNotMatch(template, /joinHidden|data-join="hide"/);
   assert.match(template, /<b>🙌 ¿Quieres ayudar\?<\/b>/);
-  assert.match(template, /data-join="new">Crear mi cuenta<\/button><button type="button" class="joinlink" data-join="code">Ya tengo código/);
-  assert.match(template, /openLogin\(\);setTimeout\(\(\)=>\$\(b\.dataset\.join==='new'\?'#loginForm \[name=name\]'/);
+  assert.match(template, /<div class="joinacts"><button type="button" class="add" data-join="start">¡Empieza!<\/button><\/div>/);
+  assert.match(template, /identifica y reporta necesidades, entrega donaciones o ayuda a actualizar datos por teléfono/);
+  assert.doesNotMatch(template, /Crear mi cuenta<\/button>|data-join="code"/);
 });
 
 test('«🕓 Historial de cambios» on a point in admin and Command; builders answer change requests too', () => {
@@ -2818,4 +2822,15 @@ test('camp page «🕓 Actividad del punto» (public log, teammates by name) and
   assert.match(nav, /\['\/scout\.html', '🧭', \(\) => 'Scout', u => !!u\]/);
   assert.match(go, /"\/camp\.html", "\/scout\.html",/);
   assert.match(docker, /camp\.html scout\.html /);
+});
+
+test('tabs look the same everywhere: view switchers as Runners/Supply pills, section tabs as Supply (icon above the name on phones)', () => {
+  const pill = /background:#e9f0f0;[^}]*\}[^]*?\.active\{background:#173c46;border-color:#173c46;color:#fff;box-shadow:0 2px 8px #17354240\}/;
+  for (const f of ['index.html', 'builder.html', 'runner.html', 'supplier.html']) assert.match(readFileSync(new URL('./' + f, import.meta.url), 'utf8'), pill, f);
+  assert.match(readFileSync(new URL('./command.html', import.meta.url), 'utf8'), /\.cmdtabs button\[aria-pressed=true\]\{background:#173c46;border-color:#173c46;color:#fff;box-shadow:0 2px 8px #17354240\}/);
+  assert.match(readFileSync(new URL('./scout.html', import.meta.url), 'utf8'), /\.tabs button\.on\{background:#173c46;border-color:#173c46;color:#fff;box-shadow:0 2px 8px #17354240\}/);
+  for (const f of ['runner.html', 'builder.html', 'supplier.html']) assert.match(readFileSync(new URL('./' + f, import.meta.url), 'utf8'), /@media\(max-width:760px\)\{#mainTabs button:not\(\.histtab\)\{display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1\.15\}/, f);
+  const admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
+  assert.match(admin, /\.utabs \[data-utab\]\[aria-selected="true"\] small:not\(:empty\)\{background:#ed7654;color:#fff\}/);
+  assert.match(admin, /@media\(max-width:760px\)\{\.utabs \[data-utab\]\{flex:1 1 0;display:flex;flex-direction:column/);
 });
