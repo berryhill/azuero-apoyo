@@ -100,6 +100,41 @@ func parsePacking(raw json.RawMessage) ([]packingInput, error) {
 	return out, nil
 }
 
+// readPacking: las líneas de una petición; con "replace": true son la lista completa como debe quedar (editar: quitar
+// artículos o cambiar cantidades), y puede venir vacía para quitarlos todos.
+func readPacking(f map[string]json.RawMessage) (lines []packingInput, replace bool, err error) {
+	if raw, ok := f["replace"]; ok && json.Unmarshal(raw, &replace) != nil {
+		return nil, false, userFieldError{"replace", "Valor inválido."}
+	}
+	if replace && (f["items"] == nil || strings.TrimSpace(string(f["items"])) == "[]") {
+		return nil, true, nil
+	}
+	lines, err = parsePacking(f["items"])
+	return lines, replace, err
+}
+
+// setPacking reemplaza la lista de empaque por lines (la lista completa); un artículo que ya estaba conserva quién y
+// cuándo lo agregó. Guarda en el catálogo los artículos nuevos.
+func setPacking(tx *bolt.Tx, n *CampNeed, lines []packingInput, byID, byName string) error {
+	old := map[string]PackingLine{}
+	for _, l := range n.Packing {
+		if _, seen := old[foldText(l.Item)]; !seen {
+			old[foldText(l.Item)] = l
+		}
+	}
+	n.Packing = nil
+	keep := []packingInput{}
+	for _, line := range lines {
+		if prev, ok := old[foldText(line.Item)]; ok {
+			prev.Item, prev.Quantity = line.Item, line.Quantity
+			n.Packing = append(n.Packing, prev)
+			continue
+		}
+		keep = append(keep, line)
+	}
+	return addPacking(tx, n, keep, byID, byName)
+}
+
 // addPacking suma las líneas a la lista de empaque de la necesidad y guarda en el catálogo los artículos nuevos.
 func addPacking(tx *bolt.Tx, n *CampNeed, lines []packingInput, byID, byName string) error {
 	catalog := tx.Bucket(packingBucket)
@@ -139,11 +174,11 @@ func (a *App) packingRoutes(mux *http.ServeMux, runners *crew) {
 		if !ok {
 			return
 		}
-		f, ok := decodeFields(w, r, map[string]int{"items": 0})
+		f, ok := decodeFields(w, r, map[string]int{"items": 0, "replace": 0})
 		if !ok {
 			return
 		}
-		lines, err := parsePacking(f["items"])
+		lines, replace, err := readPacking(f)
 		if userError(w, err) {
 			return
 		}
@@ -169,6 +204,9 @@ func (a *App) packingRoutes(mux *http.ServeMux, runners *crew) {
 			}
 			if !s.agent && n.SupplierID != "" && n.DispatchedAt != "" {
 				return errPackingDispatched
+			}
+			if replace {
+				return setPacking(tx, &n, lines, u.ID, u.Name)
 			}
 			return addPacking(tx, &n, lines, u.ID, u.Name)
 		})

@@ -107,7 +107,7 @@ func (a *App) agentSession(w http.ResponseWriter, r *http.Request) (User, runner
 		return User{}, runnerSession{}, false
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Header.Get("X-CSRF-Token") != s.csrf {
-		fail(w, 403, "CSRF token required")
+		fail(w, 403, errCSRF)
 		return User{}, runnerSession{}, false
 	}
 	a.touch(u.ID)

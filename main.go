@@ -626,7 +626,7 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	if r.Method == http.MethodPost && r.Header.Get("X-CSRF-Token") != s.csrf {
-		fail(w, 403, "CSRF token required")
+		fail(w, 403, errCSRF)
 		return false
 	}
 	return true
@@ -989,7 +989,7 @@ func (a *App) adminWrite(w http.ResponseWriter, r *http.Request) bool {
 		s := a.sessions[c.Value]
 		a.mu.Unlock()
 		if r.Header.Get("X-CSRF-Token") != s.csrf {
-			fail(w, 403, "CSRF token required")
+			fail(w, 403, errCSRF)
 			return false
 		}
 	}
@@ -2608,8 +2608,11 @@ type runnerNeed struct {
 	Cook        *supplierInfo `json:"cook,omitempty"`
 	Assessments []Assessment  `json:"assessments,omitempty"`
 	// assigned: la necesidad está asignada a quien consulta (puede armar su lista de empaque).
-	Assigned bool       `json:"assigned,omitempty"`
-	Camp     runnerCamp `json:"camp"`
+	Assigned bool `json:"assigned,omitempty"`
+	// «Mi equipo» (solo team managers): el run en camino es de otro runner del equipo; quién y su teléfono.
+	RunnerName  string     `json:"runnerName,omitempty"`
+	RunnerPhone string     `json:"runnerPhone,omitempty"`
+	Camp        runnerCamp `json:"camp"`
 	// «Verificado por equipo» de la necesidad (paneles con sesión).
 	VerifiedTeam string `json:"verifiedTeam,omitempty"`
 	VerifiedBy   string `json:"verifiedBy,omitempty"`
@@ -2682,7 +2685,7 @@ func (a *App) crewSession(c *crew, w http.ResponseWriter, r *http.Request) (runn
 		return runnerSession{}, false
 	}
 	if r.Method == http.MethodPost && r.Header.Get("X-CSRF-Token") != s.csrf {
-		fail(w, 403, "CSRF token required")
+		fail(w, 403, errCSRF)
 		return runnerSession{}, false
 	}
 	a.touch(s.runnerID)
@@ -3093,9 +3096,13 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 		if !ok {
 			return
 		}
-		mine, available := []runnerNeed{}, []runnerNeed{}
+		mine, available, teamRuns := []runnerNeed{}, []runnerNeed{}, []runnerNeed{}
+		manager := false
 		err := a.db.View(func(tx *bolt.Tx) error {
 			tv := newTeamView(tx, s.runnerID)
+			if u, ok := getUser(tx, s.runnerID); ok && !c.repair && !s.agent && u.has(roleTeamManager) && tv.team != "" {
+				manager = true
+			}
 			team, e := teamCamps(tv)
 			if e != nil {
 				return e
@@ -3165,6 +3172,13 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 					}
 				} else if who == s.runnerID && n.Status == "IN_PROGRESS" {
 					mine = append(mine, item)
+				} else if manager && n.Status == "IN_PROGRESS" && n.Kind != kindMealRun && managesRunner(tx, s.runnerID, who) {
+					// «Mi equipo»: los runs en camino de los demás runners del equipo, para seguirlos y completarlos por ellos.
+					if r, found := getUser(tx, who); found {
+						item.RunnerName, item.RunnerPhone = r.Name, r.Telephone
+					}
+					item.Media = n.Media
+					teamRuns = append(teamRuns, item)
 				} else if n.Status == "OPEN" && (who == "" || who == s.runnerID) && !serviceScheduled(n, time.Now()) {
 					available = append(available, item)
 				}
@@ -3198,7 +3212,12 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 		if len(mine) > 0 {
 			current = &mine[0]
 		}
-		response(w, 200, map[string]any{"current": current, "mine": mine, "available": available, "max": c.max})
+		sort.SliceStable(teamRuns, func(i, j int) bool { return teamRuns[i].EnRouteAt > teamRuns[j].EnRouteAt })
+		out := map[string]any{"current": current, "mine": mine, "available": available, "max": c.max}
+		if manager {
+			out["teamManager"], out["teamRuns"] = true, teamRuns
+		}
+		response(w, 200, out)
 	})
 	// change aplica una transición solo si la necesidad sigue en el estado esperado y es del tipo de este equipo.
 	change := func(w http.ResponseWriter, r *http.Request, apply func(tx *bolt.Tx, s runnerSession, n *CampNeed) error) {
@@ -3336,7 +3355,9 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 			if *c.assignee(n) == s.runnerID && n.Status == "COMPLETED" {
 				return nil
 			}
-			if *c.assignee(n) != s.runnerID || n.Status != "IN_PROGRESS" {
+			// Un team manager completa también el run de alguien de su equipo (p. ej. un runner agregado desde Supply que no
+			// puede entrar); queda anotado quién la cerró (UpdatedBy).
+			if *c.assignee(n) != s.runnerID && (c.repair || !managesRunner(tx, s.runnerID, *c.assignee(n))) || n.Status != "IN_PROGRESS" {
 				return c.notYours
 			}
 			n.Status, n.CompletedAt = "COMPLETED", nowStamp()

@@ -631,6 +631,9 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
           const b = await r.json().catch(() => null);
           if (!b) return;
           armed = true;
+          // La ficha CSRF vigente de esta sesión: si la cookie cambió (otra pestaña entró, o se volvió a entrar después de
+          // una actualización), la página toma la nueva antes de guardar y no falla con «CSRF token required».
+          if (b.csrf) dispatchEvent(new CustomEvent('appcsrf', {detail: b.csrf}));
           if (Array.isArray(b.panels)) { saveAccess(b); if (page && !b.panels.some(p => p.url === page)) leave(); }
           return;
         }
@@ -1009,13 +1012,14 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   }
   document.addEventListener('click', e => { if (e.target.closest('[data-how-open]')) { e.preventDefault(); showSheet(false); howItWorks(); } });
   // «¿Cómo funciona?» nunca se abre solo (ni la primera vez ni al salir): solo al tocar un botón [data-how-open].
-  // Aviso corto abajo, fuera del camino (snackbar): verde ✓ al terminar algo, rojo si falló, ámbar si falta un paso.
+  // Aviso corto arriba, fuera del camino (snackbar): verde ✓ al terminar algo, rojo si falló, ámbar si falta un paso.
+  // Arriba y no abajo: abajo tapaba los botones de los asistentes (Siguiente, Completar) y las barras del teléfono.
   // Se va solo (más tiempo si es un error) o al tocarlo; con una ventana abierta aparece encima de ella.
   function toast(text, kind = 'ok') {
     if (!document.getElementById('appToastCss')) {
       const st = document.createElement('style');
       st.id = 'appToastCss';
-      st.textContent = '.apptoast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translate(-50%,24px);z-index:5000;display:flex;align-items:flex-start;gap:10px;width:max-content;max-width:min(520px,calc(calc(100vw / var(--text-zoom,1)) - 24px));padding:12px 16px;border-radius:14px;color:#fff;font:700 14px/1.4 Inter,system-ui,sans-serif;box-shadow:0 12px 30px #10263a55;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;cursor:pointer}.apptoast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}.apptoast.ok{background:#19745f}.apptoast.err{background:#a83c1f}.apptoast.warn{background:#8a5a12}.apptoast i{font-style:normal;flex:none}';
+      st.textContent = '.apptoast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translate(-50%,-24px);z-index:5000;display:flex;align-items:flex-start;gap:10px;width:max-content;max-width:min(520px,calc(calc(100vw / var(--text-zoom,1)) - 24px));padding:12px 16px;border-radius:14px;color:#fff;font:700 14px/1.4 Inter,system-ui,sans-serif;box-shadow:0 12px 30px #10263a55;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;cursor:pointer}.apptoast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}.apptoast.ok{background:#19745f}.apptoast.err{background:#a83c1f}.apptoast.warn{background:#8a5a12}.apptoast i{font-style:normal;flex:none}';
       document.head.appendChild(st);
     }
     let t = document.getElementById('appToast');
@@ -1046,7 +1050,14 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     drawAll();
   }
 
-  window.AppNav = {consentText: CONSENT, myTeam: () => myTeam, howItWorks,swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess, toast, setPageTag};
+  // freshCsrf: pide la sesión de la página otra vez y devuelve su ficha CSRF ('' si ya no hay sesión). Las páginas la usan
+  // para repetir una sola vez lo que se iba a guardar cuando el servidor respondió «CSRF token required».
+  async function freshCsrf(url) {
+    try { const r = await fetch(url, {credentials: 'same-origin', cache: 'no-store'}); if (!r.ok) return ''; const b = await r.json(); return b.csrf || ''; } catch { return ''; }
+  }
+  const csrfFailed = (status, body) => status === 403 && /csrf/i.test(String(body?.error || ''));
+
+  window.AppNav = {consentText: CONSENT, myTeam: () => myTeam, howItWorks,swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess, toast, setPageTag, freshCsrf, csrfFailed};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
   mountSearch(); mountPageFind();
   if (langHome() && lang === 'en') window.I18n.set('en');

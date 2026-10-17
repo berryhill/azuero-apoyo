@@ -1885,7 +1885,7 @@ test('run link: «Enlace para runner» in the command center opens runner.html o
 
 test('runner: «Mi recorrido» (only your runs and their route) and «Se necesita» (what else is open, team filter inside)', () => {
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
-  assert.match(runner, /<nav class="maintabs" id="mainTabs" role="tablist" aria-label="Vista"><button type="button" role="tab" data-main="mine" aria-selected="false" title="Mis carreras en camino"><svg class="walkico"[^]*?<\/svg> Yo <b id="cntMine"><\/b><\/button><button type="button" role="tab" data-main="needs" aria-selected="false" title="Necesidades por llevar"><span aria-hidden="true">🚩<\/span> Runs <b id="cntNeeds"><\/b><\/button><button type="button" role="tab" data-main="req"[^>]*><span aria-hidden="true">📦<\/span> Pedidos <b id="cntReq"><\/b><\/button><button type="button" role="tab" data-main="fix"[^>]*>[^]*?<\/button><button type="button" role="tab" data-main="meals"[^>]*><span aria-hidden="true">🍲<\/span> Comidas <b id="cntMeals"><\/b><\/button><button type="button" role="tab" data-main="hist"[^>]*>[^]*?Historial<\/button><\/nav><div class="rsearch"><div class="tabfind"><input type="search" id="tabFind" data-keep autocomplete="off" aria-label="Buscar en esta pestaña"><\/div><button type="button" class="rteam" id="teamToggle"[^>]*><span aria-hidden="true">👥<\/span><\/button><\/div><div class="rfilter" id="teamFilter"><select id="teamSelect" class="rselect" aria-label="Filtro"><option value="0">Todas<\/option><option value="1">Solo mi equipo<\/option><\/select><\/div>/, 'the search with the «Solo mi equipo» toggle on one row (the drop menu stays hidden as its state)');
+  assert.match(runner, /<nav class="maintabs" id="mainTabs" role="tablist" aria-label="Vista"><button type="button" role="tab" data-main="mine" aria-selected="false" title="Mis carreras en camino"><svg class="walkico"[^]*?<\/svg> Yo <b id="cntMine"><\/b><\/button><button type="button" role="tab" data-main="needs" aria-selected="false" title="Necesidades por llevar"><span aria-hidden="true">🚩<\/span> Runs <b id="cntNeeds"><\/b><\/button><button type="button" role="tab" data-main="req"[^>]*><span aria-hidden="true">📦<\/span> Pedidos <b id="cntReq"><\/b><\/button><button type="button" role="tab" data-main="fix"[^>]*>[^]*?<\/button><button type="button" role="tab" data-main="meals"[^>]*><span aria-hidden="true">🍲<\/span> Comidas <b id="cntMeals"><\/b><\/button><button type="button" role="tab" data-main="hist"[^>]*>[^]*?Historial<\/button><\/nav><div class="rsearch"><div class="tabfind"><input type="search" id="tabFind" data-keep autocomplete="off" aria-label="Buscar en esta pestaña"><\/div><button type="button" class="rteam" id="teamToggle"[^>]*><span aria-hidden="true">👥<\/span><b class="tcount" id="teamCount"><\/b><\/button><\/div><div class="rfilter" id="teamFilter"><select id="teamSelect" class="rselect" aria-label="Filtro"><option value="0">Todas<\/option><option value="1">Solo mi equipo<\/option><\/select><\/div>/, 'the search with the «Solo mi equipo» toggle on one row (the drop menu stays hidden as its state)');
   const tabNow0 = new Function('mine', 'mainTab', 'requests', 'meals', `return (${runner.match(/const tabNow=(\(\)=>\{[^\n]*\});/)[1]})()`), tabNow = (mine, t) => tabNow0(mine, t, () => [1], [1]);
   assert.equal(tabNow([{id: 'a'}], ''), 'mine', 'opens on your route when you have one');
   assert.equal(tabNow([], ''), 'needs');
@@ -1933,7 +1933,7 @@ test('Command: home repairs show the builder\'s work (progress, what\'s missing,
 test('packing list window: the needs on top grey out as items cover them; grouped catalog; Cancelar goes back', () => {
   const pf = readFileSync(new URL('./pointform.js', import.meta.url), 'utf8');
   assert.match(pf, /function openPacking\(\{subtitle = '', items = \[\], save, need = '', packed = \[\]\}\)/);
-  assert.match(pf, /<span class="pfp-need\$\{done \? ' done' : ''\}">/);
+  assert.match(pf, /function packNeeds\(\) \{ pq\('\.pfp-needs'\)\.hidden = true; \}/, 'the needs are on the screen before; not repeated here');
   assert.match(pf, /const NEED_PACK = \{'Agua': \['Agua'\], 'Alimentos': \['Bolsas alimentación'\]/);
   assert.match(pf, /\['⛺ Refugio', \['Carpas \/ toldas', 'Lonas', 'Camping', 'Hamacas'/);
   assert.match(pf, /data-act="other">Cancelar<\/button>/, 'choosing a quantity: «Cancelar» goes back to the items');
@@ -2007,7 +2007,7 @@ test('Runners and Supply: header «Buscar» is a global search page over the cur
 test('Supply «+ Nuevo despacho»: 5 steps (destination new or existing, runner new or existing, packing, photos, review)', () => {
   const sup = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
   assert.match(sup, /<a class="add" href="#" id="newDispatch">\+ 📦 Nuevo despacho<\/a>/, 'header action (the «＋📦» on phones, not red)');
-  assert.match(sup, /const DSP_STEPS=\['Destino','Runner','Lista de empaque','Fotos de partida','Revisar'\];/);
+  assert.match(sup, /const DSP_STEPS=\['Destino','Runner','Lista de empaque','Fotos de partida','Revisar','Llegada'\];/);
   assert.match(sup, /data-dsp="newdest">＋ Crear punto nuevo/);
   assert.match(sup, /data-dsp="newrunner">＋ Runner nuevo/);
   assert.match(sup, /dsp\.step\+\+;dspDraw\(\);if\(dsp\.step===3&&!dsp\.items\.length\)dspOpenItems\(\);/, 'step 3 opens the packing list by itself');
@@ -2451,10 +2451,22 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   for (const api of ['/api/supplier/runs', '/api/supplier/packing-items', "/api/supplier/needs/'+encodeURIComponent(n.id)+'/packing", "/api/supplier/needs/'+encodeURIComponent(id)+'/media?stage=pickup", "/dispatch','POST',{undo:true}"]) assert.ok(page.includes(api), api);
   assert.doesNotMatch(page, /data-complete|data-take|data-release|\/api\/runner\//, 'no Completé, no taking or leaving runs, no runner endpoints');
   // Despachar asks with a review: runner, destination, the packing list one item per row with its quantity, and the photos.
-  assert.match(page, /if\(!await confirmDispatch\(n\)\)return;dis\.disabled=true;/, 'confirm before dispatching');
+  assert.match(page, /async function dispatchRun\(n,btn,sub\)\{if\(!await confirmDispatch\(n,sub\)\)return false;/, 'confirm before dispatching');
+  assert.match(page, /const dis=e\.target\.closest\('\[data-dispatch\]'\);if\(dis\)\{const n=findNeed\(dis\.dataset\.dispatch\);if\(!n\)return;dispatchRun\(n,dis\);return\}/);
+  // Necesidades «🚚 Despachar»: runner → review → what leaves (packing + photos) → dispatched, in one go (no second «Despachar»).
+  assert.match(page, /if\(run&&!await dispatchRun\(run,null,`Paso 3 de 3 · Lo que sale con \$\{name\}`\)\)flash\(/);
+  assert.match(page, /'Paso 2 de 3 · Revisa el runner y el destino':mode==='new'\?'Paso 1 de 3 · Runner nuevo':'Paso 1 de 3 · ¿Qué runner lo lleva\?'/, 'shows the step out of how many');
+  // Nuevo despacho: team managers get a 6th step to mark it arrived and document it like a runner.
+  assert.match(page, /const dspTotal=\(\)=>myRoles\.includes\('teammanager'\)\?6:5;/);
+  assert.match(page, /Paso \$\{n\} de \$\{dspTotal\(\)\}/);
+  assert.match(page, /'\/api\/supplier\/needs\/'\+encodeURIComponent\(res\.id\)\+'\/media\?stage=delivery'/);
+  assert.match(page, /api\('\/api\/supplier\/needs\/'\+encodeURIComponent\(res\.id\)\+'\/complete','POST',need\?\{need,urgency\}:\{\}\)/);
   assert.match(page, /<dialog id="dispatchDlg" class="confirmdlg sheetdlg dispatchdlg"[^>]*>[^]*?🚚 ¿Sale del acopio este run\?[^]*?<button class="btn plain" value="cancel">Cancelar<\/button><button class="btn" value="go">🚚 Sí, despachada<\/button>/);
   assert.match(page, /\$\('#dispatchBody'\)\.innerHTML=`<article class="scard split">\$\{needSection\(n\)\}<\/article><article class="scard split dispload">\$\{load\}<\/article><p class="disptitle">Para confirmar que es el run correcto<\/p><article class="scard split">\$\{destSection\(n,false,true\)\}\$\{runnerSection\(n\)\}<\/article>`/, 'Despachar: needs on top, then the required packing list and photos (edited there), then destination and runner');
-  assert.match(page, /\$\('#dispatchBody'\)\.onclick=e=>\{const pk=e\.target\.closest\('\[data-dpack\],\[data-pack\]'\);if\(pk\)\{openPacking/, 'packing list and photos are edited inside Despachar');
+  assert.match(page, /\$\('#dispatchBody'\)\.onclick=e=>\{const n=findNeed\(dispId\),q=e\.target\.closest\('\[data-pq\]'\),rm=e\.target\.closest\('\[data-prm\]'\);[^\n]*const pk=e\.target\.closest\('\[data-dpack\],\[data-pack\]'\);if\(pk\)\{openPacking/, 'packing list and photos are edited inside Despachar');
+  // Edit the list right there: − / + quantity and ✕ remove (saved as the full list, replace), then «＋ Agregar artículos».
+  assert.match(page, /api\('\/api\/supplier\/needs\/'\+encodeURIComponent\(n\.id\)\+'\/packing','POST',\{items:list\.filter\(l=>l\.quantity>0\),replace:true\}\)/);
+  assert.match(page, /<button type="button" class="prm" data-prm="\$\{i\}" aria-label="Quitar \$\{clean\(l\.item\)\}">✕<\/button>/);
   assert.match(page, /go\.disabled=!lines\.length\}/, 'no dispatch without a packing list');
   assert.match(page, /@media\(max-width:760px\)\{\.sheetdlg\{width:calc\(100vw[^\n]*\.sheetdlg \.confirmactions\{/, 'full screen on phones with the buttons in view');
   assert.match(page, /\$\('#assignWhat'\)\.innerHTML=`<article class="scard split whatcard">\$\{needSection\(assignNeed\)\}/, 'Despachar shows the need as a card, not a line of text');
@@ -2466,7 +2478,7 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   assert.match(page, /La tomó \$\{clean\(agoEs\(n\.enRouteAt\)\)\}/);
   assert.match(page, /data-runnerlive="\$\{clean\(n\.id\)\}">📍 Ver runner en el mapa<\/button>/, 'live position on the map when shared');
   assert.match(page, /secHead\('h-dest','📍','Destino'[^\n]*\$\{needDetails\(\{\.\.\.n,packing:null,noWhat:split\},true,false\)\}\$\{addedByLine\(n\)\}<\/section>`\}/, 'point, contacts and needs (no packing here), see on map');
-  assert.match(page, /secHead\('h-load','📦','Sale de este acopio'[^\n]*PointForm\.packingHtml\(lines\)[^\n]*\$\{photos\.length\?mediaStrip\(n\):''\}/, 'packing and departure photos together (inside Despachar)');
+  assert.match(page, /secHead\('h-load','📦','Sale de este acopio'[^\n]*<ul class="pedit">\$\{PointForm\.packingTotals\(lines\)[^\n]*\$\{photos\.length\?mediaStrip\(n\):''\}/, 'packing and departure photos together (inside Despachar)');
   assert.match(admin, /<input type="checkbox" name="roles" value="supplier"> 📦 Supply<\/label>/);
   assert.match(admin, /n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada · en camino'/);
   assert.match(nav, /\['\/supplier\.html', '📦', \(\) => 'Supply', u => has\(u, 'supplier'\)\]/);
@@ -2673,7 +2685,7 @@ test('Runners: header «Buscar» like the home page (🔍 pop-up on phones) filt
   assert.match(runner, /foldNeed\(\[c\.code,c\.area,c\.place,c\.coordinator,n\.need,x\.center,x\.name,n\.runnerName,/, 'code, zone, place, need, coordinator, supply center, runner');
   assert.match(runner, /el\.hidden=!hits\.some\(n=>n\.id===el\.dataset\.run\)/, '«Yo» hides non-matching runs without renumbering stops');
   assert.match(runner, /\$\('#tabFind'\)\.addEventListener\('input',render\);/);
-  assert.equal((runner.match(/searchQ\(\)\?noHits\(\)/g) || []).length, 3, '«Nada coincide» on Runs, Pedidos and agent lists');
+  assert.equal((runner.match(/searchQ\(\)\?noHits\(\)/g) || []).length, 4, '«Nada coincide» on Runs, Pedidos, agent lists and the team\'s runs');
 });
 
 test('needs with a brand: «Tarjeta de datos prepago» (Tigo / +Móvil) and «Gas de cocina» (Tropigas / Panagas), pick or type another', () => {
@@ -3449,6 +3461,7 @@ test('«¿Cómo funciona?»: one illustrated 1-2-3 window (Scouts → Runners �
   assert.match(nav, /window\.AppNav = \{consentText: CONSENT, myTeam: \(\) => myTeam, howItWorks,/, 'any page can open it');
   // Notices are a snackbar at the bottom: green when done, red when it failed, amber when a step is missing (not red text in the page).
   assert.match(nav, /function toast\(text, kind = 'ok'\)/);
+  assert.match(nav, /\.apptoast\{position:fixed;left:50%;top:calc\(12px \+ env\(safe-area-inset-top\)\)/, 'at the top: never over the wizard buttons');
   assert.match(nav, /\.apptoast\.ok\{background:#19745f\}\.apptoast\.err\{background:#a83c1f\}/);
   for (const page of [read('supplier.html'), read('runner.html')]) assert.match(page, /function flash\(text,kind\)\{kind=kind\|\|\(\/\^No se pudo\/\.test\(String\(text\)\)\?'err':'ok'\);if\(window\.AppNav\?\.toast\)AppNav\.toast\(text,kind\)/);
 });
@@ -3864,4 +3877,30 @@ test('menu: app version at the bottom (discreet), offers to load a newer one; «
   assert.match(nav, /!e\.target\.closest\('\.appnav-toggle,dialog'\)/, 'clicks inside the credential do not close the menu');
   assert.match(readFileSync(new URL('./Dockerfile', import.meta.url), 'utf8'), /COPY \*\.go VERSION \.\//, 'VERSION is embedded in the image');
   assert.match(readFileSync(new URL('./scripts/bump-version.sh', import.meta.url), 'utf8'), /appVersion: \\"\$new\\"/, 'bump keeps the chart in sync');
+});
+
+test('Runners «Yo» with 👥 (team managers only): the team\'s runs en camino, completed for the runner with the same photo flow', () => {
+  const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
+  assert.match(runner, /teamRuns=data\.teamRuns\|\|\[\];teamMgr=!!data\.teamManager;/);
+  assert.match(runner, /\$\('#teamToggle'\)\.hidden=tab==='mine'&&!teamMgr;/, 'runners without team management do not see 👥 in «Yo»');
+  assert.match(runner, /if\(tab==='mine'&&teamMgr&&teamOnly\)\{const hits=teamRuns\.filter\(matches\);/);
+  assert.match(runner, /<button class="btn done" type="button" data-complete="\$\{id\}">✓ Completar entrega por \$\{who\}<\/button>/, 'same «Completar» flow (photos, new needs)');
+  assert.match(runner, /const findNeed=id=>\[\.\.\.mine,followup,\.\.\.available,\.\.\.teamRuns\]/);
+});
+
+test('a stale CSRF token never loses what was typed: pages take the fresh one from the access check and retry a refused save once', () => {
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  assert.match(nav, /if \(b\.csrf\) dispatchEvent\(new CustomEvent\('appcsrf', \{detail: b\.csrf\}\)\);/);
+  assert.match(nav, /const csrfFailed = \(status, body\) => status === 403 && \/csrf\/i\.test/);
+  for (const [page, url] of [['supplier.html', '/api/supplier/session'], ['runner.html', '/api/runner/session'], ['builder.html', '/api/builder/session'], ['cook.html', '/api/cook/session']]) {
+    const src = readFileSync(new URL('./' + page, import.meta.url), 'utf8');
+    assert.match(src, /addEventListener\('appcsrf',e=>\{if\(e\.detail&&csrf\)csrf=e\.detail\}\);/, page);
+    assert.ok(src.includes(`const t=await AppNav.freshCsrf('${url}');if(t){csrf=t;return api(`), page + ' retries once with the fresh token');
+  }
+});
+
+test('packing picker: typing something not in the catalog shows a short tip and «Agregar … como artículo nuevo» at the top', () => {
+  const pf = readFileSync(new URL('./pointform.js', import.meta.url), 'utf8');
+  assert.match(pf, /<div class="pfp-pick"><p class="pfp-tip" role="note">💡 Busca en la lista o escribe cualquier artículo que no esté: lo agregas tal cual\.<\/p><label for="pfPackSearch">Artículo<\/label>/, 'above the search box, before typing');
+  assert.match(pf, /pq\('\.pfp-options'\)\.innerHTML = custom \+ html/, 'above the matches');
 });

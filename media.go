@@ -412,10 +412,10 @@ func (a *App) mediaRoutes(mux *http.ServeMux, runners *crew) {
 	mux.HandleFunc("GET /api/media/status", func(w http.ResponseWriter, r *http.Request) {
 		response(w, 200, map[string]bool{"enabled": a.mediaOn})
 	})
-	// Corredor: documenta sus propias carreras (en ruta o ya completadas).
+	// Corredor: documenta sus propias carreras (en ruta o ya completadas); un team manager, también las de su equipo.
 	runnerOwns := func(s runnerSession) func(tx *bolt.Tx, n CampNeed) error {
 		return func(tx *bolt.Tx, n CampNeed) error {
-			if s.agent || n.RunnerID != s.runnerID || isRepair(n) || n.Status != "IN_PROGRESS" && n.Status != "COMPLETED" {
+			if s.agent || n.RunnerID != s.runnerID && !managesRunner(tx, s.runnerID, n.RunnerID) || isRepair(n) || n.Status != "IN_PROGRESS" && n.Status != "COMPLETED" {
 				return errMissing
 			}
 			return nil

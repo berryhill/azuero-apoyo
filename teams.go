@@ -73,6 +73,20 @@ func migrateTeams(tx *bolt.Tx) error {
 	return nil
 }
 
+// managesRunner: managerID es team manager de un equipo y runnerID es de ese mismo equipo (también alguien agregado
+// desde Supply al despacharle, que quizá no tiene código para entrar). Así el team manager completa runs por su equipo.
+func managesRunner(tx *bolt.Tx, managerID, runnerID string) bool {
+	if managerID == "" || runnerID == "" || managerID == runnerID {
+		return false
+	}
+	m, ok := getUser(tx, managerID)
+	if !ok || m.Disabled || !m.has(roleTeamManager) || teamOf(tx, managerID) == "" {
+		return false
+	}
+	r, ok := getUser(tx, runnerID)
+	return ok && !r.Disabled && r.TeamID == m.TeamID
+}
+
 // teamOf: el equipo de un usuario activo con código; vacío si no tiene (o el equipo ya no existe).
 func teamOf(tx *bolt.Tx, id string) string {
 	u, ok := getUser(tx, id)

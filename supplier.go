@@ -274,7 +274,7 @@ func (a *App) supplierSession(w http.ResponseWriter, r *http.Request) (User, run
 		return User{}, runnerSession{}, false
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Header.Get("X-CSRF-Token") != s.csrf {
-		fail(w, 403, "CSRF token required")
+		fail(w, 403, errCSRF)
 		return User{}, runnerSession{}, false
 	}
 	a.touch(u.ID)
@@ -379,6 +379,9 @@ func openOffersFor(tx *bolt.Tx, n CampNeed) []supplyOffer {
 var errRequestedElsewhere = errors.New("Otro acopio ya pidió un runner para esta necesidad.")
 var errNotOpen = errors.New("Esta necesidad ya no está abierta: otro runner la tomó o cambió de estado.")
 var errRunnerBusy = errors.New("Ese runner ya lleva 10 runs en camino.")
+
+// errSupplyPackingLocked: la lista de empaque se edita (quitar, cambiar cantidades) solo antes de despachar.
+var errSupplyPackingLocked = errors.New("Esta carga ya salió del acopio: toca «Deshacer» para editar la lista, o el runner pide el cambio.")
 
 func (a *App) supplierRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/supplier/session", func(w http.ResponseWriter, r *http.Request) {
@@ -1056,11 +1059,11 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if !ok {
 			return
 		}
-		f, ok := decodeFields(w, r, map[string]int{"items": 0})
+		f, ok := decodeFields(w, r, map[string]int{"items": 0, "replace": 0})
 		if !ok {
 			return
 		}
-		lines, err := parsePacking(f["items"])
+		lines, replace, err := readPacking(f)
 		if userError(w, err) {
 			return
 		}
@@ -1076,9 +1079,16 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			if !a.campExists(tx, n.CampID) || !centerOwns(tx, n, u.ID) {
 				return errNotARun
 			}
+			if replace {
+				// Editar (quitar o cambiar cantidades) solo antes de que salga: ya despachada, el runner pide el cambio.
+				if n.DispatchedAt != "" {
+					return errSupplyPackingLocked
+				}
+				return setPacking(tx, &n, lines, u.ID, u.Name)
+			}
 			return addPacking(tx, &n, lines, u.ID, u.Name)
 		})
-		if errors.Is(err, errNotARun) {
+		if errors.Is(err, errNotARun) || errors.Is(err, errSupplyPackingLocked) {
 			fail(w, 409, err.Error())
 			return
 		}

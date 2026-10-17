@@ -12,6 +12,10 @@ import (
 //go:embed VERSION
 var versionFile string
 
+// errCSRF: la ficha CSRF no coincide (otra pestaña volvió a entrar, o la sesión se renovó después de una actualización).
+// Las páginas toman la nueva y repiten lo que iban a guardar una vez (nav.js freshCsrf); si aun así llega, se ve esto.
+const errCSRF = "Tu sesión se renovó (ficha CSRF): vuelve a tocar el botón; lo que llenaste sigue aquí. Si sigue pasando, recarga la página."
+
 func appVersion() string { return strings.TrimSpace(versionFile) }
 
 // withVersion: cada respuesta de /api/ lleva X-App-Version, así las páginas ven que hay versión nueva con las consultas
