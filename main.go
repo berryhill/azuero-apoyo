@@ -2609,6 +2609,9 @@ type runnerNeed struct {
 	Assessments []Assessment  `json:"assessments,omitempty"`
 	// assigned: la necesidad está asignada a quien consulta (puede armar su lista de empaque).
 	Assigned bool `json:"assigned,omitempty"`
+	// «Agregado por» (solo para quien es de un equipo, en sus runs y los de su equipo): quién agregó la necesidad o el punto.
+	AddedByName  string `json:"addedByName,omitempty"`
+	AddedByPhone string `json:"addedByPhone,omitempty"`
 	// «Mi equipo» (solo team managers): el run en camino es de otro runner del equipo; quién y su teléfono.
 	RunnerName  string     `json:"runnerName,omitempty"`
 	RunnerPhone string     `json:"runnerPhone,omitempty"`
@@ -3107,13 +3110,32 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 			if e != nil {
 				return e
 			}
-			camps := map[string]runnerCamp{}
+			camps, adders, creators := map[string]runnerCamp{}, map[string]string{}, map[string]map[string]string{}
+			// «Agregado por» como en Supply: según el rastro quién agregó la necesidad, o si no consta, quién agregó el punto.
+			addedBy := func(item *runnerNeed, n CampNeed) {
+				if tv.team == "" {
+					return
+				}
+				if creators[n.CampID] == nil {
+					creators[n.CampID] = creatorsIn(tx, n.CampID)
+				}
+				by := n.CreatedBy
+				for _, alt := range []string{creators[n.CampID][n.ID], adders[n.CampID], creators[n.CampID][n.CampID]} {
+					if by == "" {
+						by = alt
+					}
+				}
+				if u, found := getUser(tx, by); found {
+					item.AddedByName, item.AddedByPhone = u.Name, u.Telephone
+				}
+			}
 			guard := newRunnerPhoneGuard(tx, tv)
 			if e := tx.Bucket(submissions).ForEach(func(_, v []byte) error {
 				var p Point
 				if e := json.Unmarshal(v, &p); e != nil {
 					return e
 				}
+				adders[p.ID] = p.AddedBy
 				// Retenido para otro equipo: sus runners todavía no lo ven.
 				if p.Status == "approved" && !heldFrom(p, tv.team) {
 					contacts := guard.runnerContacts(campContacts(p))
@@ -3171,6 +3193,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 						available = append(available, item)
 					}
 				} else if who == s.runnerID && n.Status == "IN_PROGRESS" {
+					addedBy(&item, n)
 					mine = append(mine, item)
 				} else if manager && n.Status == "IN_PROGRESS" && n.Kind != kindMealRun && managesRunner(tx, s.runnerID, who) {
 					// «Mi equipo»: los runs en camino de los demás runners del equipo, para seguirlos y completarlos por ellos.
@@ -3178,6 +3201,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 						item.RunnerName, item.RunnerPhone = r.Name, r.Telephone
 					}
 					item.Media = n.Media
+					addedBy(&item, n)
 					teamRuns = append(teamRuns, item)
 				} else if n.Status == "OPEN" && (who == "" || who == s.runnerID) && !serviceScheduled(n, time.Now()) {
 					available = append(available, item)

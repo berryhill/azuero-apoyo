@@ -3904,3 +3904,11 @@ test('packing picker: typing something not in the catalog shows a short tip and 
   assert.match(pf, /<div class="pfp-pick"><p class="pfp-tip" role="note">💡 Busca en la lista o escribe cualquier artículo que no esté: lo agregas tal cual\.<\/p><label for="pfPackSearch">Artículo<\/label>/, 'above the search box, before typing');
   assert.match(pf, /pq\('\.pfp-options'\)\.innerHTML = custom \+ html/, 'above the matches');
 });
+
+test('«Completar entrega» shows the destination like the cards (area, people, directions, contacts, reporter, who added it), not just a pin line', () => {
+  const pf = readFileSync(new URL('./pointform.js', import.meta.url), 'utf8'), runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8'), sup = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
+  assert.match(pf, /\$\{o\.placeHtml \? `<div class="pfcw-dest">\$\{o\.placeHtml\}<\/div>` : `<p class="where">/);
+  assert.match(runner, /const doneDest=n=>`<b class="cwdest-h">📍 Destino<\/b><div class="cwdest-t">\$\{needTitle\(n\)\}<\/div>\$\{needDetails\(n,true,false\)\}\$\{addedByLine\(n\)\}`;/);
+  assert.match(runner, /placeHtml:doneDest\(n\),mediaOn,/);
+  assert.match(sup, /placeHtml:`<div class="scard split">\$\{destSection\(n,false,true\)\}<\/div>`,/);
+});

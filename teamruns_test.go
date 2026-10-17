@@ -52,7 +52,7 @@ func TestTeamManagerCompletesTeamRuns(t *testing.T) {
 	}
 	// The team manager sees it under «teamRuns» with the runner's name; a plain runner and another team's manager do not.
 	lc := s.runnerCodeLogin("LIDER77")
-	if body := lc.call("GET", "/api/runner/needs", "").Body.String(); !strings.Contains(body, `"teamManager":true`) || !strings.Contains(body, `"runnerName":"Pucha"`) || !strings.Contains(body, res.ID) {
+	if body := lc.call("GET", "/api/runner/needs", "").Body.String(); !strings.Contains(body, `"teamManager":true`) || !strings.Contains(body, `"runnerName":"Pucha"`) || !strings.Contains(body, `"addedByName":"Julie Acopio"`) || !strings.Contains(body, res.ID) {
 		t.Fatalf("team manager sees the team's runs: %s", body)
 	}
 	rc := s.runnerCodeLogin("RUI777")
