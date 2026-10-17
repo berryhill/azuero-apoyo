@@ -85,7 +85,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 .msheet{position:absolute;top:100%;left:0;right:0;z-index:3000;background:#10263a;padding:6px 14px 16px;box-shadow:0 16px 34px #0008;border-radius:0 0 16px 16px;font-family:Inter,system-ui,sans-serif}.msheet:not([hidden]){display:block}
 .msuser{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid #ffffff1f;color:#fff}.msuser b{flex:1;min-width:0;font-size:15px;overflow-wrap:anywhere}.msuser button{border:1px solid #ffffff40;background:none;color:#ffd0c2;border-radius:9px;padding:8px 12px;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}
 .msroles{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.msrole{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:#ffffff1f;color:#d7e6ea}.mpages{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid #ffffff1f}.mpages a{display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:10px;color:#e3ecef;text-decoration:none;font-size:15px;font-weight:750}.mpages a[aria-current="page"]{background:#fff;color:#10263a}.mpages a:active{background:#ffffff26}
-.msize{display:flex;align-items:center;gap:8px;padding:12px 4px 2px;color:#c8d6db;font-size:14px;font-weight:700}.msize .lbl{flex:1}.msize button{width:44px;height:38px;border:1px solid #47657a;border-radius:9px;background:none;color:#fff;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.msize button:disabled{opacity:.4}.msize output{min-width:46px;text-align:center;color:#fff}}
+.msize{display:flex;align-items:center;gap:8px;padding:12px 4px 2px;color:#c8d6db;font-size:14px;font-weight:700}.msize .lbl{flex:1}.mhowrow{display:flex;align-items:center;gap:10px;margin:6px 0;border-bottom:1px solid #ffffff1f}.mhowrow .mhow{flex:1;margin:0;border-bottom:0}.mver{flex:none;color:#7f99a3;font:600 11px Inter,system-ui,sans-serif;letter-spacing:.02em}.mvernew{display:block;width:100%;margin:10px 0 0;padding:6px 4px 2px;border:0;background:none;text-align:left;color:#ffd166;font:800 12px Inter,system-ui,sans-serif;cursor:pointer}.mvernew small{display:block;font-weight:600;color:#9fb3ba}.msize button{width:44px;height:38px;border:1px solid #47657a;border-radius:9px;background:none;color:#fff;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.msize button:disabled{opacity:.4}.msize output{min-width:46px;text-align:center;color:#fff}}
 .gate:has(form[data-signin]){overflow-y:auto;place-items:start center}.gate form[data-signin]{margin:auto 0}.accesstoast{position:fixed;z-index:4000;left:50%;top:76px;transform:translateX(-50%);width:min(440px,calc(calc(100vw / var(--text-zoom,1)) - 24px));padding:12px 16px;border-radius:12px;background:#10263a;color:#fff;font:700 14px Inter,system-ui,sans-serif;box-shadow:0 8px 24px #0006;text-align:center}.sg{border:1px solid #dbe5e5;border-radius:12px;margin:12px 0 0;padding:4px 14px 14px;min-width:0}.sg legend{padding:0 6px;font:800 14px Inter,system-ui,sans-serif;color:#173c46}.sg label{display:block}.sg .sgbtn{display:block;width:100%;margin-top:12px;border:0;border-radius:10px;padding:12px 16px;font:800 15px Inter,system-ui,sans-serif;cursor:pointer;color:#fff;background:#19745f}.sg-new .sgbtn{background:#ed7654}.sg small{font-weight:600;color:#7a8d94}.sgor{margin:10px 0 0;text-align:center;font-size:12px;font-weight:700;color:#8a9aa0}.remember{display:flex!important;align-items:center;gap:8px;margin:10px 0 2px;font-size:13px;font-weight:650;color:#36505a;cursor:pointer}.remember[hidden]{display:none!important}.remember input{width:20px;height:20px;margin:0;accent-color:#19745f;flex:none}
 .appconfirm .acts{display:flex;gap:10px;margin-top:18px}.appconfirm button{flex:1;border:0;border-radius:10px;padding:13px 16px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}.appconfirm .no{background:#eef3f3;color:#173c46}.appconfirm .yes{background:#9a4536;color:#fff}.appchoose .acts{flex-direction:column}.appconfirm .yes.ok{background:#19745f}.appconfirm .yes.go{background:#1f63c6}`;
   const style = document.createElement('style');
@@ -463,6 +463,19 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     d.showModal();
     try { d.requestFullscreen?.().catch(() => {}); } catch {}
   }
+  // Versión de la app (VERSION en el servidor): abajo del menú, discreta. La de esta página se pregunta una vez al abrirla
+  // (/api/version); después no hay consultas extra: la revisión de acceso (cada 45 s) trae X-App-Version y, si el servidor
+  // ya tiene otra, el menú ofrece cargarla.
+  const ver = {loaded: '', latest: ''};
+  function noteVersion(v) {
+    v = String(v || '');
+    if (!v) return;
+    if (!ver.loaded) ver.loaded = v;
+    if (v !== ver.latest) { ver.latest = v; const sh = document.getElementById('mSheet'); if (sh && !sh.hidden) showSheet(true); }
+  }
+  fetch('/api/version', {cache: 'no-store'}).then(r => r.ok ? r.json() : {}).then(b => noteVersion(b.version)).catch(() => {});
+  // El número va a la derecha de «¿Cómo funciona?»; con una versión nueva, debajo se ofrece cargarla.
+  const verRow = () => ver.loaded && ver.latest && ver.latest !== ver.loaded ? `<button type="button" class="mvernew" data-m="reload">↻ Hay una versión nueva (${esc(ver.latest)}): toca para cargarla <small>tienes ${esc(ver.loaded)}</small></button>` : '';
   function showSheet(open) {
     const sheet = document.getElementById('mSheet'), btn = document.getElementById('mMenu');
     if (!sheet) return;
@@ -476,7 +489,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       const roleNames = {scout: 'Scout', runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', cook: 'Cocina', reports: 'Boletín', teammanager: 'Team manager', admin: 'Admin'};
       const roleChips = signedIn && u?.roles?.length ? `<span class="msroles">${u.roles.map(r => `<span class="msrole">${esc(roleNames[r] || r)}</span>`).join('')}</span>` : '';
       const menuOnly = signedIn && u ? pages.filter(([url, , , ok, where]) => where === 'menu' && url !== here && ok(u)).map(([url, icon, label]) => `<nav class="mpages" aria-label="Más"><a href="${url}"><span aria-hidden="true">${icon}</span>${esc(label(u))}</a></nav>`).join('') : '';
-      sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${myTeam ? `<small class="msteam">👥 ${esc(myTeam)}</small>` : ''}${roleChips}</b>${idCard ? '<button type="button" data-m="idcard" class="msoft">🪪 Mi credencial</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}${menuOnly}${liveRow(u)}<button type="button" class="mhow" data-how-open>❓ ¿Cómo funciona?</button><div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>${(adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? '<a href="/admin.html" class="madmin" data-admin-link><span aria-hidden="true">🔒</span> Administración</a>' : ''}`;
+      sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${myTeam ? `<small class="msteam">👥 ${esc(myTeam)}</small>` : ''}${roleChips}</b>${idCard ? '<button type="button" data-m="idcard" class="msoft">🪪 Mi credencial</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}${menuOnly}${liveRow(u)}<div class="mhowrow"><button type="button" class="mhow" data-how-open>❓ ¿Cómo funciona?</button>${signedIn && ver.loaded ? `<span class="mver" title="Versión de la app">${esc(ver.loaded)}</span>` : ''}</div><div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>${signedIn ? verRow() : ''}${(adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? '<a href="/admin.html" class="madmin" data-admin-link><span aria-hidden="true">🔒</span> Administración</a>' : ''}`;
       drawRunNow();
       sheet.querySelector('[data-msize="-1"]').disabled = zoom === sizes[0];
       sheet.querySelector('[data-msize="1"]').disabled = zoom === sizes[sizes.length - 1];
@@ -498,14 +511,16 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (e.target.closest('[data-m="logout"]')) { showSheet(false); const out = !document.body.dataset.signedName && (document.getElementById('logout') || document.getElementById('codeLogout')); if (out) out.click(); else sharedLogout(); return; }
     if (e.target.closest('#mLogin')) { showSheet(false); document.getElementById('loginBtn')?.click(); return; }
     if (e.target.closest('[data-m="login"]')) { showSheet(false); document.getElementById('loginBtn')?.click(); return; }
-    if (e.target.closest('[data-m="idcard"]')) { showSheet(false); showIdCard(); return; }
+    // «Mi credencial» se abre encima del menú: al cerrarla vuelves al menú (no se cierra con ella).
+    if (e.target.closest('[data-m="idcard"]')) { showIdCard(); return; }
+    if (e.target.closest('[data-m="reload"]')) { location.reload(); return; }
     if (e.target.closest('#mAdd')) { showSheet(false); document.querySelector('.top .topright .add')?.click(); return; }
     const sb = e.target.closest('#mSearch');
     if (sb && document.querySelector('header input[type=search][data-global]')) { showSheet(false); openGlobalSearch(document.querySelector('header input[type=search]').value); return; }
     if (sb) { const top = document.querySelector('header.top'), open = !top.classList.contains('msearch'); top.classList.toggle('msearch', open); sb.setAttribute('aria-expanded', String(open)); showSheet(false); if (open) top.querySelector('input[type=search]')?.focus(); return; }
-    if (!sheet.hidden && !e.target.closest('.appnav-toggle') && (!sheet.contains(e.target) || e.target.closest('a'))) showSheet(false);
+    if (!sheet.hidden && !e.target.closest('.appnav-toggle,dialog') && (!sheet.contains(e.target) || e.target.closest('a'))) showSheet(false);
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { showSheet(false); showDrop(false); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { showSheet(false); showDrop(false); } });
 
   // Entradas (Login del mapa, Runners, Constructores, Comando): dos grupos siempre a la vista, sin ocultar campos.
   // «Ya tengo código» (accessCode + Recordar + Entrar) y «Crear cuenta nueva» (nombre, teléfono, correo). Los formularios
@@ -611,6 +626,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       busy = true;
       try {
         const r = await fetch(url, {credentials: 'same-origin', cache: 'no-store'});
+        noteVersion(r.headers.get('X-App-Version'));
         if (r.ok) {
           const b = await r.json().catch(() => null);
           if (!b) return;

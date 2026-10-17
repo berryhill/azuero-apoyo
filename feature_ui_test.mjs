@@ -2091,7 +2091,7 @@ test('phone header (nav.js, panels): logo · page name · «+» page action · �
 test('🪪 Mi credencial: the avatar menu opens a full-screen ID card with a QR of the user ID on every page', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
   assert.doesNotMatch(nav, /Copiar mi ID<\/button>/, 'the menu no longer just copies the ID');
-  assert.match(nav, /if \(e\.target\.closest\('\[data-m="idcard"\]'\)\) \{ showSheet\(false\); showIdCard\(\); return; \}/);
+  assert.match(nav, /if \(e\.target\.closest\('\[data-m="idcard"\]'\)\) \{ showIdCard\(\); return; \}/);
   assert.match(nav, /s\.src = '\/qr\.js'/, 'qr.js loads on demand on pages that do not include it');
   assert.match(nav, /const url = location\.origin \+ '\/\?quien=' \+ encodeURIComponent\(id\);/);
   assert.match(nav, /AppQR\.svg\(url, \{title: 'QR de ' \+ name\}\)/);
@@ -3850,4 +3850,18 @@ test('Runners «＋ 🏃 Nuevo run»: wizard to an existing need, an existing po
   assert.match(runner, /highlightNeed=res\.id;setMainTab\('mine'\);await refresh\(\);render\(\);flash\(`🏃 Run empezado hacia/, 'then it is in «Yo»');
   assert.match(runner, /uploadRunMedia\(res\.id,'pickup',photos\)/, 'photos of the load as departure photos');
   assert.match(runner, /@media\(max-width:760px\)\{\.dspdlg\{width:calc\(100vw/, 'full screen on phones');
+});
+
+test('menu: app version at the bottom (discreet), offers to load a newer one; «Mi credencial» closes back to the menu', () => {
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  assert.match(nav, /<div class="mhowrow"><button type="button" class="mhow" data-how-open>❓ ¿Cómo funciona\?<\/button>\$\{signedIn && ver\.loaded \? `<span class="mver" title="Versión de la app">\$\{esc\(ver\.loaded\)\}<\/span>` : ''\}<\/div>/, 'just the number, on the «¿Cómo funciona?» line, for signed-in people');
+  assert.match(nav, /<button type="button" data-msize="1" aria-label="Texto más grande">A\+<\/button><\/div>\$\{signedIn \? verRow\(\) : ''\}/, 'a newer version is offered below the text size');
+  assert.match(nav, /fetch\('\/api\/version', \{cache: 'no-store'\}\)/);
+  assert.match(nav, /noteVersion\(r\.headers\.get\('X-App-Version'\)\);/, 'no extra polling: the 45 s access check carries the version');
+  assert.doesNotMatch(nav, /setInterval\(checkVersion/);
+  assert.match(nav, /Hay una versión nueva \(\$\{esc\(ver\.latest\)\}\): toca para cargarla/);
+  assert.match(nav, /if \(e\.target\.closest\('\[data-m="idcard"\]'\)\) \{ showIdCard\(\); return; \}/, 'the menu stays open under the credential');
+  assert.match(nav, /!e\.target\.closest\('\.appnav-toggle,dialog'\)/, 'clicks inside the credential do not close the menu');
+  assert.match(readFileSync(new URL('./Dockerfile', import.meta.url), 'utf8'), /COPY \*\.go VERSION \.\//, 'VERSION is embedded in the image');
+  assert.match(readFileSync(new URL('./scripts/bump-version.sh', import.meta.url), 'utf8'), /appVersion: \\"\$new\\"/, 'bump keeps the chart in sync');
 });

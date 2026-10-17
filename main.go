@@ -1649,7 +1649,7 @@ func (a *App) routes() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		http.ServeFile(w, r, filepath.Join(a.static, name))
 	})
-	return mux
+	return withVersion(mux)
 }
 func (a *App) campRoutes(mux *http.ServeMux) {
 	runnerFields := map[string]int{"name": 120, "telephone": 40}
@@ -2748,6 +2748,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.crewRoutes(mux, runners, runners, builders)
 	a.crewRoutes(mux, builders, runners, builders)
 	a.selfRunRoutes(mux, runners)
+	a.versionRoutes(mux)
 	// Entrada oculta desde la página pública («!código» en Buscar): abre sesión en cada panel que tiene el usuario.
 	mux.HandleFunc("POST /api/session/code", func(w http.ResponseWriter, r *http.Request) {
 		f, ok := decodeFields(w, r, map[string]int{"accessCode": 64})
