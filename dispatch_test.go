@@ -69,3 +69,49 @@ func TestSupplyNewDispatch(t *testing.T) {
 		t.Fatalf("runner name required: %d", w.Code)
 	}
 }
+
+// Necesidades «🚚 Despachar» and «Despachar otro envío» take a new runner (name; phone and note optional) like «Nuevo despacho».
+func TestSupplyAssignNewRunner(t *testing.T) {
+	s := newServiceHarness(t)
+	julie := s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)["id"].(string)
+	other := s.expect("POST", "/api/admin/users", `{"name":"Fuera Equipo","telephone":"6555-0000","roles":["runner"],"accessCode":"FUERA1"}`, 201)["id"].(string)
+	s.team("Unidos por Azuero", julie)
+	s.team("Otro", other)
+	s.expect("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","status":"OPEN"}`, 201)
+	need := s.needsOf(s.camp)[0].ID
+	jc, jt := s.supplierLogin("JULIE77")
+	if w := s.agentCall("POST", "/api/supplier/needs/"+need+"/assign", `{"runner":{"phone":"6000-0000"}}`, jc, jt); w.Code != 400 {
+		t.Fatalf("new runner needs a name: %d", w.Code)
+	}
+	if w := s.agentCall("POST", "/api/supplier/needs/"+need+"/assign", `{}`, jc, jt); w.Code != 400 {
+		t.Fatalf("a runner is required: %d", w.Code)
+	}
+	if w := s.agentCall("POST", "/api/supplier/needs/"+need+"/assign", `{"runner":{"name":"Pucha","phone":"6555-0000","note":"Tiene moto"}}`, jc, jt); w.Code != 200 {
+		t.Fatalf("assign to a new runner: %d %s", w.Code, w.Body.String())
+	}
+	run := findRun(s.supplierView(jc).Runs, need)
+	pucha := s.needsOf(s.camp)[0].RunnerID
+	if run == nil || run.Status != "IN_PROGRESS" || run.RunnerName != "Pucha" || pucha == "" || pucha == other {
+		t.Fatalf("assigned to the new runner in the center's team, not the other team's phone match: %+v", run)
+	}
+	var users []adminUser
+	json.Unmarshal(s.call("GET", "/api/admin/users", "", true).Body.Bytes(), &users)
+	for _, u := range users {
+		if u.ID == pucha && (!slicesContains(u.Roles, "runner") || u.TeamID == "" || u.Notes != "Tiene moto" || !strings.Contains(u.Note, "Supply")) {
+			t.Fatalf("new runner created in the supplier's team: %+v", u)
+		}
+	}
+	// Another shipment of the same need to another new runner; the same one again is refused.
+	if w := s.agentCall("POST", "/api/supplier/needs/"+need+"/another", `{"runner":{"name":"Pucha","phone":"+507 6555 0000"}}`, jc, jt); w.Code != 400 {
+		t.Fatalf("same runner (linked by phone) already carries it: %d %s", w.Code, w.Body.String())
+	}
+	w := s.agentCall("POST", "/api/supplier/needs/"+need+"/another", `{"runner":{"name":"Toño"}}`, jc, jt)
+	var res struct{ ID, Status string }
+	json.Unmarshal(w.Body.Bytes(), &res)
+	if w.Code != 201 || res.Status != "IN_PROGRESS" {
+		t.Fatalf("another shipment with a new runner: %d %s", w.Code, w.Body.String())
+	}
+	if r := findRun(s.supplierView(jc).Runs, res.ID); r == nil || r.RunnerName != "Toño" {
+		t.Fatalf("second run with Toño: %+v", r)
+	}
+}

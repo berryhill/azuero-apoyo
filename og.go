@@ -333,6 +333,16 @@ func (a *App) ogRoutes(mux *http.ServeMux) {
 	// pestaña «📦 Esta donación» de ese punto (index.html la arma desde la dirección; quien ya es runner pasa a Runners) y
 	// la vista previa del punto (WhatsApp, Facebook…). Un punto desconocido u oculto abre el inicio con la vista previa
 	// general. /p/<código> (enlaces ya compartidos) lleva aquí.
+	// /supply/<código>: el enlace corto que comparte Supply (como /runner/<código>): abre Supply con la búsqueda en ese
+	// punto, con su tarjeta de vista previa; sin sesión, primero se entra con el código y se llega ahí mismo.
+	mux.HandleFunc("GET /supply/{ref}", func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Join(a.static, "supplier.html")
+		if n, ok := a.ogPoint(r.PathValue("ref")); ok {
+			a.servePage(w, r, path, &n)
+			return
+		}
+		a.servePage(w, r, path, nil)
+	})
 	mux.HandleFunc("GET /runner/{ref}", func(w http.ResponseWriter, r *http.Request) {
 		path := filepath.Join(a.static, "index.html")
 		if n, ok := a.ogPoint(r.PathValue("ref")); ok {

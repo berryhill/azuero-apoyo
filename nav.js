@@ -5,7 +5,7 @@
 // En pantalla angosta (≤760px) se pliega: un botón con la página actual abre la lista completa bajo el encabezado.
 (() => {
   // La página actual: /runner/<código> (enlace compartido de una donación) es el inicio.
-  const pagePath = () => /^\/runner\/[^/]+$/.test(location.pathname) ? '/' : location.pathname;
+  const pagePath = () => /^\/runner\/[^/]+$/.test(location.pathname) ? '/' : /^\/supply\/[^/]+$/.test(location.pathname) ? '/supplier.html' : location.pathname;
   // Idioma del inicio (público): «ES | EN» junto a «Aa» (en el teléfono, en la barra de arriba). Se recuerda en este
   // navegador; sin elección, inglés si el navegador está en inglés. Solo en el inicio: i18n.js lo carga solo index.html.
   const langHome = () => ['/', '/index.html'].includes(pagePath()) && !!window.I18n;
@@ -66,6 +66,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 .davatar{flex:none;display:grid;place-items:center;width:40px;height:40px;margin:0;padding:0;border:0;border-radius:50%;background:#ffd166;color:#10263a;box-shadow:0 0 0 2px #10263a,0 0 0 3px #ffd16699;cursor:pointer}.davatar[hidden],.navout[hidden]{display:none!important}.davatar[aria-expanded="true"]{background:#fff}.davatar .minit{font:900 15px/1 Inter,system-ui,sans-serif;letter-spacing:.02em}
 .navout{flex:none;display:inline-flex;align-items:center;gap:7px;height:40px;margin:0 0 0 auto;padding:0 13px;border:1px solid #47657a;border-radius:11px;background:#ffffff12;color:#ffd0c2;font:800 13px Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer}.navout:hover{background:#ffffff24;color:#fff}.navout svg{flex:none}
 .top.has-avatar .brand .logo,.top.has-avatar>.adminlogo,.top.has-avatar .topright .who,.top.has-avatar #codeUser,.top.has-avatar .textsize{display:none!important}.top.has-avatar .topright{margin-left:auto}
+@media(min-width:761px){.top.out-icon .navout{width:42px;padding:0;justify-content:center}.top.out-icon .navout .navout-t{display:none}.top.add-icon .topright .add:not(.iconadd){display:inline-flex;align-items:center;height:42px;padding:0 12px;font-size:0}.top.add-icon .topright .add:not(.iconadd)::before{content:attr(data-short);font-size:16px;letter-spacing:2px}.top.squeeze,.top.squeeze .topright{flex-wrap:nowrap!important}.top.squeeze>*{min-width:0}.top.squeeze .topright,.top.squeeze .navout,.top.squeeze .davatar{flex:none}}
 @media(min-width:761px){.msheet{left:12px;right:auto;width:min(360px,calc(100% - 24px));border-radius:0 0 16px 16px}}
 @media(max-width:760px){.navout{width:42px;height:42px;margin:0;padding:0;justify-content:center;border-radius:12px}.navout .navout-t{display:none}.davatar{display:none!important}}
 /* 🪪 Mi credencial: tarjeta con tu QR a pantalla completa para que otro la escanee. */.idcard{width:calc(100vw / var(--text-zoom,1));max-width:none;height:calc(100dvh / var(--text-zoom,1));max-height:none;margin:0;padding:16px;border:0;border-radius:0;background:#fff;color:#10263a}.idcard[open]{display:flex;align-items:center;justify-content:center}.idcard::backdrop{background:#10263a}.idc-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;text-align:center;font-family:Inter,system-ui,sans-serif}.idc-av{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:#ffd166;color:#10263a;font:800 20px Inter,system-ui,sans-serif;box-shadow:0 0 0 2px #10263a}.idc-name{font-size:22px;font-weight:800;letter-spacing:-.01em}.idc-team{font-size:14px;font-weight:700;color:#4b6670}.idc-roles{display:flex;flex-wrap:wrap;justify-content:center;gap:5px}.idc-roles span{padding:2px 9px;border-radius:99px;background:#eef3f3;font-size:12px;font-weight:800;color:#35505e}.idc-qr{width:min(calc(80vw / var(--text-zoom,1)),calc(52dvh / var(--text-zoom,1)))}.idc-qr svg{display:block;width:100%;height:auto}.idc-id{font:700 12px ui-monospace,monospace;color:#64808a}.idc-btns{display:flex;gap:8px}.idc-btns button{border:1px solid #cad9d9;border-radius:11px;background:#fff;color:#10263a;padding:10px 16px;font:800 14px Inter,system-ui,sans-serif;cursor:pointer}.idc-btns .idc-close{background:#10263a;border-color:#10263a;color:#fff}
@@ -126,7 +127,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     el.hidden = list.length < 2 && !admin;
     el.classList.remove('open');
     el.setAttribute('aria-label', 'Páginas');
-    el.innerHTML = list.length < 2 && !admin ? '' : `<button type="button" class="appnav-toggle" aria-expanded="false" aria-controls="appNavList" aria-label="Cambiar de página"><span aria-hidden="true">${current[1]}</span>${esc(current[2](u))}<span class="chev" aria-hidden="true">▼</span></button><div class="appnav-list" id="appNavList">${list.map(([url, icon, label]) => `<a href="${url}" title="${esc(label(u))}"${url === here ? ' aria-current="page"' + adminMenu : ''}><span aria-hidden="true">${icon}</span><span class="appnav-label">${esc(label(u))}</span>${url === here && adminMenu ? '<span class="chev" aria-hidden="true">▾</span>' : ''}</a>`).join('')}${admin}</div>`;
+    el.innerHTML = list.length < 2 && !admin ? '' : `<button type="button" class="appnav-toggle" aria-expanded="false" aria-controls="appNavList" aria-label="Cambiar de página"><span aria-hidden="true">${current[1]}</span>${esc(current[2](u))}${tagHtml()}<span class="chev" aria-hidden="true">▼</span></button><div class="appnav-list" id="appNavList">${list.map(([url, icon, label]) => `<a href="${url}" title="${esc(label(u))}"${url === here ? ' aria-current="page"' + adminMenu : ''}><span aria-hidden="true">${icon}</span><span class="appnav-label">${esc(label(u))}</span>${url === here ? tagHtml() : ''}${url === here && adminMenu ? '<span class="chev" aria-hidden="true">▾</span>' : ''}</a>`).join('')}${admin}</div>`;
   }
   // ¿Este navegador tiene abierta la sesión de administración? Se pregunta una vez por página (no en admin.html).
   let adminOK = false;
@@ -304,14 +305,15 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const u = user() || {}, here = pagePath();
     // Páginas de poco uso (Mi equipo) van solo en el menú ☰, salvo que sea la página actual.
     const list = user() ? pages.filter(([url, , , ok, where]) => url === here || ok(u) && where !== 'menu') : [], links = document.getElementById('mLinks');
-    links.innerHTML = list.length > 1 ? list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''} title="${esc(label(u))}"><span class="mi" aria-hidden="true">${icon}</span><span class="ml">${esc(label(u))}</span></a>`).join('') : '';
+    links.innerHTML = list.length > 1 ? list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''} title="${esc(label(u))}"><span class="mi" aria-hidden="true">${icon}</span><span class="ml">${esc(label(u))}</span>${url === here ? tagHtml() : ''}</a>`).join('') : '';
     // Público sin sesión: «¡Ayuda!» primero, luego Login; sin título ni búsqueda.
     document.getElementById('mBar').classList.toggle('public', !user() && !!document.getElementById('loginBtn'));
     fitMobileBar();
     drawMenuButton();
     const add = document.querySelector('.top .topright .add'), madd = document.getElementById('mAdd');
     madd.hidden = !add;
-    if (add) { const raw = add.textContent.trim(), plus = raw.startsWith('+'), label = raw.replace(/^\+\s*/, ''); madd.classList.toggle('text', !plus); madd.innerHTML = plus ? svg('<path d="M12 5v14M5 12h14"/>') : esc(raw); madd.title = label; madd.setAttribute('aria-label', label); }
+    // .iconadd: la acción principal es solo un ícono (p. ej. Runners «+🏃»): el teléfono usa el mismo ícono y su aria-label.
+    if (add) { const raw = add.textContent.trim(), icon = add.classList.contains('iconadd'), plus = raw.startsWith('+'), label = icon ? add.getAttribute('aria-label') || add.title : raw.replace(/^\+\s*/, ''); madd.classList.toggle('text', !plus && !icon); madd.innerHTML = icon ? add.innerHTML : plus ? svg('<path d="M12 5v14M5 12h14"/>') : esc(raw); madd.title = label; madd.setAttribute('aria-label', label); }
   }
   // En el teléfono las páginas van siempre plegadas, en todas las páginas por igual (aunque sean pocas): un botón con
   // la página actual y ▾ que abre la lista; así ＋ y el menú siempre quedan a la vista a la derecha.
@@ -726,7 +728,9 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   // si caben; si no, todas plegadas en «página actual ▾» (nunca una con nombre y las demás solo con icono). Antes de
   // plegarlas, la búsqueda pasa a un botón 🔍 (también si la caja quedaría tan angosta que no se nota que se puede
   // escribir). Se vuelve a medir al cambiar el tamaño o el contenido del encabezado.
-  const FIT_STEPS = [[], ['search-icon'], ['nav-fold'], ['nav-fold', 'search-icon']];
+  // Pasos para que el encabezado quepa en una sola fila (de menos a más compacto); el último nunca deja pasar a otra fila:
+  // «Salir» solo ícono, la acción principal solo su ícono («+ 📦 Nuevo despacho» → «+📦») y nada se parte en dos filas.
+  const FIT_STEPS = [[], ['search-icon'], ['nav-fold'], ['nav-fold', 'search-icon'], ['nav-fold', 'search-icon', 'out-icon'], ['nav-fold', 'search-icon', 'out-icon', 'add-icon'], ['nav-fold', 'search-icon', 'out-icon', 'add-icon', 'squeeze']];
   let fitting = false;
   function fitTop() {
     const top = document.querySelector('header.top');
@@ -749,6 +753,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       search.querySelector('input')?._tsSync?.();
     }
     drawDeskUser();
+    for (const a of top.querySelectorAll('.topright .add:not(.iconadd)')) { const t = a.textContent.trim(), em = t.match(/\p{Extended_Pictographic}/u); a.dataset.short = (t.startsWith('+') ? '+' : '') + (em ? em[0] : t.startsWith('+') ? '' : t.slice(0, 1)); if (!a.title) a.title = t.replace(/^\+\s*/, ''); }
     const all = FIT_STEPS.flat();
     top.classList.remove(...all);
     if (getComputedStyle(top).position === 'static') top.style.position = 'relative';
@@ -988,7 +993,44 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   }
   document.addEventListener('click', e => { if (e.target.closest('[data-how-open]')) { e.preventDefault(); showSheet(false); howItWorks(); } });
   // «¿Cómo funciona?» nunca se abre solo (ni la primera vez ni al salir): solo al tocar un botón [data-how-open].
-  window.AppNav = {consentText: CONSENT, myTeam: () => myTeam, howItWorks,swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
+  // Aviso corto abajo, fuera del camino (snackbar): verde ✓ al terminar algo, rojo si falló, ámbar si falta un paso.
+  // Se va solo (más tiempo si es un error) o al tocarlo; con una ventana abierta aparece encima de ella.
+  function toast(text, kind = 'ok') {
+    if (!document.getElementById('appToastCss')) {
+      const st = document.createElement('style');
+      st.id = 'appToastCss';
+      st.textContent = '.apptoast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translate(-50%,24px);z-index:5000;display:flex;align-items:flex-start;gap:10px;width:max-content;max-width:min(520px,calc(calc(100vw / var(--text-zoom,1)) - 24px));padding:12px 16px;border-radius:14px;color:#fff;font:700 14px/1.4 Inter,system-ui,sans-serif;box-shadow:0 12px 30px #10263a55;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;cursor:pointer}.apptoast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}.apptoast.ok{background:#19745f}.apptoast.err{background:#a83c1f}.apptoast.warn{background:#8a5a12}.apptoast i{font-style:normal;flex:none}';
+      document.head.appendChild(st);
+    }
+    let t = document.getElementById('appToast');
+    if (!t) { t = document.createElement('div'); t.id = 'appToast'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); t.addEventListener('click', () => t.classList.remove('show')); }
+    (document.querySelector('dialog[open]') || document.body).appendChild(t);
+    t.className = 'apptoast ' + kind;
+    t.innerHTML = `<i aria-hidden="true">${kind === 'ok' ? '✓' : '⚠️'}</i><span></span>`;
+    t.querySelector('span').textContent = String(text || '').replace(/^✓\s*/, '');
+    requestAnimationFrame(() => t.classList.add('show'));
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => t.classList.remove('show'), kind === 'err' ? 7000 : 4500);
+  }
+
+  // Etiqueta de la página actual junto a su nombre en el encabezado (p. ej. Supply «Villa Marina»): una pastilla de ancho
+  // fijo que corta con «…», para que el encabezado no cambie de tamaño. La página la pone con AppNav.setPageTag(texto).
+  let pageTag = '';
+  const tagHtml = () => pageTag ? `<span class="navtag" title="${esc(pageTag)}">${esc(pageTag)}</span>` : '';
+  function setPageTag(text) {
+    text = String(text || '').trim();
+    if (text === pageTag) return;
+    pageTag = text;
+    if (!document.getElementById('navTagCss')) {
+      const st = document.createElement('style');
+      st.id = 'navTagCss';
+      st.textContent = '.navtag{display:inline-block;vertical-align:middle;max-width:130px;margin-left:6px;padding:2px 8px;border-radius:999px;background:#ffd16633;color:#ffe3a3;border:1px solid #ffd16666;font-size:11px;font-weight:800;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.appnav-list a[aria-current="page"] .navtag{background:#10263a14;color:#7a4a00;border-color:#e3a33a88}@media(max-width:760px){.navtag{max-width:84px;margin-left:4px;padding:1px 6px;font-size:10px}.mlinks a[aria-current="page"] .navtag{background:#ffd16633;color:#ffe3a3}}';
+      document.head.appendChild(st);
+    }
+    drawAll();
+  }
+
+  window.AppNav = {consentText: CONSENT, myTeam: () => myTeam, howItWorks,swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess, toast, setPageTag};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
   mountSearch(); mountPageFind();
   if (langHome() && lang === 'en') window.I18n.set('en');

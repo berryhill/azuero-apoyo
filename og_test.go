@@ -51,6 +51,11 @@ func TestShareCardsLatestNeedAndShortPointLink(t *testing.T) {
 	if w := s.call("GET", "/p/ab-7", "", false); w.Code != 301 || w.Header().Get("Location") != "/runner/ab-7" {
 		t.Fatalf("old /p/ links: %d %s", w.Code, w.Header().Get("Location"))
 	}
+	// /supply/<código>: el enlace corto de Supply: la página de Supply con la misma vista previa (sin datos privados).
+	sup := s.call("GET", "/supply/ab-7", "", false)
+	if b := sup.Body.String(); sup.Code != 200 || !strings.Contains(b, `<title>Punto AB-7 · Agua buena · Azuero</title>`) || !strings.Contains(b, `id="tabFind"`) || !strings.Contains(b, `<script src="/nav.js">`) || strings.Contains(b, "6555-1234") || strings.Contains(b, "Private camp") {
+		t.Fatalf("Supply share link: %d", sup.Code)
+	}
 	// La tarjeta del punto (Go): el código no automático, quién reporta y sus fichas; nunca contactos.
 	var pc ogNeed
 	s.app.db.View(func(tx *bolt.Tx) error {

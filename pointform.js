@@ -470,20 +470,31 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   // lo pasa al enlace GPS del formulario.
   function openGpsMap(root) {
     if (!root._nearby || !window.L) return null;
+    return pickOnMap({list: root._nearby() || [], prev: linkCoords(root.querySelector('[name="gps"]').value), onUse: here => {
+      root.querySelector('[name="gps"]').value = mapLink(here);
+      root.querySelector('.pf-gpsmsg').textContent = '';
+      drawGpsThumb(root);
+    }});
+  }
+  // Elegir un lugar en el mapa con la cruz (también fuera de donde estás): mueve el mapa o toca un lugar; «Mi GPS» la lleva a
+  // tu ubicación. list: puntos de referencia ({coords, code, area, status}); prev: la ubicación ya elegida; onUse(coords).
+  // autoGps: pide el GPS al abrir si no hay ubicación elegida. Lo usan el formulario de puntos y los centros de acopio (Supply).
+  function pickOnMap({list = [], prev = null, onUse, autoGps = false} = {}) {
+    if (!window.L) return null;
     let d = document.querySelector('dialog.pf-mapdialog');
     if (!d) {
       document.body.insertAdjacentHTML('beforeend', `<dialog class="pf-mapdialog" aria-label="Mapa de puntos y tu ubicación"><div class="pf-mapbox"></div><div class="pf-crosshair" aria-hidden="true">${crosshair}</div><button type="button" class="pf-mapclose" aria-label="Cerrar mapa" title="Cerrar">${icons.x}</button><button type="button" class="pf-mapgps" title="Mover la cruz a tu ubicación GPS">${icons.locate}Mi GPS</button><div class="pf-mappanel"><p class="pf-mapstatus" role="status"></p><p class="pf-mappick"></p><button type="button" class="pf-mapuse">Usar esta ubicación</button></div></dialog>`);
       d = document.querySelector('dialog.pf-mapdialog');
       d.querySelector('.pf-mapclose').onclick = () => d.close();
     }
-    const list = (root._nearby() || []).filter(p => Array.isArray(p.coords) && p.coords.length === 2);
+    list = list.filter(p => Array.isArray(p.coords) && p.coords.length === 2);
     const last = lastAdded(list), status = d.querySelector('.pf-mapstatus'), pick = d.querySelector('.pf-mappick'), use = d.querySelector('.pf-mapuse');
     if (d._map) d._map.remove();
     d.showModal();
     const map = d._map = L.map(d.querySelector('.pf-mapbox'));
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap contributors'}).addTo(map);
-    for (const p of list) L.circleMarker(p.coords, {radius: 8, weight: 2, color: '#fff', fillColor: PIN_COLORS[p.status] || PIN_COLORS.approved, fillOpacity: 1}).addTo(map).bindTooltip(`${esc(p.code)} · ${esc(p.area)}${p.status === 'pending' ? ' · pendiente' : ''}${p === last ? ' · último agregado' : ''}`);
-    const prev = linkCoords(root.querySelector('[name="gps"]').value), keep = !!prev && inPanama(prev);
+    for (const p of list) L.circleMarker(p.coords, {radius: 8, weight: 2, color: '#fff', fillColor: PIN_COLORS[p.status] || PIN_COLORS.approved, fillOpacity: 1}).addTo(map).bindTooltip(`${[p.code, p.area].filter(Boolean).map(esc).join(' · ')}${p.status === 'pending' ? ' · pendiente' : ''}${p === last ? ' · último agregado' : ''}`);
+    const keep = !!prev && inPanama(prev);
     let moved = keep, gpsHere = null, gpsLayers = [];
     const center = () => { const c = map.getCenter(); return [c.lat, c.lng]; };
     const showPick = () => {
@@ -501,10 +512,8 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     use.onclick = () => {
       const here = center();
       if (!inPanama(here)) return;
-      root.querySelector('[name="gps"]').value = mapLink(here);
-      root.querySelector('.pf-gpsmsg').textContent = '';
       d.close();
-      drawGpsThumb(root);
+      onUse?.(here);
     };
     const view = {
       keep,
@@ -537,6 +546,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
         status.textContent = err.code === 1 ? 'Permiso de ubicación denegado. Actívalo en el navegador.' : 'No se pudo obtener tu GPS. Intenta de nuevo.';
       }, {enableHighAccuracy: true, timeout: 20000, maximumAge: 0});
     };
+    if (autoGps && !keep) gpsBtn.click();
     return view;
   }
   // Vista previa fija (sin arrastrar ni zoom) de la ubicación del formulario, con su pin; tocarla abre el mapa para moverla.
@@ -1278,5 +1288,5 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     tlSend(f.dataset.tlForm, {area: f.elements.area.value.trim(), place: f.elements.place.value.trim(), directions: f.elements.directions.value.trim(), gps: f.elements.gps.value.trim()}, f.closest('[data-tl-id]'));
   }
   if (typeof document.addEventListener === 'function') document.addEventListener('click', e => { if (e.target.closest('[data-tl-open]')) { tl.open = null; tl.mode = ''; tlDraw(); tlDialog().showModal(); } });
-  window.PointForm = {completeWizard, areaList, toLocate, toLocateCount, covers,trailHtml, watchTrails, changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
+  window.PointForm = {pickOnMap, mapLink, completeWizard, areaList, toLocate, toLocateCount, covers,trailHtml, watchTrails, changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
 })();

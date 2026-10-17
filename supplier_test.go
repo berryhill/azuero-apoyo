@@ -466,6 +466,7 @@ func TestAnotherRunnerToTheSameNeed(t *testing.T) {
 	if r := findRun(s.supplierView(pedro).Runs, second); r == nil || r.RunnerName != "Ana Corre" || r.Need != "Agua" || r.Urgency != "urgente" || len(r.Also) != 2 {
 		t.Fatalf("Pedro's run: %+v", r)
 	}
+	s.agentCall("POST", "/api/supplier/needs/"+second+"/packing", `{"items":[{"item":"Agua","quantity":2}]}`, pedro, pcsrf)
 	if w := s.agentCall("POST", "/api/supplier/needs/"+second+"/dispatch", `{}`, pedro, pcsrf); w.Code != 200 {
 		t.Fatalf("dispatch Ana: %d", w.Code)
 	}
@@ -510,6 +511,11 @@ func TestSupplyHistoryShowsItsCompletedRuns(t *testing.T) {
 	if w := rc.call("POST", "/api/runner/needs/"+water+"/take?supplier="+julieID, ``); w.Code != 200 {
 		t.Fatalf("take: %d %s", w.Code, w.Body.String())
 	}
+	// Without a packing list it does not leave the center.
+	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/dispatch", `{}`, julie, jcsrf); w.Code != 400 || !strings.Contains(w.Body.String(), `"field":"packing"`) {
+		t.Fatalf("dispatch with no packing list = %d %s, want 400", w.Code, w.Body.String())
+	}
+	s.agentCall("POST", "/api/supplier/needs/"+water+"/packing", `{"items":[{"item":"Agua","quantity":2}]}`, julie, jcsrf)
 	if w := s.agentCall("POST", "/api/supplier/needs/"+water+"/dispatch", `{}`, julie, jcsrf); w.Code != 200 {
 		t.Fatalf("dispatch: %d %s", w.Code, w.Body.String())
 	}
@@ -677,7 +683,7 @@ func TestSupplyOpenAddedByOnlyForTeams(t *testing.T) {
 	}
 }
 
-// A center can carry an optional description and map location; they follow a rename and reach the Supply list.
+// A center can carry an optional description, notes and map location; they follow a rename and reach the Supply list.
 func TestSupplyCenterDescriptionAndLocation(t *testing.T) {
 	s := newServiceHarness(t)
 	s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)
@@ -698,6 +704,13 @@ func TestSupplyCenterDescriptionAndLocation(t *testing.T) {
 	}
 	if code, body := manage(`{"center":"Acopio Donde Rubén","description":""}`); code != 200 || strings.Contains(body, "Bodega") || !strings.Contains(body, `"coords":[7.4,-80.2]`) {
 		t.Fatalf("description cleared, location kept: %d %s", code, body)
+	}
+	// Notes for the team, kept apart from the description; saving the location alone keeps them.
+	if code, body := manage(`{"center":"Acopio Donde Rubén","notes":"Entrar por el portón azul; preguntar por Rubén"}`); code != 200 || !strings.Contains(body, `"notes":"Entrar por el portón azul; preguntar por Rubén"`) {
+		t.Fatalf("notes: %d %s", code, body)
+	}
+	if code, body := manage(`{"center":"Acopio Donde Rubén","gps":"https://www.google.com/maps?q=7.41,-80.21"}`); code != 200 || !strings.Contains(body, "portón azul") || !strings.Contains(body, `"coords":[7.41,-80.21]`) {
+		t.Fatalf("location picked on the map keeps the notes: %d %s", code, body)
 	}
 	if body := s.agentCall("GET", "/api/supplier/runs", "", jc, jt).Body.String(); !strings.Contains(body, `"centerInfo":{"acopio donde ruben":{"name":"Acopio Donde Rubén"`) {
 		t.Fatalf("Supply gets the centers' details: %s", body)

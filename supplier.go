@@ -34,10 +34,12 @@ var archivedCentersBucket = []byte("supply_centers_archived")
 var centerInfoBucket = []byte("supply_center_info")
 
 type CenterInfo struct {
-	Name        string    `json:"name"`
-	Description string    `json:"description,omitempty"`
-	GPS         string    `json:"gps,omitempty"`
-	Coords      []float64 `json:"coords,omitempty"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	// Notes: notas del equipo sobre el centro (horario, a quién buscar, qué reciben, acceso); solo en Supply.
+	Notes  string    `json:"notes,omitempty"`
+	GPS    string    `json:"gps,omitempty"`
+	Coords []float64 `json:"coords,omitempty"`
 }
 
 // centerInfos: los datos guardados de los centros, por nombre normalizado.
@@ -702,7 +704,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if _, _, ok := a.supplierSession(w, r); !ok {
 			return
 		}
-		f, ok := decodeFields(w, r, map[string]int{"center": 120, "rename": 120, "archive": 0, "description": 600, "gps": 1000})
+		f, ok := decodeFields(w, r, map[string]int{"center": 120, "rename": 120, "archive": 0, "description": 600, "notes": 2000, "gps": 1000})
 		if !ok {
 			return
 		}
@@ -710,7 +712,9 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		// Descripción y ubicación (opcionales): se guardan si vienen, solas o con el cambio de nombre.
 		_, hasDesc := f["description"]
 		_, hasGPS := f["gps"]
-		details := hasDesc || hasGPS
+		_, hasNotes := f["notes"]
+		details := hasDesc || hasGPS || hasNotes
+		notes := strings.TrimSpace(fieldText(f, "notes"))
 		desc, gps := strings.TrimSpace(fieldText(f, "description")), strings.TrimSpace(fieldText(f, "gps"))
 		var coords []float64
 		if gps != "" {
@@ -799,6 +803,12 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				}
 				if hasGPS {
 					next.GPS, next.Coords = gps, coords
+				}
+				if hasNotes {
+					next.Notes = notes
+				}
+				if next.Notes != old.Notes {
+					lines = append(lines, ChangeLine{"Notas", old.Notes, next.Notes})
 				}
 				if next.Description != old.Description {
 					lines = append(lines, ChangeLine{"Descripción", old.Description, next.Description})
@@ -893,11 +903,15 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if !ok {
 			return
 		}
-		f, ok := decodeFields(w, r, map[string]int{"runnerId": 128})
+		f, ok := decodeFields(w, r, map[string]int{"runnerId": 128, "runner": 0})
 		if !ok {
 			return
 		}
 		runnerID := fieldText(f, "runnerId")
+		newRunner, ok := readNewRunner(w, f)
+		if !ok {
+			return
+		}
 		var copy CampNeed
 		err := a.write(r, func(tx *bolt.Tx) error {
 			b := tx.Bucket(needsBucket)
@@ -913,14 +927,15 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				return errNotARun
 			}
 			copy = CampNeed{ID: randomToken(), CampID: orig.CampID, Need: orig.Need, Urgency: orig.Urgency, Kind: orig.Kind, RequesterName: orig.RequesterName, RequesterPhone: orig.RequesterPhone, CreatedAt: nowStamp(), SameAs: groupOf(orig), SupplierID: me.ID}
-			if runnerID == "" {
+			if runnerID == "" && newRunner.Name == "" {
 				copy.Status, copy.OpenOffers = "OPEN", []SupplyOffer{{SupplierID: me.ID, Can: true, At: nowStamp()}}
 				return putNeed(b, &copy)
 			}
-			runner, found := getUser(tx, runnerID)
-			if !found || runner.Disabled || !runner.has(roleRunner) {
-				return userFieldError{"runnerId", "Elige un runner activo."}
+			runner, e := dispatchRunner(tx, me, runnerID, newRunner)
+			if e != nil {
+				return e
 			}
+			runnerID = runner.ID
 			busy, already := 0, false
 			if e := b.ForEach(func(_, v []byte) error {
 				var other CampNeed
@@ -965,17 +980,22 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if !ok {
 			return
 		}
-		f, ok := decodeFields(w, r, map[string]int{"runnerId": 128})
+		f, ok := decodeFields(w, r, map[string]int{"runnerId": 128, "runner": 0})
 		if !ok {
 			return
 		}
 		runnerID := fieldText(f, "runnerId")
+		newRunner, ok := readNewRunner(w, f)
+		if !ok {
+			return
+		}
 		var n CampNeed
 		err := a.write(r, func(tx *bolt.Tx) error {
-			runner, found := getUser(tx, runnerID)
-			if !found || runner.Disabled || !runner.has(roleRunner) {
-				return userFieldError{"runnerId", "Elige un runner activo."}
+			runner, e := dispatchRunner(tx, me, runnerID, newRunner)
+			if e != nil {
+				return e
 			}
+			runnerID = runner.ID
 			b := tx.Bucket(needsBucket)
 			v := b.Get([]byte(r.PathValue("id")))
 			if v == nil {
@@ -1124,6 +1144,9 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			}
 			if undo {
 				n.DispatchedAt, n.DispatchedBy, n.DispatchedByName, n.SupplyCenter = "", "", "", ""
+			} else if len(n.Packing) == 0 {
+				// No sale del acopio sin lista de empaque: el runner y el destino tienen que saber qué lleva.
+				return userFieldError{"packing", "Agrega al menos un artículo a la lista de empaque antes de despachar."}
 			} else {
 				n.DispatchedAt, n.DispatchedBy, n.DispatchedByName, n.SupplyCenter = nowStamp(), u.ID, strings.TrimSpace(u.Name), strings.TrimSpace(u.SupplyCenter)
 			}
@@ -1133,7 +1156,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			fail(w, 409, err.Error())
 			return
 		}
-		if serviceError(w, err) {
+		if userError(w, err) {
 			return
 		}
 		response(w, 200, map[string]any{"id": n.ID, "dispatchedAt": n.DispatchedAt, "dispatchedByName": n.DispatchedByName})
