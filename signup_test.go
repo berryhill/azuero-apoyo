@@ -7,10 +7,10 @@ import (
 	"testing"
 )
 
-// Public sign-up: approved at once as a runner (no manual review); the generated code signs in right away.
-func TestSignupCreatesActiveRunnerWithMemorableCode(t *testing.T) {
+// Public sign-up: approved at once as a scout (no manual review; runner is given by their team manager or admin); the generated code signs in right away.
+func TestSignupCreatesActiveScoutWithMemorableCode(t *testing.T) {
 	s := newServiceHarness(t)
-	w := s.call("POST", "/api/session/signup", `{"name":"  José  Pérez ","telephone":"6999-1234"}`, false)
+	w := s.call("POST", "/api/session/signup", `{"name":"  José  Pérez ","telephone":"6999-1234","consent":true}`, false)
 	if w.Code != 201 {
 		t.Fatalf("signup: %d %s", w.Code, w.Body.String())
 	}
@@ -20,22 +20,22 @@ func TestSignupCreatesActiveRunnerWithMemorableCode(t *testing.T) {
 	if !regexp.MustCompile(`^[A-Z]{2,8}[0-9]{2}JOSE[0-9]$`).MatchString(code) || got["name"] != "José Pérez" || got["pending"] != nil {
 		t.Fatalf("word + 2 digits + first name + digit, not pending: %v", got)
 	}
-	// The admin sees an active runner with a note; the list never shows the code itself.
+	// The admin sees an active scout with a note; the list never shows the code itself.
 	list := s.call("GET", "/api/admin/users", "", true).Body.String()
-	if !strings.Contains(list, "José Pérez") || !strings.Contains(list, `"roles":["runner"]`) || !strings.Contains(list, "sin aprobación manual") || strings.Contains(list, code) {
-		t.Fatalf("active runner in the admin list: %s", list)
+	if !strings.Contains(list, "José Pérez") || !strings.Contains(list, `"roles":["scout"]`) || !strings.Contains(list, "sin aprobación manual") || strings.Contains(list, code) {
+		t.Fatalf("active scout in the admin list: %s", list)
 	}
-	// The code opens the runner panel immediately (any case).
-	if login := s.call("POST", "/api/session/code", `{"accessCode":"`+strings.ToLower(code)+`"}`, false); login.Code != 200 || !strings.Contains(login.Body.String(), "/runner.html") {
+	// The code opens the Scout panel immediately (any case).
+	if login := s.call("POST", "/api/session/code", `{"accessCode":"`+strings.ToLower(code)+`"}`, false); login.Code != 200 || !strings.Contains(login.Body.String(), "/scout.html") {
 		t.Fatalf("signed in right away: %d %s", login.Code, login.Body.String())
 	}
 	// Same phone again (maybe the same person who lost their code): a new account with its own code, never the old one;
 	// the same full name gets a number. Teams tell them apart by user ID.
-	again := s.call("POST", "/api/session/signup", `{"name":"José Pérez","telephone":"69991234"}`, false)
+	again := s.call("POST", "/api/session/signup", `{"name":"José Pérez","telephone":"69991234","consent":true}`, false)
 	if again.Code != 201 || strings.Contains(again.Body.String(), code) || !strings.Contains(again.Body.String(), "José Pérez 2") {
 		t.Fatalf("duplicate phone is allowed: %d %s", again.Code, again.Body.String())
 	}
-	for body, field := range map[string]string{`{"name":"Solo","telephone":"6999-0000"}`: "name", `{"name":"Ana Ruiz","telephone":"12"}`: "telephone"} {
+	for body, field := range map[string]string{`{"name":"Ana Ruiz","telephone":"6999-0000"}`: "consent", `{"name":"Ana Ruiz","telephone":"6999-0000","consent":false}`: "consent", `{"name":"Solo","telephone":"6999-0000"}`: "name", `{"name":"Ana Ruiz","telephone":"12"}`: "telephone"} {
 		if w := s.call("POST", "/api/session/signup", body, false); w.Code != 400 || !strings.Contains(w.Body.String(), field) {
 			t.Fatalf("%s: %d %s", body, w.Code, w.Body.String())
 		}
@@ -50,12 +50,12 @@ func TestSignupCreatesActiveRunnerWithMemorableCode(t *testing.T) {
 func TestSignupIsLimitedPerConnection(t *testing.T) {
 	s := newServiceHarness(t)
 	for i := 0; i < codeMaxWrong; i++ {
-		body := `{"name":"Persona Prueba","telephone":"6000-00` + string(rune('0'+i/10)) + string(rune('0'+i%10)) + `"}`
+		body := `{"name":"Persona Prueba","telephone":"6000-00` + string(rune('0'+i/10)) + string(rune('0'+i%10)) + `","consent":true}`
 		if w := s.call("POST", "/api/session/signup", body, false); w.Code != 201 {
 			t.Fatalf("signup %d: %d %s", i, w.Code, w.Body.String())
 		}
 	}
-	if w := s.call("POST", "/api/session/signup", `{"name":"Una Más","telephone":"6111-1111"}`, false); w.Code != 429 {
+	if w := s.call("POST", "/api/session/signup", `{"name":"Una Más","telephone":"6111-1111","consent":true}`, false); w.Code != 429 {
 		t.Fatalf("11th signup from one connection: %d %s", w.Code, w.Body.String())
 	}
 }
@@ -71,10 +71,10 @@ func TestSignupNamePart(t *testing.T) {
 // Sign-up asks for an optional email so admin can recognize the person if they lose their code; admin can edit it.
 func TestSignupStoresEmailForCodeRecovery(t *testing.T) {
 	s := newServiceHarness(t)
-	if w := s.call("POST", "/api/session/signup", `{"name":"Eva Correo","telephone":"6999-7777","email":"nope"}`, false); w.Code != 400 || !strings.Contains(w.Body.String(), `"field":"email"`) {
+	if w := s.call("POST", "/api/session/signup", `{"name":"Eva Correo","telephone":"6999-7777","email":"nope","consent":true}`, false); w.Code != 400 || !strings.Contains(w.Body.String(), `"field":"email"`) {
 		t.Fatalf("bad email: %d %s", w.Code, w.Body.String())
 	}
-	w := s.call("POST", "/api/session/signup", `{"name":"Eva Correo","telephone":"6999-7777","email":"  Eva@Gmail.COM "}`, false)
+	w := s.call("POST", "/api/session/signup", `{"name":"Eva Correo","telephone":"6999-7777","email":"  Eva@Gmail.COM ","consent":true}`, false)
 	if w.Code != 201 || strings.Contains(w.Body.String(), "gmail") {
 		t.Fatalf("signup: %d %s", w.Code, w.Body.String())
 	}
@@ -88,7 +88,7 @@ func TestSignupStoresEmailForCodeRecovery(t *testing.T) {
 	if w := s.call("PATCH", "/api/admin/users/"+id, `{"email":"sin arroba"}`, true); w.Code != 400 || !strings.Contains(w.Body.String(), "email") {
 		t.Fatalf("admin bad email: %d", w.Code)
 	}
-	if w := s.call("POST", "/api/session/signup", `{"name":"Sin Correo","telephone":"6999-8888"}`, false); w.Code != 201 {
+	if w := s.call("POST", "/api/session/signup", `{"name":"Sin Correo","telephone":"6999-8888","consent":true}`, false); w.Code != 201 {
 		t.Fatalf("email stays optional: %d %s", w.Code, w.Body.String())
 	}
 }
@@ -108,12 +108,12 @@ func TestExistingAccessCodesStillSignIn(t *testing.T) {
 // From the Constructores sign-in, a new account is a builder.
 func TestSignupFromBuilderPanelIsBuilder(t *testing.T) {
 	s := newServiceHarness(t)
-	w := s.call("POST", "/api/session/signup", `{"name":"Beto Obra","telephone":"6999-5555","panel":"builder"}`, false)
+	w := s.call("POST", "/api/session/signup", `{"name":"Beto Obra","telephone":"6999-5555","panel":"builder","consent":true}`, false)
 	if w.Code != 201 || !strings.Contains(w.Body.String(), `"roles":["builder"]`) {
 		t.Fatalf("builder signup: %d %s", w.Code, w.Body.String())
 	}
-	if w := s.call("POST", "/api/session/signup", `{"name":"Ana Corre","telephone":"6999-6666","panel":"admin"}`, false); w.Code != 201 || !strings.Contains(w.Body.String(), `"roles":["runner"]`) {
-		t.Fatalf("anything else is a runner: %d %s", w.Code, w.Body.String())
+	if w := s.call("POST", "/api/session/signup", `{"name":"Ana Corre","telephone":"6999-6666","panel":"admin","consent":true}`, false); w.Code != 201 || !strings.Contains(w.Body.String(), `"roles":["scout"]`) {
+		t.Fatalf("anything else is a scout: %d %s", w.Code, w.Body.String())
 	}
 }
 
@@ -122,9 +122,9 @@ func TestSignupSameNameGetsANumber(t *testing.T) {
 	s := newServiceHarness(t)
 	names := []string{}
 	for i, body := range []string{
-		`{"name":"Juan Pérez","telephone":"6100-0001"}`,
-		`{"name":"juan  perez","telephone":"6100-0002"}`,
-		`{"name":"Juan Pérez","telephone":"6100-0003"}`,
+		`{"name":"Juan Pérez","telephone":"6100-0001","consent":true}`,
+		`{"name":"juan  perez","telephone":"6100-0002","consent":true}`,
+		`{"name":"Juan Pérez","telephone":"6100-0003","consent":true}`,
 	} {
 		w := s.call("POST", "/api/session/signup", body, false)
 		if w.Code != 201 {

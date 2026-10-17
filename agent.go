@@ -19,6 +19,7 @@ import (
 // siguen siendo solo de administración.
 var agentAllowed = []string{
 	"GET /api/admin/points",
+	"GET /api/admin/maintenance/codes/suggest",
 	"POST /api/admin/points",
 	"GET /api/admin/submissions",
 	"POST /api/admin/decisions",

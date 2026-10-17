@@ -85,7 +85,7 @@ func (a *App) dispatchRoutes(mux *http.ServeMux) {
 					p.ToLocate, p.Place, p.Directions, p.GPS, p.Coords = true, "", strings.TrimSpace(newPoint.Directions), "", nil
 					p.Note = "Creado desde Supply al despachar, solo con la zona: por ubicar."
 				}
-				p.Code = "P-" + p.ID[:12]
+				codeFor(tx, &p)
 				verifyStamp(tx, &me, &p.VerifiedTeam, &p.VerifiedBy, &p.VerifiedAt)
 				if e := putPointJSON(tx.Bucket(submissions), p); e != nil {
 					return e

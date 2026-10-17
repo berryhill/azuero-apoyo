@@ -66,6 +66,7 @@ func (a *App) scoutRoutes(mux *http.ServeMux) {
 		list := []scoutPoint{}
 		err := a.db.View(func(tx *bolt.Tx) error {
 			tv := newTeamView(tx, u.ID)
+			guard := newRunnerPhoneGuard(tx, tv)
 			needs := map[string][]CampNeed{}
 			if e := tx.Bucket(needsBucket).ForEach(func(_, v []byte) error {
 				var n CampNeed
@@ -102,7 +103,7 @@ func (a *App) scoutRoutes(mux *http.ServeMux) {
 				sp := scoutPoint{Point: publicPoint(p), AddedByMe: mine, AddedByTeam: team, PointStatus: status, ActiveNeeds: needs[p.ID]}
 				sp.HeldUntil = p.HeldUntil
 				if tv.team != "" {
-					sp.Contacts = scoutContacts(p)
+					sp.Contacts = guard.scoutContacts(scoutContacts(p))
 				}
 				if team {
 					sp.AddedByMate = p.AddedByName

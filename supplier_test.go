@@ -132,7 +132,7 @@ func TestSupplyRequestsRunnersAndDispatchesItsOwnRuns(t *testing.T) {
 	if w := rc.call("POST", "/api/runner/needs/"+water+"/take?supplier=nope", ``); w.Code != 409 {
 		t.Fatalf("only a center that offered: %d", w.Code)
 	}
-	// The runner picks Julie: linked to her, gone from the offers, in her «Empacando»; the other center doesn't see it.
+	// The runner picks Julie: linked to her, gone from the offers, in her «Despachando»; the other center doesn't see it.
 	if w := rc.call("POST", "/api/runner/needs/"+water+"/take?supplier="+julieID, ``); w.Code != 200 {
 		t.Fatalf("accept: %d %s", w.Code, w.Body.String())
 	}
@@ -624,7 +624,7 @@ func TestSupplyCentersRenameArchiveAndOldRequests(t *testing.T) {
 	}
 }
 
-// «Puntos con necesidades» lists the most recently updated need first (not urgency, not the oldest), so a need someone just
+// «Necesidades» lists the most recently updated need first (not urgency, not the oldest), so a need someone just
 // changed rises to the top.
 func TestSupplyOpenNewestUpdateFirst(t *testing.T) {
 	s := newServiceHarness(t)
@@ -651,11 +651,11 @@ func TestSupplyOpenNewestUpdateFirst(t *testing.T) {
 		}
 	}
 	if strings.Join(got, "|") != "Carpas|Pañales|Agua" {
-		t.Fatalf("Puntos con necesidades order: %q", got)
+		t.Fatalf("Necesidades order: %q", got)
 	}
 }
 
-// «Puntos con necesidades»: «Agregado por» (who added the need, or the point) with their phone, only for people on a team.
+// «Necesidades»: «Agregado por» (who added the need, or the point) with their phone, only for people on a team.
 func TestSupplyOpenAddedByOnlyForTeams(t *testing.T) {
 	s := newServiceHarness(t)
 	julie := s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)["id"].(string)
@@ -674,5 +674,32 @@ func TestSupplyOpenAddedByOnlyForTeams(t *testing.T) {
 	sc, _ := s.supplierLogin("SOLO77")
 	if w := s.agentCall("GET", "/api/supplier/runs", "", sc, ""); strings.Contains(w.Body.String(), "addedBy") || strings.Contains(w.Body.String(), "6999-3030") {
 		t.Fatalf("no team: no «Agregado por»: %s", w.Body.String())
+	}
+}
+
+// A center can carry an optional description and map location; they follow a rename and reach the Supply list.
+func TestSupplyCenterDescriptionAndLocation(t *testing.T) {
+	s := newServiceHarness(t)
+	s.expect("POST", "/api/admin/users", `{"name":"Julie Acopio","telephone":"6999-1010","roles":["supplier"],"accessCode":"JULIE77"}`, 201)
+	jc, jt := s.supplierLogin("JULIE77")
+	s.agentCall("POST", "/api/supplier/center", `{"center":"Donde Rubén"}`, jc, jt)
+	manage := func(body string) (int, string) {
+		w := s.agentCall("POST", "/api/supplier/centers/manage", body, jc, jt)
+		return w.Code, w.Body.String()
+	}
+	if code, body := manage(`{"center":"donde ruben","description":"Bodega detrás de la iglesia, 7 a. m. a 5 p. m.","gps":"https://www.google.com/maps?q=7.4,-80.2"}`); code != 200 || !strings.Contains(body, "Bodega detrás de la iglesia") || !strings.Contains(body, `"coords":[7.4,-80.2]`) {
+		t.Fatalf("details: %d %s", code, body)
+	}
+	if code, _ := manage(`{"center":"Donde Rubén","gps":"no es un enlace"}`); code != 400 {
+		t.Fatalf("bad map link: %d", code)
+	}
+	if code, body := manage(`{"center":"Donde Rubén","rename":"Acopio Donde Rubén"}`); code != 200 || !strings.Contains(body, `"name":"Acopio Donde Rubén","description":"Bodega detrás de la iglesia`) {
+		t.Fatalf("details follow the rename: %d %s", code, body)
+	}
+	if code, body := manage(`{"center":"Acopio Donde Rubén","description":""}`); code != 200 || strings.Contains(body, "Bodega") || !strings.Contains(body, `"coords":[7.4,-80.2]`) {
+		t.Fatalf("description cleared, location kept: %d %s", code, body)
+	}
+	if body := s.agentCall("GET", "/api/supplier/runs", "", jc, jt).Body.String(); !strings.Contains(body, `"centerInfo":{"acopio donde ruben":{"name":"Acopio Donde Rubén"`) {
+		t.Fatalf("Supply gets the centers' details: %s", body)
 	}
 }

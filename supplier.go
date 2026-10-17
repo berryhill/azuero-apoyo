@@ -29,7 +29,36 @@ var supplyCentersBucket = []byte("supply_centers")
 // sus runs e historial no cambian. Se pueden recuperar.
 var archivedCentersBucket = []byte("supply_centers_archived")
 
+// Datos de cada centro (clave: nombre normalizado), opcionales: una descripción (qué es, horario, a quién buscar) y su
+// ubicación (enlace de Maps → GPS). Se ven y se editan en Supply → «⚙ Administrar centros».
+var centerInfoBucket = []byte("supply_center_info")
+
+type CenterInfo struct {
+	Name        string    `json:"name"`
+	Description string    `json:"description,omitempty"`
+	GPS         string    `json:"gps,omitempty"`
+	Coords      []float64 `json:"coords,omitempty"`
+}
+
+// centerInfos: los datos guardados de los centros, por nombre normalizado.
+func centerInfos(tx *bolt.Tx) map[string]CenterInfo {
+	out := map[string]CenterInfo{}
+	if b := tx.Bucket(centerInfoBucket); b != nil {
+		b.ForEach(func(k, v []byte) error {
+			var c CenterInfo
+			if json.Unmarshal(v, &c) == nil {
+				out[string(k)] = c
+			}
+			return nil
+		})
+	}
+	return out
+}
+
 func ensureSupplyCenters(tx *bolt.Tx) error {
+	if _, err := tx.CreateBucketIfNotExists(centerInfoBucket); err != nil {
+		return err
+	}
 	if _, err := tx.CreateBucketIfNotExists(archivedCentersBucket); err != nil {
 		return err
 	}
@@ -101,6 +130,19 @@ func renameCenter(tx *bolt.Tx, from, to string) error {
 		return errNoCenter
 	}
 	list, arch := tx.Bucket(supplyCentersBucket), tx.Bucket(archivedCentersBucket)
+	if info := tx.Bucket(centerInfoBucket); info != nil {
+		if v := info.Get([]byte(foldText(from))); v != nil {
+			var c CenterInfo
+			json.Unmarshal(v, &c)
+			c.Name = to
+			if e := info.Delete([]byte(foldText(from))); e != nil {
+				return e
+			}
+			if e := putJSON(info, foldText(to), c); e != nil {
+				return e
+			}
+		}
+	}
 	if e := list.Delete([]byte(foldText(from))); e != nil {
 		return e
 	}
@@ -160,9 +202,9 @@ const historyMax = 1000
 
 type supplierRun struct {
 	runnerNeed
-	// «Puntos con necesidades»: última actualización de la necesidad (needActivity); ordena la lista y se muestra «hace …».
+	// «Necesidades»: última actualización de la necesidad (needActivity); ordena la lista y se muestra «hace …».
 	ActivityAt string `json:"activityAt,omitempty"`
-	// «Puntos con necesidades» y «Empacando», solo para quien es de un equipo: quién agregó la necesidad (o el punto) y su teléfono.
+	// «Necesidades» y «Despachando», solo para quien es de un equipo: quién agregó la necesidad (o el punto) y su teléfono.
 	AddedByName  string `json:"addedByName,omitempty"`
 	AddedByPhone string `json:"addedByPhone,omitempty"`
 	RunnerName       string `json:"runnerName,omitempty"`
@@ -399,13 +441,14 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 					run.AddedByName, run.AddedByPhone = u.Name, u.Telephone
 				}
 			}
+			guard := newRunnerPhoneGuard(tx, tv)
 			if e := tx.Bucket(submissions).ForEach(func(_, v []byte) error {
 				var p Point
 				if e := json.Unmarshal(v, &p); e != nil {
 					return e
 				}
 				if p.Status == "approved" && !heldFrom(p, tv.team) {
-					contacts := campContacts(p)
+					contacts := guard.runnerContacts(campContacts(p))
 					adders[p.ID] = p.AddedBy
 					// Quien es de un equipo ve qué equipo y quién verificó; sin equipo, como el público: solo la insignia
 					// (publicPoint los quita).
@@ -525,7 +568,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			}
 			return runs[i].EnRouteAt > runs[j].EnRouteAt
 		})
-		// «Puntos con necesidades»: la necesidad actualizada más recientemente primero (crear, editar, cambiar urgencia, soltar…).
+		// «Necesidades»: la necesidad actualizada más recientemente primero (crear, editar, cambiar urgencia, soltar…).
 		sort.SliceStable(open, func(i, j int) bool { return open[i].ActivityAt > open[j].ActivityAt })
 		sort.SliceStable(runners, func(i, j int) bool { return runnerNameKey(runners[i].Name) < runnerNameKey(runners[j].Name) })
 		// Historial: lo último entregado primero.
@@ -534,10 +577,15 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			history = history[:historyMax]
 		}
 		var centers, archived []string
-		if e := a.db.View(func(tx *bolt.Tx) (e error) { centers, e = supplyCenters(tx); archived = archivedCenters(tx); return e }); serviceError(w, e) {
+		var info map[string]CenterInfo
+		if e := a.db.View(func(tx *bolt.Tx) (e error) {
+			centers, e = supplyCenters(tx)
+			archived, info = archivedCenters(tx), centerInfos(tx)
+			return e
+		}); serviceError(w, e) {
 			return
 		}
-		response(w, 200, map[string]any{"runs": runs, "open": open, "asks": asks, "enroute": enroute, "history": history, "live": a.liveRunners(me.ID), "runners": runners, "center": me.SupplyCenter, "centers": centers, "archivedCenters": archived})
+		response(w, 200, map[string]any{"runs": runs, "open": open, "asks": asks, "enroute": enroute, "history": history, "live": a.liveRunners(me.ID), "runners": runners, "center": me.SupplyCenter, "centers": centers, "archivedCenters": archived, "centerInfo": info})
 	})
 	// «Corredores piden»: este acopio puede surtir la carrera (can), no puede (can:false) o retira su oferta (withdraw).
 	mux.HandleFunc("POST /api/supplier/needs/{id}/offer", func(w http.ResponseWriter, r *http.Request) {
@@ -630,11 +678,25 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if _, _, ok := a.supplierSession(w, r); !ok {
 			return
 		}
-		f, ok := decodeFields(w, r, map[string]int{"center": 120, "rename": 120, "archive": 0})
+		f, ok := decodeFields(w, r, map[string]int{"center": 120, "rename": 120, "archive": 0, "description": 600, "gps": 1000})
 		if !ok {
 			return
 		}
 		center, to := strings.Join(strings.Fields(fieldText(f, "center")), " "), strings.Join(strings.Fields(fieldText(f, "rename")), " ")
+		// Descripción y ubicación (opcionales): se guardan si vienen, solas o con el cambio de nombre.
+		_, hasDesc := f["description"]
+		_, hasGPS := f["gps"]
+		details := hasDesc || hasGPS
+		desc, gps := strings.TrimSpace(fieldText(f, "description")), strings.TrimSpace(fieldText(f, "gps"))
+		var coords []float64
+		if gps != "" {
+			c, e := parseMapLink(gps) // fuera de la transacción: puede seguir un enlace corto
+			if e != nil {
+				failField(w, 400, "gps", "Usa un enlace de Google Maps del centro.")
+				return
+			}
+			coords = c
+		}
 		var archive *bool
 		if raw, has := f["archive"]; has {
 			var v bool
@@ -645,11 +707,29 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			archive = &v
 		}
 		var centers, archived []string
+		var info map[string]CenterInfo
 		err := a.write(r, func(tx *bolt.Tx) error {
+			var lines []ChangeLine
 			switch {
-			case to != "":
+			case to != "" && foldText(to) != foldText(center):
 				if e := renameCenter(tx, center, to); e != nil {
 					return e
+				}
+				lines = append(lines, ChangeLine{"Nombre", center, to})
+				center = to
+			case to != "" || details:
+				known, e := supplyCenters(tx)
+				if e != nil {
+					return e
+				}
+				found := false
+				for _, c := range known {
+					if foldText(c) == foldText(center) {
+						found, center = true, c
+					}
+				}
+				if !found {
+					return errNoCenter
 				}
 			case archive != nil && *archive:
 				known, e := supplyCenters(tx)
@@ -682,16 +762,42 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			default:
 				return errNoCenter
 			}
-			line := ChangeLine{"Nombre", center, to}
+			if details {
+				b := tx.Bucket(centerInfoBucket)
+				var old CenterInfo
+				if v := b.Get([]byte(foldText(center))); v != nil {
+					json.Unmarshal(v, &old)
+				}
+				next := old
+				next.Name = center
+				if hasDesc {
+					next.Description = desc
+				}
+				if hasGPS {
+					next.GPS, next.Coords = gps, coords
+				}
+				if next.Description != old.Description {
+					lines = append(lines, ChangeLine{"Descripción", old.Description, next.Description})
+				}
+				if next.GPS != old.GPS {
+					lines = append(lines, ChangeLine{"Ubicación", old.GPS, next.GPS})
+				}
+				if e := putJSON(b, foldText(center), next); e != nil {
+					return e
+				}
+			}
 			switch {
-			case to == "" && *archive:
-				line = ChangeLine{"Archivado", center, "sí"}
-			case to == "":
-				line = ChangeLine{"Recuperado", center, "sí"}
+			case archive != nil && *archive:
+				lines = append(lines, ChangeLine{"Archivado", center, "sí"})
+			case archive != nil:
+				lines = append(lines, ChangeLine{"Recuperado", center, "sí"})
 			}
-			if e := logAudit(tx, AuditEntry{Kind: "acopio", Ref: foldText(center), CampID: centersTrail, Label: center, Action: "cambió", Changes: []ChangeLine{line}}); e != nil {
-				return e
+			if len(lines) > 0 {
+				if e := logAudit(tx, AuditEntry{Kind: "acopio", Ref: foldText(center), CampID: centersTrail, Label: center, Action: "cambió", Changes: lines}); e != nil {
+					return e
+				}
 			}
+			info = centerInfos(tx)
 			var e error
 			centers, e = supplyCenters(tx)
 			archived = archivedCenters(tx)
@@ -704,7 +810,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 		if serviceError(w, err) {
 			return
 		}
-		response(w, 200, map[string]any{"centers": centers, "archived": archived})
+		response(w, 200, map[string]any{"centers": centers, "archived": archived, "centerInfo": info})
 	})
 	// Pedir corredor (o cancelar el pedido): la necesidad sigue Abierta y aparece en «Pedidos» de los corredores.
 	mux.HandleFunc("POST /api/supplier/needs/{id}/request", func(w http.ResponseWriter, r *http.Request) {

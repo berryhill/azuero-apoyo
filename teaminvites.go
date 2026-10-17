@@ -47,7 +47,7 @@ type teamInviteView struct {
 }
 
 // Roles que un team manager puede dar o quitar en su equipo; agente, donaciones (datos privados) y admin solo administración.
-var teamManagerRoles = []string{roleRunner, roleBuilder, roleSupplier, roleCook, roleTeamManager}
+var teamManagerRoles = []string{roleScout, roleRunner, roleBuilder, roleSupplier, roleCook, roleTeamManager}
 
 func teamManagerCan(role string) bool {
 	for _, r := range teamManagerRoles {

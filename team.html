@@ -29,9 +29,9 @@ dialog{border:0;border-radius:16px;padding:20px;width:min(380px,calc(92vw / var(
 <dialog id="rolesDlg" aria-labelledby="rolesTitle"><form method="dialog" id="rolesForm"><h2 id="rolesTitle">Roles</h2><p class="sub" id="rolesWho"></p><div id="rolesList"></div><p class="msg" id="rolesMsg" role="status"></p><div class="acts"><button type="button" class="btn ghost" id="rolesCancel">Cancelar</button><button type="submit" class="btn">Guardar</button></div></form></dialog>
 <script src="./nav.js"></script><script>
 const $=s=>document.querySelector(s),clean=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ROLE_NAMES={runner:'Runner',builder:'Constructor',agent:'Agente',donations:'Donaciones',supplier:'Supply',teammanager:'Team manager',cook:'Cocina',admin:'Admin'};
+const ROLE_NAMES={scout:'Scout',runner:'Runner',builder:'Constructor',agent:'Agente',donations:'Donaciones',supplier:'Supply',teammanager:'Team manager',cook:'Cocina',admin:'Admin'};
 // Mismos íconos que las páginas de cada rol (barra y menú ☰).
-const ROLE_ICONS={runner:'🏃',builder:'🔨',agent:'🧑‍💻',donations:'🎁',supplier:'📦',teammanager:'👥',cook:'🍳',admin:'🔒'},roleLabel=r=>`${ROLE_ICONS[r]?ROLE_ICONS[r]+' ':''}${ROLE_NAMES[r]||r}`;
+const ROLE_ICONS={scout:'🧭',runner:'🏃',builder:'🔨',agent:'🧑‍💻',donations:'🎁',supplier:'📦',teammanager:'👥',cook:'🍳',admin:'🔒'},roleLabel=r=>`${ROLE_ICONS[r]?ROLE_ICONS[r]+' ':''}${ROLE_NAMES[r]||r}`;
 // Búsqueda rápida: sin acentos ni mayúsculas; el teléfono se compara solo por dígitos.
 const fold=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const stamp=v=>{const d=new Date(v);if(!v||isNaN(d))return '';return d.toLocaleString('es-PA',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})};

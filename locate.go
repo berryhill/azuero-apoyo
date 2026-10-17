@@ -140,6 +140,7 @@ func (a *App) locate(w http.ResponseWriter, r *http.Request, by *User) {
 		}
 		if targetID == "" {
 			p.Area, p.Place, p.Directions, p.ToLocate = area, place, directions, false
+			codeFor(tx, &p) // ya tiene zona: su código de zona en lugar del automático
 			if gps != "" {
 				p.GPS, p.Coords = gps, coords
 			}

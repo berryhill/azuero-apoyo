@@ -17,7 +17,6 @@
 html:has(dialog[open]),html:has(.modalbg.open){overflow:hidden}html:has(dialog[open]) body,html:has(.modalbg.open) body{overflow:hidden}dialog[open],.modalbg.open,.modalbg.open .modal{overscroll-behavior:contain}
 .telnum{border:0;background:none;padding:0;color:#126e7c;font:inherit;font-weight:750;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;white-space:nowrap}.telnum:hover{color:#10263a}
 .navtelpop{position:absolute;z-index:4000;min-width:210px;background:#fff;border:1px solid #cad9d9;border-radius:12px;box-shadow:0 12px 30px #17354233;padding:10px 12px;font-family:Inter,system-ui,sans-serif;color:#173c46}.ntp-h{font-weight:800;font-size:14px}.ntp-num{font-size:17px;font-weight:800;margin:4px 0 8px;letter-spacing:.02em}.ntp-acts{display:flex;gap:8px}.ntp-acts a{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:9px;font-weight:800;font-size:13px;text-decoration:none}.ntp-call{background:#19745f;color:#fff}.ntp-wa{background:#25d366;color:#08331b}.ntp-copy{display:block;width:100%;margin-top:6px;padding:6px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#36505a;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
-.navtip{position:fixed;z-index:4100;background:#fff;color:#173542;border:1px solid #cad9d9;border-radius:14px;box-shadow:0 14px 34px #17354240;padding:12px 14px;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left}.navtip-t{display:block;font-size:15px;margin-bottom:4px}.navtip-b p{margin:0 0 6px}.navtip-b ol{margin:4px 0 6px;padding-left:20px}.navtip-b li{margin:2px 0}.navtip-a{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:8px}.navtip-a small{flex:1;color:#6b818a;font-size:12px}.navtip-a button{border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#35505e;font:inherit;font-size:13px;font-weight:700;padding:7px 10px;cursor:pointer}.navtip-a .ok{background:#126e7c;border-color:#126e7c;color:#fff}
 .swipe-l{animation:navSwipeL .22s ease-out}.swipe-r{animation:navSwipeR .22s ease-out}@keyframes navSwipeL{from{transform:translateX(28px);opacity:.35}}@keyframes navSwipeR{from{transform:translateX(-28px);opacity:.35}}@media (prefers-reduced-motion:reduce){.swipe-l,.swipe-r{animation:none}}
 .appconfirm{border:0;border-radius:16px;padding:0;width:min(380px,calc(92vw / var(--text-zoom,1)));box-shadow:0 20px 60px #10263a66;font-family:Inter,system-ui,sans-serif}.appconfirm::backdrop{background:#10263ab8}.appconfirm form{margin:0;padding:22px}.appconfirm h2{margin:0;font-size:19px;line-height:1.3;color:#152b3a}.appconfirm p{margin:8px 0 0;color:#667982;font-size:13px;line-height:1.45}.appconfirm p:empty{display:none}
 .textsize{position:relative;margin-left:8px;flex:none}.textsize>button{height:28px;padding:0 8px;border:1px solid #47657a;border-radius:8px;background:none;color:#c8d6db;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}.textsize>button:hover,.textsize>button[aria-expanded="true"]{background:#ffffff1a;color:#fff}
@@ -32,6 +31,19 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 @media(max-width:760px){.gsdlg{width:calc(100vw / var(--text-zoom,1));max-width:calc(100vw / var(--text-zoom,1));height:calc(100dvh / var(--text-zoom,1));max-height:calc(100dvh / var(--text-zoom,1));margin:0;border-radius:0}}
 .tsclear{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#ffffff26;color:#fff;font:800 12px Inter,system-ui,sans-serif;cursor:pointer}.tsclear:hover{background:#ffffff40}.tsclear[hidden]{display:none}
 .mbar,.msheet{display:none}
+.dsearchbtn{display:none}
+.davatar{flex:none;display:grid;place-items:center;width:40px;height:40px;margin:0;padding:0;border:0;border-radius:50%;background:#ffd166;color:#10263a;box-shadow:0 0 0 2px #10263a,0 0 0 3px #ffd16699;cursor:pointer}.davatar[hidden],.navout[hidden]{display:none!important}.davatar[aria-expanded="true"]{background:#fff}.davatar .minit{font:900 15px/1 Inter,system-ui,sans-serif;letter-spacing:.02em}
+.navout{flex:none;display:inline-flex;align-items:center;gap:7px;height:40px;margin:0 0 0 auto;padding:0 13px;border:1px solid #47657a;border-radius:11px;background:#ffffff12;color:#ffd0c2;font:800 13px Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer}.navout:hover{background:#ffffff24;color:#fff}.navout svg{flex:none}
+.top.has-avatar .brand .logo,.top.has-avatar>.adminlogo,.top.has-avatar .topright .who,.top.has-avatar #codeUser,.top.has-avatar .textsize{display:none!important}.top.has-avatar .topright{margin-left:auto}
+@media(min-width:761px){.msheet{left:12px;right:auto;width:min(360px,calc(100% - 24px));border-radius:0 0 16px 16px}}
+@media(max-width:760px){.navout{width:42px;height:42px;margin:0;padding:0;justify-content:center;border-radius:12px}.navout .navout-t{display:none}.davatar{display:none!important}}
+.mlive{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid #ffffff1f;color:#fff;cursor:pointer}.mlive-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.mlive-t b{font:800 14px Inter,system-ui,sans-serif}.mlive-t small{font:600 12px/1.35 Inter,system-ui,sans-serif;color:#b7cdd3}.mlive.on .mlive-t small{color:#9be0b4}.mlive input{position:absolute;opacity:0;pointer-events:none}.mlive-sw{flex:none;position:relative;width:44px;height:26px;border-radius:13px;background:#47657a;transition:background .15s}.mlive-sw:after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .15s}.mlive input:checked+.mlive-sw{background:#2fa36b}.mlive input:checked+.mlive-sw:after{transform:translateX(18px)}.mlive input:focus-visible+.mlive-sw{outline:2px solid #ffd166;outline-offset:2px}
+.sgconsent{display:flex!important;align-items:flex-start;gap:9px;margin:10px 0 4px;font-size:12.5px;line-height:1.4;font-weight:600;color:inherit;opacity:.9;cursor:pointer}.sgconsent input{flex:none;width:18px!important;height:18px;margin:1px 0 0!important;padding:0!important;accent-color:#ed7654}
+@media(min-width:761px){.top.nav-icons .appnav-list a:not([aria-current]) .appnav-label{display:none}.top.nav-icons .appnav-list a{padding:7px 9px;font-size:15px}.top.nav-icons .appnav-list .appnav-admin{margin-left:4px}
+.top.nav-fold .appnav-toggle{display:inline-flex;align-items:center;gap:7px;border:1px solid #47657a;background:#ffffff12;color:#fff;border-radius:9px;padding:8px 11px;font-size:13px;font-weight:800;white-space:nowrap;cursor:pointer}.top.nav-fold .appnav-toggle .chev{font-size:10px;transition:transform .15s}.top.nav-fold .appnav.open .appnav-toggle{background:#fff;color:#10263a;border-color:#fff}.top.nav-fold .appnav.open .chev{transform:rotate(180deg)}
+.top.nav-fold .appnav-list{display:none;position:absolute;top:calc(100% + 8px);left:0;min-width:250px;z-index:3000;flex-direction:column;align-items:stretch;gap:2px;background:#10263a;border-radius:12px;padding:6px;box-shadow:0 14px 30px #0007}.top.nav-fold .appnav.open .appnav-list{display:flex}.top.nav-fold .appnav-list a{padding:11px 12px;font-size:14px;color:#e3ecef}.top.nav-fold .appnav-list a[aria-current]{color:#10263a}.top.nav-fold .appnav-list .appnav-admin{margin:6px 0 0}
+.top.search-icon .topsearch{display:none!important}.top.search-icon .dsearchbtn{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:12px;background:#ffffff14;border:1px solid #47657a;color:#fff;cursor:pointer}.top.search-icon .dsearchbtn[aria-expanded="true"]{background:#fff;color:#10263a}.dsearchbtn.tson{position:relative;background:#ed7654!important;border-color:#ed7654!important;color:#fff!important}.dsearchbtn.tson:after{content:'';position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;background:#ffd166;box-shadow:0 0 0 2px #10263a}
+.top.search-icon.dsearch .topsearch{display:block!important;position:absolute;top:calc(100% + 6px);right:16px;width:min(520px,calc(100% - 32px));max-width:none;margin:0;z-index:2999;box-shadow:0 14px 30px #0007}}
 @media(max-width:760px){.top:has(>.mbar)>.appnav,.top:has(>.mbar) .textsize,.top:has(>.mbar)>.topright{display:none!important}.top:has(>.mbar) .brand{display:none!important}.top:has(>.mbar){gap:10px}
 .mbar{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.mlinks{flex:1;min-width:0;display:flex;gap:3px;overflow:hidden;background:#ffffff12;border-radius:11px;padding:3px}.mlinks a{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:9px;color:#c8d6db;text-decoration:none;font:800 14px Inter,system-ui,sans-serif;white-space:nowrap}.mlinks a[aria-current="page"]{background:#fff;color:#10263a}.mlinks .mi{display:inline-flex}.mbar .mtitle{display:none}.mbar.tight .mlinks{display:none}.mbar.tight .mtitle{display:flex}.mtitle{flex:1;min-width:0;align-items:center;gap:7px;margin:0;padding:8px 10px;border:0;border-radius:11px;background:none;color:#fff;font:800 17px Inter,system-ui,sans-serif;text-align:left;white-space:nowrap;overflow:hidden}.mtitle .mtl{min-width:0;overflow:hidden;text-overflow:ellipsis}.mtitle:not(:disabled){background:#ffffff12;cursor:pointer}.mtitle:disabled{opacity:1;cursor:default}.mtitle .chev{margin-left:auto;padding-left:4px;font-size:12px;opacity:.85}.mtitle[aria-expanded="true"]{background:#fff;color:#10263a}
 .mdrop{position:absolute;top:100%;left:8px;right:8px;z-index:3001;display:flex;flex-direction:column;gap:2px;padding:6px;background:#10263a;border-radius:0 0 14px 14px;box-shadow:0 16px 34px #0008}.mdrop[hidden]{display:none}.mdrop a{display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:10px;color:#e3ecef;text-decoration:none;font:800 16px Inter,system-ui,sans-serif}.mdrop a[aria-current="page"]{background:#fff;color:#10263a}.mdrop .ml{display:inline!important}.mdrop .mdrop-admin{margin-top:6px;border:1px dashed #ffb4a366;color:#ffb4a3;font-size:14px;opacity:.85}
@@ -53,7 +65,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     ['/', '🏠', () => 'Inicio', () => true],
     // Scout: los puntos que agregaste tú o tu equipo; cualquiera que entró con código (no es un rol).
     ['/scout.html', '🧭', () => 'Scout', u => !!u],
-    ['/runner.html', '<svg class="walkico" style="color:#5b9be6" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="4" r="2"/><path d="M12.5 7.5 10 13"/><path d="m12 8 4 2.5 3-1"/><path d="m12 8-4 1.5-2 2.5"/><path d="m10 13 3.5 3-1 5"/><path d="m10 13-2.5 4H4"/></svg>', u => !u.roles || u.roles.includes('runner') ? 'Runners' : 'Empaque', u => has(u, 'runner') || has(u, 'agent')],
+    ['/runner.html', '<svg class="walkico" style="color:#5b9be6" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="4" r="2"/><path d="M12.5 7.5 10 13"/><path d="m12 8 4 2.5 3-1"/><path d="m12 8-4 1.5-2 2.5"/><path d="m10 13 3.5 3-1 5"/><path d="m10 13-2.5 4H4"/></svg>', u => (u.roles || []).includes('agent') && !(u.roles || []).includes('runner') ? 'Empaque' : 'Runners', u => !!u],
     ['/builder.html', '🔨', () => 'Constructores', u => has(u, 'builder')],
     ['/command.html', '📞', () => 'Checkup', u => has(u, 'agent')],
     ['/supplier.html', '📦', () => 'Supply', u => has(u, 'supplier')],
@@ -71,26 +83,20 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const u = user(), here = location.pathname === '/index.html' ? '/' : location.pathname;
     let list = u ? pages.filter(([url, , , ok]) => url === here || ok(u)) : [];
     // En el panel de administración solo Inicio y «🔒 Administración» (la actual); sus herramientas están en su ☰.
-    if (here === '/admin.html') list = [pages[0], ['/admin.html', '🔒', () => 'Administración', () => true]];
+    if (here === '/admin.html') list = [pages[0], ['/admin.html', '🔒', () => window.adminViewLabel?.() || 'Administración', () => true]];
     const adminMenu = here === '/admin.html' ? ' data-admin-menu aria-haspopup="menu" aria-controls="adminMenu"' : '';
     const current = list.find(([url]) => url === here) || list[0] || pages[0];
     // Administración: con el rol Admin o si este navegador tiene abierta la sesión de la contraseña maestra; va al final,
     // apartada y pequeña, y pide confirmar para no entrar por error.
-    const admin = (adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? `<a href="/admin.html" class="appnav-admin" data-admin-link><span aria-hidden="true">🔒</span><span class="appnav-label">Administración</span></a>` : '';
+    const admin = (adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? `<a href="/admin.html" class="appnav-admin" data-admin-link title="Administración"><span aria-hidden="true">🔒</span><span class="appnav-label">Administración</span></a>` : '';
     el.hidden = list.length < 2 && !admin;
     el.classList.remove('open');
     el.setAttribute('aria-label', 'Páginas');
-    el.innerHTML = list.length < 2 && !admin ? '' : `<button type="button" class="appnav-toggle" aria-expanded="false" aria-controls="appNavList" aria-label="Cambiar de página"><span aria-hidden="true">${current[1]}</span>${esc(current[2](u))}<span class="chev" aria-hidden="true">▼</span></button><div class="appnav-list" id="appNavList">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' + adminMenu : ''}><span aria-hidden="true">${icon}</span><span class="appnav-label">${esc(label(u))}</span>${url === here && adminMenu ? '<span class="chev" aria-hidden="true">▾</span>' : ''}</a>`).join('')}${admin}</div>`;
+    el.innerHTML = list.length < 2 && !admin ? '' : `<button type="button" class="appnav-toggle" aria-expanded="false" aria-controls="appNavList" aria-label="Cambiar de página"><span aria-hidden="true">${current[1]}</span>${esc(current[2](u))}<span class="chev" aria-hidden="true">▼</span></button><div class="appnav-list" id="appNavList">${list.map(([url, icon, label]) => `<a href="${url}" title="${esc(label(u))}"${url === here ? ' aria-current="page"' + adminMenu : ''}><span aria-hidden="true">${icon}</span><span class="appnav-label">${esc(label(u))}</span>${url === here && adminMenu ? '<span class="chev" aria-hidden="true">▾</span>' : ''}</a>`).join('')}${admin}</div>`;
   }
   // ¿Este navegador tiene abierta la sesión de administración? Se pregunta una vez por página (no en admin.html).
   let adminOK = false;
   if (location.pathname !== '/admin.html') fetch('/api/admin/session', {credentials: 'same-origin', cache: 'no-store'}).then(r => { if (r.ok) { adminOK = true; draw(); drawTitle(); } }).catch(() => {});
-  document.addEventListener('click', async e => {
-    const a = e.target.closest('[data-admin-link]');
-    if (!a) return;
-    e.preventDefault();
-    if (await confirm('¿Abrir Administración?', {yes: 'Abrir', no: 'Cancelar', detail: 'Panel con la contraseña maestra: los cambios ahí afectan a todos.'})) location.href = a.href;
-  });
   function setOpen(open) {
     const el = document.getElementById('appNav'), b = el?.querySelector('.appnav-toggle');
     if (!b) return;
@@ -241,7 +247,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const bar = document.createElement('div');
     bar.id = 'mBar';
     bar.className = 'mbar';
-    bar.innerHTML = `<nav class="mlinks" id="mLinks" aria-label="Páginas"></nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled></button>${top.querySelector('.topsearch') ? `<button type="button" class="msearchbtn" id="mSearch" aria-expanded="false" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}</button>` : ''}<button type="button" class="madd" id="mAdd" hidden></button>${document.getElementById('loginBtn') ? '<button type="button" class="mlogin" id="mLogin">Inicia sesión</button>' : ''}<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button>`;
+    bar.innerHTML = `<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button><nav class="mlinks" id="mLinks" aria-label="Páginas"></nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled></button>${top.querySelector('.topsearch') ? `<button type="button" class="msearchbtn" id="mSearch" aria-expanded="false" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}</button>` : ''}<button type="button" class="madd" id="mAdd" hidden></button>${document.getElementById('loginBtn') ? '<button type="button" class="mlogin" id="mLogin">Inicia sesión</button>' : ''}`;
     top.appendChild(bar);
     const sheet = document.createElement('div');
     sheet.id = 'mSheet';
@@ -282,11 +288,12 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   function drawTitle() {
     const title = document.getElementById('mTitle'), drop = document.getElementById('mDrop'), links = document.getElementById('mLinks'), bar = document.getElementById('mBar');
     if (!title || !drop || !links) return;
-    const u = user() || {}, here = location.pathname, page = pages.find(([url]) => url === here), label = page ? page[2](u) : document.title.replace(/^DEV · /, '').split('·')[0].trim();
+    const u = user() || {}, here = location.pathname, adminPage = here === '/admin.html', page = adminPage ? ['/admin.html', '🔒', () => window.adminViewLabel?.() || 'Administración'] : pages.find(([url]) => url === here), label = page ? page[2](u) : document.title.replace(/^DEV · /, '').split('·')[0].trim();
     // Con el rol Admin (o la sesión de administración abierta) la lista de páginas termina con «🔒 Administración», como en
     // la computadora (pide confirmar antes de ir).
     const admin = (adminOK || (u.roles || []).includes('admin')) && here !== '/admin.html';
-    const pick = bar.classList.contains('tight') && (links.children.length > 1 || admin && !!user());
+    // En Administración el botón abre su propio menú (vistas, herramientas, Inicio y Cerrar sesión).
+    const pick = adminPage || bar.classList.contains('tight') && (links.children.length > 1 || admin && !!user());
     title.disabled = !pick;
     title.innerHTML = `${page ? `<span class="mi" aria-hidden="true">${page[1]}</span>` : ''}<span class="mtl">${esc(label)}</span>${pick ? '<span class="chev" aria-hidden="true">▾</span>' : ''}`;
     title.setAttribute('aria-label', pick ? `${label}: cambiar de página` : label);
@@ -320,11 +327,44 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (!await confirm('¿Cerrar sesión?', {yes: 'Sí, salir', detail: 'Tendrás que volver a entrar con tu código de acceso.'})) return;
     await logoutAll();
   }
+  // Administración entra con la contraseña maestra (sin usuario): su avatar lleva el nombre de quien entró con código en
+  // este navegador, o «Administración».
+  const adminName = () => location.pathname === '/admin.html' && document.getElementById('dashboard') && !document.getElementById('dashboard').hidden ? user()?.name || 'Administración' : '';
   function signedName() {
+    if (location.pathname === '/admin.html') return adminName();
     const out = document.getElementById('logout') || document.getElementById('codeLogout');
     if (sharedOut()) return user()?.name || '';
     if (!out || out.closest('[hidden]')) return '';
     return document.getElementById('whoName')?.title || document.getElementById('whoName')?.textContent?.trim() || user()?.name || '';
+  }
+  // Encabezado igual en todas las páginas: a la izquierda tu avatar (si entraste; sin logo) y a la derecha «Salir»
+  // (en el teléfono solo el ícono). En el teléfono el avatar es el de la barra (mMenu); aquí, el de pantallas anchas.
+  const EXIT = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>';
+  function drawDeskUser() {
+    const top = document.querySelector('header.top');
+    if (!top) return;
+    const name = signedName(), ini = initialsOf(name), on = !!ini;
+    if (top.classList.contains('has-avatar') !== on) top.classList.toggle('has-avatar', on);
+    let av = document.getElementById('dAvatar');
+    if (!av && on && !document.getElementById('adminAvatar')) {
+      av = document.createElement('button');
+      av.type = 'button'; av.id = 'dAvatar'; av.className = 'davatar'; av.setAttribute('aria-haspopup', 'true'); av.setAttribute('aria-controls', 'mSheet'); av.setAttribute('aria-expanded', 'false');
+      top.prepend(av);
+    }
+    if (av) {
+      if (av.hidden !== !on) av.hidden = !on;
+      const html = `<span class="minit">${esc(ini)}</span>`;
+      if (on && av.innerHTML !== html) av.innerHTML = html;
+      if (av.title !== name) { av.title = name; av.setAttribute('aria-label', `Menú de ${name}`); }
+    }
+    let out = document.getElementById('navOut');
+    if (!out && on) {
+      out = document.createElement('button');
+      out.type = 'button'; out.id = 'navOut'; out.className = 'navout'; out.title = 'Cerrar sesión'; out.setAttribute('aria-label', 'Cerrar sesión');
+      out.innerHTML = `${EXIT}<span class="navout-t">Salir</span>`;
+      top.appendChild(out);
+    }
+    if (out && out.hidden !== !on) out.hidden = !on;
   }
   function drawMenuButton() {
     const btn = document.getElementById('mMenu');
@@ -334,34 +374,59 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     btn.innerHTML = ini ? `<span class="minit">${esc(ini)}</span>` : svg('<path d="M4 7h16M4 12h16M4 17h16"/>');
     btn.setAttribute('aria-label', ini ? `Menú de ${name}` : 'Menú');
     btn.title = ini ? name : 'Menú';
+    // Computadora, en Administración: el mismo avatar en lugar del logo (abre su menú, con «Cerrar sesión»).
+    const desk = document.getElementById('adminAvatar');
+    if (desk) { desk.hidden = !ini; desk.innerHTML = `<span class="minit">${esc(ini)}</span>`; desk.title = name; desk.setAttribute('aria-label', `Menú de ${name}`); }
   }
   addEventListener('resize', () => fitMobileBar());
+  // Ubicación en vivo (solo runners; se comparte desde la página Runners): en el menú de tu avatar, cómo está y un
+  // interruptor para apagarla o encenderla. En Runners actúa al momento; en otra página, apagarla avisa al servidor y
+  // encenderla la deja lista para cuando abras Runners.
+  const liveOn = () => { try { return localStorage.getItem('runnerLive') === '1'; } catch { return false; } };
+  function liveRow(u) {
+    if (!(u?.roles || []).includes('runner')) return '';
+    const on = liveOn(), here = location.pathname === '/runner.html';
+    const msg = on ? (here ? 'Estás compartiendo tu ubicación en vivo con tu equipo.' : 'Compartes tu ubicación en vivo mientras tengas abierta la página Runners.') : 'No estás compartiendo tu ubicación.';
+    return `<label class="mlive${on ? ' on' : ''}"><span class="mlive-t"><b>📍 Ubicación en vivo</b><small>${msg}</small></span><input type="checkbox" role="switch" data-mlive${on ? ' checked' : ''} aria-label="Compartir mi ubicación en vivo"><span class="mlive-sw" aria-hidden="true"></span></label>`;
+  }
+  document.addEventListener('change', e => {
+    const sw = e.target.closest('[data-mlive]');
+    if (!sw) return;
+    if (location.pathname === '/runner.html') dispatchEvent(new CustomEvent('livetoggle', {detail: {on: sw.checked}}));
+    else {
+      try { sw.checked ? localStorage.setItem('runnerLive', '1') : localStorage.removeItem('runnerLive'); } catch {}
+      if (!sw.checked) fetch('/api/full/location/stop', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: '{}'}).catch(() => {});
+    }
+    setTimeout(() => showSheet(true), 300);
+  });
   function showSheet(open) {
     const sheet = document.getElementById('mSheet'), btn = document.getElementById('mMenu');
     if (!sheet) return;
     if (open) {
       const u = user(), here = location.pathname === '/index.html' ? '/' : location.pathname, out = document.getElementById('logout') || document.getElementById('codeLogout');
-      const name = document.getElementById('whoName')?.title || u?.name || '';
+      const name = location.pathname === '/admin.html' ? adminName() : document.getElementById('whoName')?.title || u?.name || '';
       const signedIn = !!out && !out.closest('[hidden]') || sharedOut(), login = !signedIn && document.getElementById('loginBtn'), copyId = signedIn && document.getElementById('copyMyId');
-      const list = u ? pages.filter(([url, , , ok]) => url === here || ok(u)) : [];
+      const list = u ? pages.filter(([url, , , ok, where]) => url === here || ok(u) && where !== 'menu') : [];
       const outLabel = out && out.textContent.trim() !== '✕' ? out.textContent.trim() : 'Salir';
       // Roles de quien entró (chips bajo su nombre) y las páginas de poco uso (Mi equipo), solo en este menú.
-      const roleNames = {runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', cook: 'Cocina', teammanager: 'Team manager', admin: 'Admin'};
+      const roleNames = {scout: 'Scout', runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', cook: 'Cocina', teammanager: 'Team manager', admin: 'Admin'};
       const roleChips = signedIn && u?.roles?.length ? `<span class="msroles">${u.roles.map(r => `<span class="msrole">${esc(roleNames[r] || r)}</span>`).join('')}</span>` : '';
       const menuOnly = signedIn && u ? pages.filter(([url, , , ok, where]) => where === 'menu' && url !== here && ok(u)).map(([url, icon, label]) => `<nav class="mpages" aria-label="Más"><a href="${url}"><span aria-hidden="true">${icon}</span>${esc(label(u))}</a></nav>`).join('') : '';
-      sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${roleChips}</b>${copyId ? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${menuOnly}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}<div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>${(adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? '<a href="/admin.html" class="madmin" data-admin-link><span aria-hidden="true">🔒</span> Administración</a>' : ''}`;
+      sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${roleChips}</b>${copyId ? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${menuOnly}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}${liveRow(u)}<div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>${(adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? '<a href="/admin.html" class="madmin" data-admin-link><span aria-hidden="true">🔒</span> Administración</a>' : ''}`;
       sheet.querySelector('[data-msize="-1"]').disabled = zoom === sizes[0];
       sheet.querySelector('[data-msize="1"]').disabled = zoom === sizes[sizes.length - 1];
     }
     sheet.hidden = !open;
-    btn.setAttribute('aria-expanded', String(open));
+    btn?.setAttribute('aria-expanded', String(open));
+    document.getElementById('dAvatar')?.setAttribute('aria-expanded', String(open));
   }
   document.addEventListener('click', e => {
     const sheet = document.getElementById('mSheet');
     if (!sheet) return;
-    if (e.target.closest('#mTitle')) { const d = document.getElementById('mDrop'); showSheet(false); showDrop(d.hidden); return; }
+    if (e.target.closest('#mTitle')) { showSheet(false); if (location.pathname === '/admin.html') { document.dispatchEvent(new Event('appnav:adminmenu')); return; } const d = document.getElementById('mDrop'); showDrop(d.hidden); return; }
     if (!e.target.closest('#mDrop')) showDrop(false);
-    if (e.target.closest('#mMenu')) { showSheet(sheet.hidden); return; }
+    if (e.target.closest('#mMenu,#dAvatar')) { showSheet(sheet.hidden); return; }
+    if (e.target.closest('#navOut')) { showSheet(false); const out = document.getElementById('logout') || document.getElementById('codeLogout'); if (out) out.click(); else sharedLogout(); return; }
     const size = e.target.closest('[data-msize]');
     if (size) { zoom = sizes[Math.min(sizes.length - 1, Math.max(0, sizes.indexOf(zoom) + Number(size.dataset.msize)))]; try { localStorage.setItem('textZoom', String(zoom)); } catch {} applySize(); showSheet(true); return; }
     if (e.target.closest('[data-m="logout"]')) { showSheet(false); const out = document.getElementById('logout') || document.getElementById('codeLogout'); if (out) out.click(); else sharedLogout(); return; }
@@ -432,12 +497,29 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     } catch {}
   }
   // Cuenta nueva desde una entrada: crea el usuario (aprobado al instante) y devuelve su código; muestra el código para copiarlo.
+  // «Crear cuenta nueva» (inicio, Login, Runners, Constructores): la persona acepta que su nombre y teléfono se compartan
+  // para que la contacten sobre los puntos o necesidades que reporte. Sin la casilla no se crea la cuenta (el servidor
+  // también la pide y guarda cuándo se aceptó).
+  const CONSENT = 'Acepto que mi nombre y teléfono se compartan con quienes ayudan en la red, para que me contacten sobre los puntos o necesidades que yo reporte.';
+  function mountConsent() {
+    document.querySelectorAll('form[data-signin] .sg-new').forEach(fs => {
+      if (fs.querySelector('input[name="consent"]')) return;
+      const btn = fs.querySelector('button[type=submit]');
+      const l = document.createElement('label');
+      l.className = 'sgconsent';
+      l.innerHTML = `<input type="checkbox" name="consent"><span>${CONSENT}</span>`;
+      (btn ? btn.before(l) : fs.appendChild(l));
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountConsent); else mountConsent();
   async function createAccount({name, telephone, email, panel}) {
+    const boxes = [...document.querySelectorAll('.sg-new input[name="consent"]')], box = boxes.find(b => b.offsetParent !== null) || boxes[0];
     name = String(name || '').trim().replace(/\s+/g, ' ');
     if (name.split(' ').length < 2) throw Object.assign(Error('Escribe tu nombre y apellido.'), {field: 'name'});
     if (String(telephone || '').replace(/\D/g, '').length < 7) throw Object.assign(Error('Escribe un teléfono válido (por ejemplo 6000-0000).'), {field: 'telephone'});
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw Object.assign(Error('Revisa el correo (por ejemplo nombre@gmail.com) o déjalo vacío.'), {field: 'email'});
-    const r = await fetch('/api/session/signup', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, telephone, email, ...(panel ? {panel} : {})})});
+    if (!box?.checked) throw Object.assign(Error('Marca la casilla para aceptar que tu nombre y teléfono se compartan.'), {field: 'consent'});
+    const r = await fetch('/api/session/signup', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, telephone, email, consent: true, ...(panel ? {panel} : {})})});
     const body = await r.json().catch(() => ({}));
     if (!r.ok) throw Object.assign(Error(body.error || 'No se pudo crear la cuenta.'), {field: body.field});
     try { localStorage.setItem('rememberCode', '1'); } catch {}
@@ -505,7 +587,60 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   }
   // Nombre corto para encabezados: nombre + primeras letras del apellido («Arianne Ori…»).
   const shortName = n => { const w = String(n || '').trim().split(/\s+/).filter(Boolean); return w.length < 2 ? w.join('') : w[0] + ' ' + (w[1].length > 3 ? w[1].slice(0, 3) + '…' : w[1]); };
-  const drawAll = () => { draw(); drawMobileBar(); };
+  const drawAll = () => { draw(); drawMobileBar(); drawTitle(); fitTopSoon(); };
+  // Pantallas medianas y anchas (más que un teléfono): el encabezado va en UNA fila. Las páginas van todas con su nombre
+  // si caben; si no, todas plegadas en «página actual ▾» (nunca una con nombre y las demás solo con icono). Antes de
+  // plegarlas, la búsqueda pasa a un botón 🔍 (también si la caja quedaría tan angosta que no se nota que se puede
+  // escribir). Se vuelve a medir al cambiar el tamaño o el contenido del encabezado.
+  const FIT_STEPS = [[], ['search-icon'], ['nav-fold'], ['nav-fold', 'search-icon']];
+  let fitting = false;
+  function fitTop() {
+    const top = document.querySelector('header.top');
+    if (!top) return;
+    fitting = true;
+    const search = top.querySelector('.topsearch');
+    if (search && !top.querySelector('.dsearchbtn')) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'dsearchbtn'; b.title = 'Buscar'; b.setAttribute('aria-label', 'Buscar'); b.setAttribute('aria-expanded', 'false');
+      b.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+      search.before(b);
+      b.onclick = e => {
+        e.stopPropagation();
+        const input = search.querySelector('input');
+        if (input?.dataset.global) return openGlobalSearch(input.value);
+        const open = !top.classList.contains('dsearch');
+        top.classList.toggle('dsearch', open); b.setAttribute('aria-expanded', String(open));
+        if (open) input?.focus();
+      };
+      search.querySelector('input')?._tsSync?.();
+    }
+    drawDeskUser();
+    const all = FIT_STEPS.flat();
+    top.classList.remove(...all);
+    if (getComputedStyle(top).position === 'static') top.style.position = 'relative';
+    const fits = () => {
+      const r = top.getBoundingClientRect(), kids = [...top.children].filter(c => c.offsetWidth && getComputedStyle(c).position !== 'absolute');
+      if (!kids.length) return true;
+      const rows = kids.map(c => c.getBoundingClientRect()), first = Math.min(...rows.map(b => b.top));
+      if (rows.some(b => b.top > first + 24 || b.right > r.right + 1)) return false;
+      const s = top.querySelector('.topsearch');
+      return !s || !s.offsetWidth || s.getBoundingClientRect().width >= 200;
+    };
+    if (!matchMedia('(max-width:760px)').matches) {
+      for (const step of FIT_STEPS) { top.classList.remove(...all); top.classList.add(...step); if (fits()) break; }
+    }
+    if (!top.classList.contains('search-icon')) top.classList.remove('dsearch');
+    fitting = false;
+  }
+  let fitQueued = false;
+  function fitTopSoon() { if (fitQueued || fitting) return; fitQueued = true; requestAnimationFrame(() => { fitQueued = false; fitTop(); }); }
+  addEventListener('resize', fitTopSoon);
+  document.fonts?.ready.then(fitTopSoon);
+  const watchTop = () => { const top = document.querySelector('header.top'); if (top) new MutationObserver(() => { if (!fitting) fitTopSoon(); }).observe(top, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden']}); fitTopSoon(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchTop); else watchTop();
+  // La búsqueda abierta desde 🔍 se cierra al tocar fuera o con Escape.
+  document.addEventListener('click', e => { const top = document.querySelector('header.top.dsearch'); if (top && !e.target.closest('.topsearch,.dsearchbtn')) { top.classList.remove('dsearch'); top.querySelector('.dsearchbtn')?.setAttribute('aria-expanded', 'false'); } });
+  document.addEventListener('keydown', e => { const top = document.querySelector('header.top.dsearch'); if (e.key === 'Escape' && top) { top.classList.remove('dsearch'); top.querySelector('.dsearchbtn')?.setAttribute('aria-expanded', 'false'); } });
   // Entorno de desarrollo (localhost, red local, *.local, túnel ngrok a la máquina local): franja ámbar arriba, «DEV» en la esquina y «DEV ·» en el
   // título de la pestaña, para no confundirlo con el sitio público. admin.html también carga nav.js.
   const DEV_HOST=/^(localhost|127\.|0\.0\.0\.0$|::1$|\[::1\]$|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|\.(local|localhost|test)$|\.ngrok(-free)?\.(app|dev|io)$/;function devMark(){if(!DEV_HOST.test(location.hostname)||document.querySelector('.devstripe'))return;document.head.insertAdjacentHTML('beforeend','<style>.devstripe{position:fixed;top:0;left:0;right:0;height:4px;z-index:99990;pointer-events:none;background:repeating-linear-gradient(-45deg,#ffb300 0 8px,#10263a 8px 16px)}.devpill{position:fixed;top:4px;left:4px;z-index:99991;padding:1px 6px;border-radius:0 0 6px 6px;background:#ffb300;color:#10263a;font:900 10px/1.4 system-ui,sans-serif;letter-spacing:.08em;pointer-events:auto;cursor:help;box-shadow:0 1px 3px #0005}</style>');document.body.insertAdjacentHTML('afterbegin','<div class="devstripe" aria-hidden="true"></div><span class="devpill" title="Entorno de desarrollo: '+location.host+'. No es el sitio público.">DEV</span>');if(!document.title.startsWith('DEV · '))document.title='DEV · '+document.title}
@@ -558,7 +693,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       pill.querySelector('.sp-what').onclick = () => { const top = input.closest('header.top'), sb = document.getElementById('mSearch'); if (top && sb && getComputedStyle(sb).display !== 'none') { top.classList.add('msearch'); sb.setAttribute('aria-expanded', 'true'); } input.focus(); input.select?.(); };
     }
     // Con algo escrito se nota aunque la barra esté oculta: el 🔍 del teléfono en naranja con un punto, y la caja con borde.
-    const sync = () => { const on = !!input.value.trim(); x.hidden = !input.value; box.classList.toggle('tson', on); pill.hidden = !on; pill.querySelector('b').textContent = input.value.trim().length > 30 ? input.value.trim().slice(0, 30) + '…' : input.value.trim(); const sb = document.getElementById('mSearch'); if (sb) { sb.classList.toggle('tson', on); sb.setAttribute('aria-label', on ? `Buscar (buscando «${input.value.trim()}»)` : 'Buscar'); sb.title = on ? `Buscando «${input.value.trim()}»` : ''; } try { input.value ? sessionStorage.setItem(key, input.value) : sessionStorage.removeItem(key); } catch {} };
+    const sync = () => { const on = !!input.value.trim(); x.hidden = !input.value; box.classList.toggle('tson', on); pill.hidden = !on; pill.querySelector('b').textContent = input.value.trim().length > 30 ? input.value.trim().slice(0, 30) + '…' : input.value.trim(); document.querySelector('.dsearchbtn')?.classList.toggle('tson', on); const sb = document.getElementById('mSearch'); if (sb) { sb.classList.toggle('tson', on); sb.setAttribute('aria-label', on ? `Buscar (buscando «${input.value.trim()}»)` : 'Buscar'); sb.title = on ? `Buscando «${input.value.trim()}»` : ''; } try { input.value ? sessionStorage.setItem(key, input.value) : sessionStorage.removeItem(key); } catch {} };
     input.addEventListener('input', sync);
     input._tsSync = sync;
     x.onclick = () => { input.value = ''; input.dispatchEvent(new Event('input', {bubbles: true})); input.focus(); };
@@ -619,33 +754,6 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (!d.open) { d.showModal(); window.history.pushState({gs: 1}, ''); gs.pushed = true; }
     gsDraw(); await gsLoad(); gsDraw(); input.focus();
   }
-  // Ayuda de una pestaña o pantalla: sale sola UNA vez (la primera vez que se abre, recordado en este teléfono) y
-  // después solo a pedido: again=true (tocar la pestaña en la que ya estás, o ❓).
-  const tipsSeen = new Set();
-  const tipHidden = key => { if (tipsSeen.has(key)) return true; try { return localStorage.getItem('tip:' + key) === '1'; } catch { return false; } };
-  const closeTip = () => document.querySelectorAll('.navtip').forEach(x => x.remove());
-  function tip(anchor, key, title, html, again) {
-    closeTip();
-    if (!anchor || (!again && tipHidden(key))) return;
-    tipsSeen.add(key); try { localStorage.setItem('tip:' + key, '1'); } catch {}
-    const d = document.createElement('div');
-    d.className = 'navtip'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', title);
-    d.innerHTML = `<b class="navtip-t">${title}</b><div class="navtip-b">${html}</div><div class="navtip-a"><small>${again ? '' : 'No volverá a salir sola.'}</small><button type="button" class="ok" data-tip="ok">Entendido</button></div>`;
-    (anchor.closest('dialog') || document.body).appendChild(d);
-    const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight, w = Math.min(340, vw - 24), r = anchor.getBoundingClientRect();
-    d.style.width = w + 'px';
-    d.style.left = Math.max(12, Math.min(vw - w - 12, r.left + r.width / 2 - w / 2)) + 'px';
-    const below = r.bottom + 8, h = d.offsetHeight;
-    d.style.top = (below + h > vh - 8 && r.top - h - 8 > 8 ? r.top - h - 8 : Math.max(8, Math.min(below, vh - h - 8))) + 'px';
-    d.onclick = e => {
-      const b = e.target.closest('[data-tip]'); if (!b) return;
-      closeTip();
-    };
-    setTimeout(() => document.addEventListener('pointerdown', function out(e) {
-      if (e.target.closest('.navtip')) return;
-      document.removeEventListener('pointerdown', out, true); closeTip();
-    }, true), 0);
-  }
   // Deslizar a los lados sobre la lista (teléfono) pasa a la pestaña siguiente / anterior de tabs (las visibles), como
   // tocarla. No cuenta si el gesto empieza en un campo, un mapa, un diálogo o algo que se desplaza a los lados.
   function swipeTabs(area, tabs) {
@@ -675,7 +783,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   // Toda página con pestañas (#mainTabs) y su lista (#feed o #list): deslizar cambia de pestaña en el teléfono.
   const wireSwipe = () => swipeTabs(document.getElementById('feed') || document.getElementById('list'), document.getElementById('mainTabs'));
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireSwipe); else wireSwipe();
-  window.AppNav = {tip, swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
+  window.AppNav = {swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
   mountSearch();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); mountSearch(); document.querySelector('header input[type=search]')?._tsSync?.(); }); else { draw(); mountTextSize(); mountMobileBar(); document.querySelector('header input[type=search]')?._tsSync?.(); }

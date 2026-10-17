@@ -76,7 +76,7 @@ func (a *App) signupRoutes(mux *http.ServeMux) {
 			return
 		}
 		a.mu.Unlock()
-		f, ok := decodeFields(w, r, map[string]int{"name": 120, "telephone": 40, "email": 160, "panel": 16})
+		f, ok := decodeFields(w, r, map[string]int{"name": 120, "telephone": 40, "email": 160, "panel": 16, "consent": 0})
 		if !ok {
 			return
 		}
@@ -90,18 +90,25 @@ func (a *App) signupRoutes(mux *http.ServeMux) {
 			failField(w, 400, "telephone", "Escribe un teléfono válido (por ejemplo 6000-0000).")
 			return
 		}
+		// Sin aceptar que su nombre y teléfono se compartan (para que lo contacten sobre lo que reporte) no se crea la cuenta.
+		if strings.TrimSpace(string(f["consent"])) != "true" {
+			failField(w, 400, "consent", "Marca la casilla para aceptar que tu nombre y teléfono se compartan.")
+			return
+		}
 		// Correo opcional: sirve para que administración reconozca a la persona si pierde su código.
 		email := normalizeEmail(fieldText(f, "email"))
 		if email != "" && !validEmail(email) {
 			failField(w, 400, "email", "Correo inválido (por ejemplo nombre@gmail.com).")
 			return
 		}
-		// Desde la entrada de Constructores queda como constructor; desde cualquier otra, como corredor.
-		role := roleRunner
+		// Desde la entrada de Constructores queda como constructor; desde cualquier otra, como scout (para llevar entregas
+		// hace falta el rol de runner: lo dan su team manager o administración).
+		role := roleScout
 		if fieldText(f, "panel") == "builder" {
 			role = roleBuilder
 		}
 		u := User{ID: randomToken(), Name: name, Telephone: phone, Email: email, Roles: []string{role}, CreatedAt: nowStamp(), Note: signupNote}
+		u.ContactConsentAt = u.CreatedAt
 		u.UpdatedAt = u.CreatedAt
 		var code string
 		err := a.db.Update(func(tx *bolt.Tx) error {

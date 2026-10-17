@@ -31,9 +31,12 @@ const (
 	// Admin: lo da y lo quita solo el panel de administración (contraseña maestra); ni team managers ni agentes.
 	// Muestra el enlace «🔒 Administración»; el panel sigue pidiendo la contraseña maestra.
 	roleAdmin = "admin"
+	// Scout: el acceso de quien se registra solo (signup.go): Scout (agregar y corroborar puntos). Para llevar entregas
+	// hace falta el rol de runner, que dan su team manager o administración.
+	roleScout = "scout"
 )
 
-var userRoles = []string{roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier, roleCook, roleTeamManager, roleAdmin}
+var userRoles = []string{roleScout, roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier, roleCook, roleTeamManager, roleAdmin}
 
 type User struct {
 	ID        string `json:"id"`
@@ -59,6 +62,8 @@ type User struct {
 	// Notas sobre la persona (habilidades, disponibilidad, vehículo…): las escriben administración y el team manager de
 	// su equipo; las ven los compañeros de su equipo. Nunca son públicas.
 	Notes string `json:"notes,omitempty"`
+	// Al registrarse aceptó compartir su nombre y teléfono para que lo contacten sobre los puntos que reporte (signup.go).
+	ContactConsentAt string `json:"contactConsentAt,omitempty"`
 	// Orden en que la persona quiere hacer sus carreras en curso (IDs de necesidades).
 	RunOrder []string `json:"runOrder,omitempty"`
 	// Última actividad con sesión (panel de corredor/constructor o vista completa), guardada cada 2 minutos como máximo.
@@ -187,7 +192,7 @@ type legacyUser struct {
 
 func (l legacyUser) linkKey() string { return l.role + ":" + l.ID }
 
-var roleLabels = map[string]string{roleRunner: "Corredor", roleBuilder: "Constructor", roleAgent: "Agente", roleDonations: "Donaciones", roleSupplier: "Acopio", roleTeamManager: "Team manager"}
+var roleLabels = map[string]string{roleScout: "Scout", roleRunner: "Corredor", roleBuilder: "Constructor", roleAgent: "Agente", roleDonations: "Donaciones", roleSupplier: "Acopio", roleTeamManager: "Team manager"}
 
 // orderRoles deja los roles sin repetir y en el orden fijo de userRoles.
 func orderRoles(roles []string) []string {

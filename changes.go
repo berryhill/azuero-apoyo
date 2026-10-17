@@ -200,6 +200,9 @@ func (a *App) askPointOwner(tx *bolt.Tx, id string, f map[string]json.RawMessage
 	if e := applyCampFields(&after, f); e != nil {
 		return nil, e
 	}
+	if e := uniqueCode(tx, &after); e != nil {
+		return nil, e
+	}
 	after.History = p.History
 	data, _ := json.Marshal(after)
 	changes := diffJSON(tx, before, data)

@@ -117,7 +117,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   const input = (name, label, opt = {}) => `<label class="${opt.wide ? 'wide' : ''}"><span class="${opt.icon ? 'pf-ico' : ''}">${opt.icon ? icons[opt.icon] : ''}${esc(label)}</span>${opt.area
     ? `<textarea name="${name}" placeholder="${esc(opt.ph || '')}"></textarea>`
     : opt.filter === 'count' ? countInput(name, label, opt.ph)
-    : `<input name="${name}"${filterAttrs(opt.filter)} placeholder="${esc(opt.ph || '')}" autocomplete="off">`}</label>`;
+    : `<input name="${name}"${filterAttrs(opt.filter)}${opt.list ? ` list="${opt.list}"` : ''} placeholder="${esc(opt.ph || '')}" autocomplete="off">`}</label>`;
   // Conteo con botones − / +. El campo va primero en el HTML para que el <label> lo enlace a él y no al botón; el CSS pone «−» a la izquierda.
   const countInput = (name, label, ph) => `<span class="pf-num"><input name="${name}"${filterAttrs('count')} placeholder="${esc(ph || '')}" autocomplete="off"><button type="button" class="pf-numbtn pf-dec" data-step="-1" aria-label="Restar 1 a ${esc(label)}">−</button><button type="button" class="pf-numbtn pf-inc" data-step="1" aria-label="Sumar 1 a ${esc(label)}">+</button></span>`;
   const filterAttrs = f => f === 'count' || f === 'age' ? ` data-filter="${f}" inputmode="numeric" maxlength="3"` : f === 'phone' ? ' data-filter="phone" type="tel" inputmode="tel" maxlength="40"' : '';
@@ -210,10 +210,10 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   // only: solo esas necesidades (p. ej. al editar una reparación: la casilla fija y sus materiales).
   const needsHtml = ({admin = false, only = null} = {}) => { const shown = NEEDS.filter(n => admin || n[3] !== 'admin'); if (only) return `<div class="pf-needs">${shown.filter(n => only.includes(n[0])).map(needItem).join('')}<input type="checkbox" class="pf-otros-check" hidden></div><label class="pf-otros" hidden><textarea class="pf-otros-text"></textarea></label>`; return `<div class="pf-needs">${NEED_GROUPS.map(([g, ls]) => [g, shown.filter(n => ls.includes(n[0]))]).concat([['', shown.filter(n => !NEED_GROUPS.some(([, ls]) => ls.includes(n[0])))]]).filter(([, list]) => list.length).map(([g, list]) => `${g ? `<p class="pf-needgroup">${esc(g)}</p>` : ''}${list.map(needItem).join('')}`).join('')}<p class="pf-needgroup">¿Algo más?</p><div class="pf-needitem"><label class="pf-need"><input type="checkbox" class="pf-otros-check"><span>${icons.other}Otros</span></label></div></div><label class="pf-otros" hidden>Otros: ¿qué más necesitan?<textarea class="pf-otros-text" placeholder="Medicinas, ropa, colchones…"></textarea></label>`; };
   function html({admin = false, edit = false} = {}) {
-    const where = section(1, '¿Dónde estás?', `<button type="button" class="pf-gps">${icons.pin}Enviar mi ubicación GPS</button><div class="pf-gpsthumb" hidden title="Toca para mover la ubicación" aria-label="Vista previa de la ubicación elegida"></div><p class="pf-gpsmsg" role="status"></p><div class="pf-grid" style="margin-top:12px">${input('gps', 'o pega un enlace de Google Maps', {wide: true, ph: 'https://maps.google.com/…'})}${input('area', 'Zona / área', {ph: 'Ej. Cañas'})}${input('place', 'Ubicación / referencia', {ph: 'Ej. Escuela de la comunidad'})}${input('directions', 'Indicaciones de llegada', {wide: true, area: true, ph: 'Cómo llegar, puntos de referencia…'})}</div>`);
+    const where = section(1, '¿Dónde estás?', `<button type="button" class="pf-gps">${icons.pin}Enviar mi ubicación GPS</button><div class="pf-gpsthumb" hidden title="Toca para mover la ubicación" aria-label="Vista previa de la ubicación elegida"></div><p class="pf-gpsmsg" role="status"></p><div class="pf-grid" style="margin-top:12px">${input('gps', 'o pega un enlace de Google Maps', {wide: true, ph: 'https://maps.google.com/…'})}${input('area', 'Zona / área', {ph: 'Ej. Cañas', list: 'pf-areas'})}${input('place', 'Ubicación / referencia', {ph: 'Ej. Escuela de la comunidad'})}${input('directions', 'Indicaciones de llegada', {wide: true, area: true, ph: 'Cómo llegar, puntos de referencia…'})}</div>`);
     const who = section(2, '¿Con quién estás?', `<div class="pf-grid">${input('coordinator', 'Reportado por', {icon: 'megaphone', ph: 'Quien más sabe de este punto'})}${input('coordinatorPhone', 'Teléfono de quien reporta', {filter: 'phone', ph: 'Ej. 6000-0000'})}</div><p class="pf-sub">¿Cuántas personas?</p><div class="pf-grid">${COUNTS.map(([k, l, i]) => input(k, l, {icon: i, filter: 'count', ph: '0'})).join('')}</div><p class="pf-hint"><b>Al menos un contacto con teléfono es obligatorio.</b></p><div class="pf-members"></div><button type="button" class="pf-addmember">＋ Agregar otro contacto</button>`);
     const what = section(3, '¿Qué necesitas?', `${needsHtml({admin})}<div class="pf-grid" style="margin-top:12px">${input('extra', 'Notas adicionales', {wide: true, area: true})}</div>`);
-    const adminOnly = admin ? section('lock', 'Solo administración', `<div class="pf-grid">${input('code', 'Código', {ph: 'Se asigna uno si lo dejas vacío'})}${input('row', 'N.º fila')}${input('ordinal', 'Orden')}<label>Servicio reportado<select name="service"><option value="">Sin confirmar</option><option value="YES">Sí (reportado)</option><option value="MAYBE">Tal vez</option><option value="NO">No</option></select></label>${input('serviceNotes', 'Notas de servicio', {wide: true, area: true})}${input('notes', 'Notas de grupo', {wide: true, area: true})}${edit ? input('note', 'Nota privada del campamento (opcional)', {wide: true, area: true}) : ''}</div>`, 'pf-admin') : '';
+    const adminOnly = admin ? section('lock', 'Solo administración', `<div class="pf-grid">${input('code', 'Código', {ph: 'Se asigna uno si lo dejas vacío', list: 'pf-codes'})}${input('row', 'N.º fila')}${input('ordinal', 'Orden')}<label>Servicio reportado<select name="service"><option value="">Sin confirmar</option><option value="YES">Sí (reportado)</option><option value="MAYBE">Tal vez</option><option value="NO">No</option></select></label>${input('serviceNotes', 'Notas de servicio', {wide: true, area: true})}${input('notes', 'Notas de grupo', {wide: true, area: true})}${edit ? input('note', 'Nota privada del campamento (opcional)', {wide: true, area: true}) : ''}</div>`, 'pf-admin') : '';
     return where + who + what + adminOnly;
   }
   const memberFields = [['name', 'Nombre', ''], ['phone', 'Teléfono', 'phone'], ['age', 'Edad', 'age'], ['cedula', 'Cédula', '']];
@@ -678,7 +678,49 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     warmSubs.add(update);
     if (warmBest) update(warmBest, null);
   }
+  // Zona con sugerencias mientras se escribe: las zonas de los puntos publicados, una por zona (la forma más usada:
+  // «Tonosí» aunque alguien escribió «Tonosi»). Una sola lista <datalist id="pf-areas"> por página, cargada una vez.
+  let areasLoading = null;
+  function areaList() {
+    if (areasLoading) return areasLoading;
+    let dl = document.getElementById('pf-areas');
+    if (!dl) { dl = document.createElement('datalist'); dl.id = 'pf-areas'; document.body.appendChild(dl); }
+    const fold = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\b(el|la|los|las|de|del|y)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    areasLoading = fetch('/api/points', {credentials: 'same-origin'}).then(r => r.ok ? r.json() : []).then(list => {
+      const by = new Map();
+      for (const p of list || []) {
+        const a = String(p.area || '').trim();
+        if (!a || /^(por ubicar|sin ubicaci[oó]n)$/i.test(a) || /^[A-Za-z]{1,4}-\d+\s/.test(a)) continue;
+        const k = fold(a), e = by.get(k) || new Map();
+        e.set(a, (e.get(a) || 0) + 1); by.set(k, e);
+      }
+      const names = [...by.values()].map(e => [...e.entries()].sort((x, y) => y[1] - x[1])[0][0]).sort((x, y) => x.localeCompare(y, 'es'));
+      dl.innerHTML = names.map(n => `<option value="${esc(n)}"></option>`).join('');
+      return names;
+    }).catch(() => []);
+    return areasLoading;
+  }
+  // «Código» (Administración y Checkup): mientras se escribe, sugerencias de códigos LIBRES, cada uno una vez («S-5»,
+  // «S-6»…; nunca «S-1 S-1 S-1»): sigue la abreviatura escrita o, sin nada, la de la zona del punto.
+  let codeTimer = 0;
+  function codeHints(root, point) {
+    const input = root.querySelector('[name="code"]');
+    if (!input || input.readOnly) return;
+    let dl = document.getElementById('pf-codes');
+    if (!dl) { dl = document.createElement('datalist'); dl.id = 'pf-codes'; document.body.appendChild(dl); }
+    clearTimeout(codeTimer);
+    codeTimer = setTimeout(async () => {
+      const base = location.pathname === '/admin.html' ? '/api/admin' : '/api/agent';
+      const area = root.querySelector('[name="area"]')?.value || point.area || '';
+      try {
+        const r = await fetch(`${base}/maintenance/codes/suggest?q=${encodeURIComponent(input.value)}&area=${encodeURIComponent(area)}&id=${encodeURIComponent(point.id || '')}`, {credentials: 'same-origin', cache: 'no-store'});
+        const list = r.ok ? await r.json() : [];
+        dl.innerHTML = [...new Set(list || [])].map(c => `<option value="${esc(c)}"></option>`).join('');
+      } catch {}
+    }, 180);
+  }
   function render(root, {admin = false, edit = false, point = {}, nearby = null, me = null} = {}) {
+    areaList();
     root._nearby = nearby;
     root.classList.add('pf');
     root.innerHTML = html({admin, edit});
@@ -692,8 +734,11 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     root.querySelector('[name="gps"]').addEventListener('input', () => drawGpsThumb(root));
     setMe(root, me);
     drawGpsThumb(root);
-    if (!admin) { warmGps(); gpsLive(root); }
-    root.oninput = e => { const f = filters[e.target.dataset?.filter]; if (f) { const v = f(e.target.value); if (v !== e.target.value) e.target.value = v; } };
+    // El GPS no se pide al abrir el formulario (solo Runners pide la ubicación): se calienta solo si ya está permitido;
+    // si no, el permiso se pide al tocar «Enviar mi ubicación GPS».
+    if (!admin) navigator.permissions?.query({name: 'geolocation'}).then(p => { if (p.state === 'granted') { warmGps(); gpsLive(root); } }, () => {});
+    root.oninput = e => { const f = filters[e.target.dataset?.filter]; if (f) { const v = f(e.target.value); if (v !== e.target.value) e.target.value = v; } if (e.target.name === 'code') codeHints(root, point); };
+    if (admin) codeHints(root, point);
     root.onclick = e => {
       const b = e.target.closest('.pf-numbtn'); if (!b) return;
       const el = b.parentNode.querySelector('input');
@@ -1010,6 +1055,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   const tl = {list: [], points: null, mount: null, onDone: null, open: null, mode: ''};
   // bottomOf: la lista (feed) al final de la cual va el aviso; es una tarea aparte, no lo primero que se ve.
   async function toLocate(mount, {onDone, bottomOf} = {}) {
+    areaList();
     tl.mount = mount; tl.onDone = onDone;
     if (bottomOf && mount && !mount.dataset.bottom) {
       mount.dataset.bottom = '1';
@@ -1036,7 +1082,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   }
   function tlForm(x, zone) {
     if (tl.mode === 'pick') return `<div class="pf-tl-form"><label>Buscar el punto<input type="search" data-tl-q value="${esc(zone)}" placeholder="Zona, lugar o código" autocomplete="off"></label><div class="pf-tl-results" data-tl-results></div><button type="button" class="pf-tl-btn" data-tl-cancel>Cancelar</button></div>`;
-    return `<form class="pf-tl-form" data-tl-form="${esc(x.id)}"><label>Zona (pueblo o comunidad)<input name="area" required maxlength="80" value="${esc(zone)}" placeholder="Ej. Río Viejo"></label><label>Lugar<input name="place" maxlength="200" value="${esc(x.place && x.place !== x.area ? x.place : '')}" placeholder="Ej. Casa de la familia Nieto"></label><label>Indicaciones<input name="directions" maxlength="300" placeholder="Ej. después de la iglesia"></label><label>Enlace de Google Maps<span class="pf-tl-gps"><input name="gps" maxlength="1000" placeholder="https://maps.app.goo.gl/…"><button type="button" class="pf-tl-btn" data-tl-here>📍 Usar mi ubicación</button></span></label><div class="pf-tl-acts"><button type="button" class="pf-tl-btn" data-tl-cancel>Cancelar</button><button type="submit" class="pf-tl-btn go">Guardar ubicación</button></div></form>`;
+    return `<form class="pf-tl-form" data-tl-form="${esc(x.id)}"><label>Zona (pueblo o comunidad)<input name="area" required maxlength="80" value="${esc(zone)}" list="pf-areas" autocomplete="off" placeholder="Ej. Río Viejo"></label><label>Lugar<input name="place" maxlength="200" value="${esc(x.place && x.place !== x.area ? x.place : '')}" placeholder="Ej. Casa de la familia Nieto"></label><label>Indicaciones<input name="directions" maxlength="300" placeholder="Ej. después de la iglesia"></label><label>Enlace de Google Maps<span class="pf-tl-gps"><input name="gps" maxlength="1000" placeholder="https://maps.app.goo.gl/…"><button type="button" class="pf-tl-btn" data-tl-here>📍 Usar mi ubicación</button></span></label><div class="pf-tl-acts"><button type="button" class="pf-tl-btn" data-tl-cancel>Cancelar</button><button type="submit" class="pf-tl-btn go">Guardar ubicación</button></div></form>`;
   }
   function tlDialog() {
     let d = document.getElementById('pfToLocate');
@@ -1100,5 +1146,5 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     tlSend(f.dataset.tlForm, {area: f.elements.area.value.trim(), place: f.elements.place.value.trim(), directions: f.elements.directions.value.trim(), gps: f.elements.gps.value.trim()}, f.closest('[data-tl-id]'));
   }
   if (typeof document.addEventListener === 'function') document.addEventListener('click', e => { if (e.target.closest('[data-tl-open]')) { tl.open = null; tl.mode = ''; tlDraw(); tlDialog().showModal(); } });
-  window.PointForm = {toLocate, covers,trailHtml, watchTrails, changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
+  window.PointForm = {areaList, toLocate, covers,trailHtml, watchTrails, changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
 })();

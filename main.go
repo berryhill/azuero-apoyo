@@ -95,6 +95,8 @@ type Point struct {
 	ToLocate bool `json:"toLocate,omitempty"`
 	// Solo al importar: equipo (por nombre) para la persona que se crea como «Agregado por». No se guarda.
 	AddedByTeam string `json:"addedByTeam,omitempty"`
+	// Solo en la respuesta a un agente (Checkup): puede cambiar el código porque el punto lo creó alguien de su equipo.
+	CodeEditable bool `json:"codeEditable,omitempty"`
 	// Quien editó el punto por última vez desde Command (o aceptó una solicitud de cambio); privado. Un agente de otro
 	// equipo no lo cambia sin su visto bueno (changes.go).
 	UpdatedBy string `json:"updatedBy,omitempty"`
@@ -1185,9 +1187,6 @@ func (a *App) routes() http.Handler {
 			return
 		}
 		p.ID = randomToken()
-		if p.Code == "" {
-			p.Code = "P-" + p.ID[:12]
-		}
 		if p.Area == "" {
 			p.Area = "Sin ubicación"
 		}
@@ -1251,6 +1250,8 @@ func (a *App) routes() http.Handler {
 				}
 				p.AddedBy, p.AddedByName = u.ID, u.Name
 			}
+			// Sin código escrito: el de su zona («AB-7»; codes.go), o el automático si no tiene zona todavía.
+			codeFor(tx, &p)
 			verifyStamp(tx, by, &p.VerifiedTeam, &p.VerifiedBy, &p.VerifiedAt)
 			if hold && by != nil && publish {
 				if t := teamOf(tx, by.ID); t != "" {
@@ -1299,7 +1300,7 @@ func (a *App) routes() http.Handler {
 			response(w, 200, map[string]any{"id": already.ID, "status": already.Status, "duplicate": true})
 			return
 		}
-		response(w, 201, map[string]string{"id": p.ID, "status": p.Status})
+		response(w, 201, map[string]string{"id": p.ID, "status": p.Status, "code": p.Code})
 	}
 	// Público: queda por revisar, salvo que administración haya apagado «Requerir revisión de puntos».
 	mux.HandleFunc("POST /api/submissions", func(w http.ResponseWriter, r *http.Request) {
@@ -1378,11 +1379,16 @@ func (a *App) routes() http.Handler {
 		}
 		points := []Point{}
 		err := a.db.View(func(tx *bolt.Tx) error {
+			var tv *teamView
+			if by := agentBy(r); by != nil {
+				tv = newTeamView(tx, by.ID)
+			}
 			return tx.Bucket(submissions).ForEach(func(_, v []byte) error {
 				var p Point
 				if e := json.Unmarshal(v, &p); e != nil {
 					return e
 				}
+				p.CodeEditable = tv != nil && tv.mate(p.AddedBy)
 				points = append(points, p)
 				return nil
 			})
@@ -1922,6 +1928,7 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		}
 		response(w, 200, n)
 	})
+	errCodeNotYours := userFieldError{"code", "Solo el equipo que creó el punto (o administración) puede cambiar su código."}
 	mux.HandleFunc("PATCH /api/admin/camps/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if !a.adminWrite(w, r) {
 			return
@@ -1938,6 +1945,13 @@ func (a *App) campRoutes(mux *http.ServeMux) {
 		var p Point
 		var req *ChangeRequest
 		err := a.write(r, func(tx *bolt.Tx) error {
+			// El código del punto lo cambia administración o alguien del equipo que creó el punto (no se pide a otros).
+			if by := agentBy(r); by != nil && f["code"] != nil {
+				var cur Point
+				if v := tx.Bucket(submissions).Get([]byte(id)); v != nil && json.Unmarshal(v, &cur) == nil && !strings.EqualFold(strings.TrimSpace(fieldText(f, "code")), strings.TrimSpace(cur.Code)) && !newTeamView(tx, by.ID).mate(cur.AddedBy) {
+					return errCodeNotYours
+				}
+			}
 			// Un agente de otro equipo (o sin equipo) no pisa un punto que actualizó otra persona: se lo pide (changes.go).
 			if by := agentBy(r); by != nil {
 				var e error
@@ -1977,6 +1991,9 @@ func (a *App) patchCamp(tx *bolt.Tx, id string, f map[string]json.RawMessage, by
 		return p, errMissing
 	}
 	if e := applyCampFields(&p, f); e != nil {
+		return p, e
+	}
+	if e := uniqueCode(tx, &p); e != nil {
 		return p, e
 	}
 	if p.Status == "approved" {
@@ -2188,6 +2205,9 @@ func (a *App) mergeRoutes(mux *http.ServeMux) {
 				}
 			}
 			if e := applyCampFields(&target, in.Fields); e != nil {
+				return e
+			}
+			if e := uniqueCode(tx, &target); e != nil {
 				return e
 			}
 			now := time.Now().UTC()
@@ -2660,6 +2680,9 @@ func userPanels(u User) []map[string]string {
 	if u.has(roleBuilder) {
 		panels = append(panels, map[string]string{"label": "Constructores", "url": "/builder.html"})
 	}
+	if u.has(roleScout) {
+		panels = append(panels, map[string]string{"label": "Scout", "url": "/scout.html"})
+	}
 	if u.has(roleAgent) {
 		panels = append(panels, map[string]string{"label": "Checkup", "url": "/command.html"})
 	}
@@ -2743,6 +2766,9 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 		if item.has(roleTeamManager) && item.TeamID != "" {
 			panels = append(panels, map[string]string{"label": "Mi equipo", "url": "/team.html"})
 		}
+		if item.has(roleScout) {
+			panels = append(panels, map[string]string{"label": "Scout", "url": "/scout.html"})
+		}
 		if len(panels) == 0 && len(item.Roles) == 0 {
 			// Alta desde la página pública todavía sin acceso (signup.go).
 			failField(w, 403, "accessCode", "Tu cuenta está pendiente de aprobación. Administración te dará acceso pronto.")
@@ -2809,6 +2835,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 	a.campLogRoutes(mux)
 	a.scoutRoutes(mux)
 	a.locateRoutes(mux)
+	a.codeRoutes(mux)
 	a.dispatchRoutes(mux)
 	a.teamRoutes(mux)
 	a.trackRoutes(mux)
@@ -2991,6 +3018,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 				return e
 			}
 			camps := map[string]runnerCamp{}
+			guard := newRunnerPhoneGuard(tx, tv)
 			if e := tx.Bucket(submissions).ForEach(func(_, v []byte) error {
 				var p Point
 				if e := json.Unmarshal(v, &p); e != nil {
@@ -2998,7 +3026,7 @@ func (a *App) crewRoutes(mux *http.ServeMux, c *crew, all ...*crew) {
 				}
 				// Retenido para otro equipo: sus runners todavía no lo ven.
 				if p.Status == "approved" && !heldFrom(p, tv.team) {
-					contacts := campContacts(p)
+					contacts := guard.runnerContacts(campContacts(p))
 					// Quien es de un equipo ve qué equipo y quién verificó; sin equipo, como el público: solo la insignia
 					// (publicPoint los quita).
 					vTeam, vBy := p.VerifiedTeam, p.VerifiedBy
