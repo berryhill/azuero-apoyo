@@ -307,6 +307,7 @@ func (a *App) donationRoutes(mux *http.ServeMux) {
 		}},
 	} {
 		a.donationDesk(mux, door.prefix, door.who)
+		a.offerDesk(mux, door.prefix, door.who)
 	}
 	mux.HandleFunc("POST /api/desk/session", func(w http.ResponseWriter, r *http.Request) {
 		f, ok := decodeFields(w, r, map[string]int{"accessCode": 64})

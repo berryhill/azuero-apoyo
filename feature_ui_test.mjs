@@ -62,12 +62,12 @@ test('public map/list default to «Con necesidades»; pins are light green (camp
   assert.match(template, /'Ningún punto con necesidades abiertas o en camino\.'/, 'an empty list says why');
   const src = template.match(/const hasNeed=[^;]*;/)[0] + template.match(/const pinColors=[^\n]*/)[0];
   const {pinColor, pinColors} = new Function(`${src};return {pinColor, pinColors}`)();
-  assert.deepEqual(pinColors, {camp: '#7fcf9a', need: '#5b9be6', urgent: '#f28b82'}, 'normal needs medium blue, urgent light red: not a wall of dark red');
+  assert.deepEqual(pinColors, {camp: '#2f9e5f', need: '#2f7fd8', urgent: '#e0533d'}, 'pins with an icon: ✓ green, «!» blue need, «!» red urgent');
   assert.equal(pinColor({needStatuses: ['COMPLETED']}), pinColors.camp, 'only completed needs = camp');
   assert.equal(pinColor({}), pinColors.camp);
   assert.equal(pinColor({needStatuses: ['IN_PROGRESS'], highestUrgency: 'normal'}), pinColors.need);
   assert.equal(pinColor({needStatuses: ['OPEN'], highestUrgency: 'urgente'}), pinColors.urgent);
-  assert.match(template, /<div class="legend"><span><i style="background:#7fcf9a"><\/i>Punto<\/span><span><i style="background:#5b9be6"><\/i>Necesidad<\/span><span><i style="background:#f28b82"><\/i>Urgente<\/span><\/div>/, 'the map explains the colors');
+  assert.match(template, /<div class="legend"><span><i class="lg camp">✓<\/i>Sin pendientes<\/span><span><i class="lg need">!<\/i>Necesidad<\/span><span><i class="lg urgent">!<\/i>Urgente<\/span><\/div>/, 'the map explains the pins');
 });
 test('public coordinator filter is a sidebar stat button with a searchable picker, not a map dropdown', () => {
   assert.doesNotMatch(template, /mapCoordinator|listCoordinator|<select[^>]*coordinador/i);
@@ -110,8 +110,8 @@ test('public cards: area then people count on top; no generated ID or «Sin nomb
   assert.match(template, /\$\{r\.coordinator\?`<div class="meta">\$\{clean\(r\.coordinator\)\} sabe más<\/div>`:''\}/);
 });
 test('public point card on the map sits above the map controls and can be dragged by its top bar', () => {
-  assert.doesNotMatch(template.match(/function renderMarkers[^\n]*|const m=L\.circleMarker[^\n]*/)[0], /bindPopup/, 'no small pop-up on the pin: the card is the detail');
-  assert.match(template, /markers\.forEach\(\(m,code\)=>\{m\.setRadius\(code===r\.code\?13:9\)/, 'the chosen pin grows instead');
+  assert.match(template.match(/function renderMarkers[^\n]*/)[0], /if\(!document\.body\.classList\.contains\('signed-in'\)\)\{m\.bindPopup\(publicPop\(r\)/, 'signed out: small pop-up; signed in: the card is the detail');
+  assert.match(template, /markers\.forEach\(\(m,code\)=>\{m\.setIcon\(pinIcon\(m\._kind,code===r\.code\)\)/, 'the chosen pin grows instead');
   assert.match(template, /<article class="detail" id="detail"><div class="detailgrip" id="detailGrip" title="Arrastrar para mover"><\/div><button class="close" id="closeDetail"/);
   assert.match(template, /\.detail\{position:absolute;z-index:1100;/, 'above Leaflet controls (1000), below dialogs (1200)');
   assert.match(template, /grip\.addEventListener\('pointerdown',e=>\{drag=\{x:e\.clientX-d\.offsetLeft,y:e\.clientY-d\.offsetTop\};grip\.setPointerCapture\(e\.pointerId\)/);
@@ -323,7 +323,7 @@ test('point form people: legacy contacts become people, phone rule accepts any p
 test('public and admin point forms use the shared PointForm with GPS link and dynamic people', () => {
   assert.match(template, /<script src="\.\/pointform\.js"><\/script>/);
   assert.match(template, /<form id="form"><div id="pointFields"><\/div>/);
-  assert.match(template, /PointForm\.render\(\$\('#pointFields'\),\{nearby:publicNearby,me:codeMe\(\)\}\)/);
+  assert.match(template, /PointForm\.render\(\$\('#pointFields'\),\{nearby:publicNearby,me:codeMe\(\),publicSteps:true\}\)/);
   assert.match(template, /if\(!PointForm\.hasPhone\(record\)\)/);
   assert.match(admin, /<script src="\.\/pointform\.js"><\/script>/);
   assert.match(admin, /PointForm\.render\(\$\('#pointFormFields'\),\{admin:true,nearby:addPointNearby\}\)/);
@@ -367,15 +367,17 @@ test('point form: numbered 3 steps, persona fields ordered nombre, teléfono, ed
 test('¡Ayuda! form has no intro and only confirms "Se ha enviado tu solicitud" after sending', () => {
   const modal = template.slice(template.indexOf('id="modal"'), template.indexOf('<form id="form">'));
   assert.match(modal, /<h2 id="addTitle">Reportar punto<\/h2><button type="submit" form="form" class="addsave">Guardar<\/button><\/div><div class="addbody"><div class="notice sent"/);
-  assert.match(template, /<button type="button" class="navbtn howbtn" data-how-open>¿Cómo funciona\?<\/button><button class="add" id="addBtn">📍 Reportar un lugar que necesita ayuda<\/button>/, 'wide screens: report + how it works in the header');
-  assert.match(template, /<header class="top" data-search-icon>/, 'home: search is the 🔍 button so both fit');
+  assert.match(template, /<button type="button" class="navbtn howbtn" data-how-open>¿Cómo funciona\?<\/button><button class="add" id="addBtn" title="Reportar un lugar que necesita ayuda">📍 Reportar ayuda<\/button>/, 'wide screens: short «📍 Reportar ayuda» + how it works in the header');
+  assert.match(template, /body:not\(\.signed-in\) \.top #addBtn\{order:1\}body:not\(\.signed-in\) \.top \.howbtn\{order:2\}body:not\(\.signed-in\) \.top #loginBtn\{order:3\}/, 'public, wide: Reportar, ¿Cómo funciona?, Inicia sesión, then search');
   assert.doesNotMatch(template, /formIntro/);
   // Signed in with a code, the button reads «+ Agregar punto» like the admin and runner pages; otherwise «¡Ayuda!».
-  assert.match(template, /\$\('#addBtn'\)\.textContent=\$\('#addBtnBar'\)\.textContent='📍 Reportar un lugar que necesita ayuda';/, 'same words signed in or not');
+  assert.match(template, /\$\('#addBtn'\)\.textContent='📍 Reportar ayuda';\$\('#addBtnBar'\)\.textContent='📍 Reportar un lugar que necesita ayuda';/, 'header: short; phone row: full sentence');
+  assert.match(template, /@media\(min-width:761px\)\{body:not\(\.signed-in\) \.top \.brand \.logo\{display:none\}/, 'public, wide: no logo');
+  assert.match(template, /body:not\(\.signed-in\) \.top \.topsearch,body:not\(\.signed-in\) \.top \.dsearchbtn,body:not\(\.signed-in\) #mSearch\{display:none!important\}/, 'no search on the public home page');
   assert.doesNotMatch(template, /Un administrador la revisará/);
   assert.match(modal, /<div class="notice sent" id="sentNotice" role="status" hidden><b id="sentTitle">Se ha enviado tu solicitud\.<\/b>/);
   assert.doesNotMatch(template, /Se envía a revisión/);
-  assert.match(template, /PointForm\.render\(\$\('#pointFields'\),\{nearby:publicNearby,me:codeMe\(\)\}\);\$\('#sentTitle'\)\.textContent=[^;]*;showSent\(true\);/);
+  assert.match(template, /\$\('#sentTitle'\)\.textContent=saved\.status==='approved'\?[^;]*;showSent\(true\);/);
   assert.match(template, /\$\('#addBtn'\)\.onclick=\(\)=>\{showSent\(false\);/);
 });
 test('admin header: just the logo with Buscar… right after it; Salir in a small footer; coordinator typeahead', () => {
@@ -1311,11 +1313,12 @@ test('«Solo Nuestro Equipo»: code users can limit the public list/map and runn
   assert.match(runner, /if\(!localStorage\.getItem\('runnerCode'\)\)teamOnly=false;/);
 });
 test('public narrow view: 📊 tab holds the totals, Lista keeps only filters; tapping your name copies your user ID', () => {
-  assert.match(template, /<button type="button" data-view="map" title="Mapa" aria-label="Mapa"><svg[^]*?<span>Mapa<\/span><\/button><button type="button" data-view="stats" title="Resumen" aria-label="Resumen"><svg[^]*?<span>Resumen<\/span><\/button><\/nav>/, 'Lista, Mapa, Resumen (icons only on phones)');
+  assert.match(template, /<button type="button" data-view="map" title="Mapa" aria-label="Mapa"><svg[^]*?<span>Mapa<\/span><\/button><button type="button" data-view="stats" title="Resumen" aria-label="Resumen" class="active"><svg[^]*?<span>Resumen<\/span><\/button><\/nav>/, 'Mapa, Resumen (icons only on phones)');
+  assert.doesNotMatch(template, /data-view="list"/, 'no «Lista» tab on the home page, signed in or not');
   assert.match(template, /<\/div><div class="homeacts"><button type="button" class="ha-report" id="reportBar">📍 Reportar un lugar que necesita ayuda<\/button><button type="button" class="ha-how" data-how-open>¿Cómo funciona\?<\/button><\/div>/, 'phone: report + how it works right below the header');
   assert.match(template, /#mAdd\{display:none!important\}/, 'not in the top bar');
   assert.match(template, /\.mobile-nav button\[data-view\] span\{display:none\}/, 'icons only');
-  assert.match(template, /const order=\['list','map','stats'\],area=document\.querySelector\('\.side'\)/, 'swipe between the views');
+  assert.match(template, /const order=\['map','stats'\],area=document\.querySelector\('\.side'\)/, 'swipe between the views');
   assert.match(template, /#navOut\{display:none!important\}/, 'no «Salir» before the avatar on the home page');
   assert.match(template, /<div class="sidehead"><button type="button" class="filtertoggle" id="filterToggle" aria-expanded="false" aria-controls="filterPanel" aria-label="Filtros">[^]*?<\/button><div class="filterpanel" id="filterPanel"><div class="stats pointstats">/, 'filters fold into one summary line; the list gets the space');
   assert.match(template, /\.filterpanel\{display:none;padding-top:12px\}\.filterpanel\.open,\.mobile-stats \.filterpanel\{display:block\}/, 'open on tap; always open in the stats view');
@@ -2044,7 +2047,7 @@ test('Supply «Necesidades» cards show when the need was last updated («🕓 A
 });
 test('phone header (nav.js, panels): logo · page name · «+» page action · ☰ menu with name + Salir, pages and text size', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
-  assert.match(nav, /bar\.innerHTML = `<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">\$\{svg\([^)]*\)\}<\/button><nav class="mlinks" id="mLinks" aria-label="Páginas"><\/nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled><\/button>\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"[^`]*` : ''\}<button type="button" class="madd" id="mAdd" hidden><\/button>\$\{document\.getElementById\('loginBtn'\) \? '<button type="button" class="mlogin" id="mLogin">Inicia sesión<\/button>' : ''\}`;/, 'avatar / ☰ far left · pages ▾ · 🔍 · action');
+  assert.match(nav, /bar\.innerHTML = `<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">\$\{svg\([^)]*\)\}<\/button><nav class="mlinks" id="mLinks" aria-label="Páginas"><\/nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled><\/button>\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"[^`]*` : ''\}<button type="button" class="madd" id="mAdd" hidden><\/button>\$\{document\.getElementById\('loginBtn'\) \? `<button type="button" class="mlogin" id="mLogin" aria-label="[^`]*">\$\{document\.getElementById\('loginBtn'\)\.innerHTML\}<\/button>` : ''\}`;/, 'avatar / ☰ far left · pages ▾ · 🔍 · action');
   assert.match(nav, /const list = u \? pages\.filter\(\(\[url, , , ok, where\]\) => url === here \|\| ok\(u\) && where !== 'menu'\) : \[\];/, '«Mi equipo» only once in the avatar menu');
   assert.match(nav, /if \(!top \|\| !document\.getElementById\('appNav'\) \|\| document\.getElementById\('mBar'\)\) return;/, 'panels and the public map share the same phone header');
   assert.match(nav, /function fitMobileBar\(\) \{[^}]*?bar\.classList\.add\('tight'\);\s*drawTitle\(\);/, 'on phones the pages are always folded into «current page ▾», on every page, even when few');
@@ -2106,9 +2109,9 @@ test('public page on a phone, signed out: «Reportar punto», «Inicia sesión»
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
   assert.match(nav, /classList\.toggle\('public', !user\(\) && !!document\.getElementById\('loginBtn'\)\)/);
   assert.match(nav, /\.mbar\.public \.mlinks,\.mbar\.public \.mtitle,\.mbar\.public \.msearchbtn\{display:none!important\}\.mbar\.public \.madd\{order:-1\}/);
-  assert.match(nav, /\$\{document\.getElementById\('loginBtn'\) \? '<button type="button" class="mlogin" id="mLogin">Inicia sesión<\/button>' : ''\}/);
+  assert.match(nav, /\$\{document\.getElementById\('loginBtn'\) \? `<button type="button" class="mlogin" id="mLogin" aria-label="[^`]*">\$\{document\.getElementById\('loginBtn'\)\.innerHTML\}<\/button>` : ''\}/);
   assert.match(nav, /if \(e\.target\.closest\('#mLogin'\)\) \{ showSheet\(false\); document\.getElementById\('loginBtn'\)\?\.click\(\); return; \}/);
-  assert.match(template, /id="loginBtn">Inicia sesión<\/button>/);
+  assert.match(template, /id="loginBtn" aria-label="Soy voluntario: iniciar sesión"><b>🙋 Soy voluntario<\/b><small>Iniciar sesión<\/small><\/button>/);
   assert.match(template, /\$\('#loginBtn'\)\.hidden=!!u;/, 'hidden once signed in');
 });
 
@@ -2860,7 +2863,7 @@ test('admin Equipos tab: a card per team with its Team managers, members (☆ Ha
   assert.match(admin, /data-tm-toggle="\$\{clean\(u\.id\)\}" aria-pressed="\$\{mgr\}">\$\{mgr\?'★ Team manager':'☆ Hacer team manager'\}<\/button>/);
   assert.match(admin, /const failed=await patchUsers\(\[u\.id\],\{teamId:'',roles:u\.roles\.filter\(r=>r!=='teammanager'\)\}\);/, 'removing from the team also removes Team manager');
   assert.match(admin, /placeholder="＋ Agregar miembro: nombre, teléfono o código…"/);
-  assert.match(admin, /userTab\(\{equipos:'teams',registros:'live',invitaciones:'invites'\}\[q\.get\('tab'\)\]\|\|'users',false\)/, 'the tab is in the link');
+  assert.match(admin, /userTab\(\{equipos:'teams',registros:'live',invitaciones:'invites',voluntarios:'offers'\}\[q\.get\('tab'\)\]\|\|'users',false\)/, 'the tab is in the link');
 });
 
 test('admin Equipos: quick search by team name or by person (name, phone, ID) filters the cards', () => {
@@ -2931,8 +2934,8 @@ test('home: runner actions (conductor, empaque, foto de partida) only for the Ru
   assert.match(template, /function canRun\(\)\{try\{return\(JSON\.parse\(localStorage\.getItem\('codeUser'\)\|\|'null'\)\?\.roles\|\|\[\]\)\.includes\('runner'\)/);
   assert.match(template, /\$\{canRun\(\)&&n\.kind!=='meal'\?`<div class="teamacts"><button type="button" data-assign-need=/);
   assert.match(template, /n\.runnerName&&canRun\(\)\?` · <button type="button" class="unassign"/);
-  assert.match(template, /m\.on\('click',\(\)=>\{if\(!phoneLocked\(\)\)show\(r\)\}\)/);
-  assert.match(template, /function mobileView\(view\)\{if\(view==='list'&&phoneLocked\(\)\)view='stats';/);
+  assert.match(template, /if\(!phoneLocked\(\)\)show\(r\)\}\)/);
+  assert.match(template, /function mobileView\(view\)\{if\(view==='list'\)view='stats';/);
   assert.match(template, /body\.no-runner \.mobile-nav button\[data-view=list\]\{display:none\}/);
   assert.match(template, /codeMe\(\)&&!phoneLocked\(\)\?'<div id="teamNeeds">/);
   assert.match(template, /addEventListener\('accesschange'/);
@@ -2966,15 +2969,28 @@ test('change requests: agents from another team send «Cambios propuestos» to w
   assert.match(cmd, /askedOwner\.kind==='punto'\?'este punto':'esta necesidad'/);
 });
 
-test('home: signed-out visitors see «🙌 ¿Quieres ayudar?» above the Resumen; «¡Empieza!» opens Login', () => {
-  assert.match(template, /box\.innerHTML=joinCard\(\)\+`<p class="sumnote" role="note">/, 'no «Resumen» title or timestamp above the summary');
-  assert.doesNotMatch(template, /<h2>Resumen<\/h2>/);
-  assert.match(template, /hide=!!localStorage\.getItem\('codeUser'\)\}catch\{\}return hide/);
-  assert.doesNotMatch(template, /joinHidden|data-join="hide"/);
+test('home: «🙌 ¿Quieres ayudar?» is a contact form (no account) that lands in Donaciones «📥 Ofrecimientos»; donate section', () => {
+  const don = readFileSync(new URL('./donations.html', import.meta.url), 'utf8');
+  assert.match(template, /box\.innerHTML=quakeCard\(\)\+joinCard\(\)\+`<p class="sumnote" role="note">/, 'no «Resumen» title or timestamp above the summary');
+  assert.match(template, /function joinCard\(\)\{return '<div id="joinMount"><\/div>'\}/, 'shown signed in or not');
+  assert.match(template, /box\.querySelector\('#joinMount'\)\?\.replaceWith\(joinCardEl\(\)\)/, 'the form survives summary refreshes');
   assert.match(template, /<b>🙌 ¿Quieres ayudar\?<\/b>/);
-  assert.match(template, /<div class="joinacts"><button type="button" class="add" data-join="start">¡Empieza!<\/button><button type="button" class="howlink" data-how-open>¿Cómo funciona\?<\/button><\/div>/);
-  assert.match(template, /identifica y reporta necesidades, entrega donaciones o ayuda a actualizar datos por teléfono/);
-  assert.doesNotMatch(template, /Crear mi cuenta<\/button>|data-join="code"/);
+  assert.match(template, /const HELP_OPTS=\[\['report','🧭 Reportar necesidades'\],\['deliver','🚗 Llevar donaciones a la gente'\],\['supply','📦 Organizar centros de acopio y despachos'\],\['cook','🍳 Cocinar'\],\['calls','📞 Centro de llamadas: verificar necesidades reportadas'\],\['repair','🔨 Reparar casas'\],\['donate','💵 Donar'\]\];/, 'order');
+  assert.match(template, /<label class="jconsent jshare" hidden><input type="checkbox" name="shareConsent" disabled><span>\$\{clean\(window\.AppNav\?\.consentText/, 'same consent as the sign-up, for app tasks');
+  assert.match(template, /usesApp=\(\)=>\[\.\.\.f\.querySelectorAll\('\[name=help\]:checked'\)\]\.some\(x=>SHARE_HELP\.includes\(x\.value\)\)/);
+  assert.match(template, /const SHARE_HELP=\['report','deliver','supply','cook','repair'\];/, 'only report, deliver, supply, cook and repair ask for it');
+  assert.match(template, /box\.hidden=!on;box\.querySelector\('input'\)\.disabled=!on;/, 'otherwise not part of the form');
+  assert.match(template, /\.jform \.jconsent\[hidden\]\{display:none!important\}/, 'really invisible');
+  assert.match(readFileSync(new URL('./nav.js', import.meta.url), 'utf8'), /window\.AppNav = \{consentText: CONSENT,/);
+  assert.match(template, /<button type="button" class="jyes" data-join-open>Sí, quiero ayudar<\/button>/, 'green button on the page');
+  assert.match(template, /d\.querySelector\('\[data-join-open\]'\)\.onclick=\(\)=>joinDialog\(\)\.showModal\(\)/, 'the form is a pop-up');
+  assert.match(template, /\.jyes\{[^}]*background:#19745f/, 'green');
+  assert.match(template, /@media\(max-width:760px\)\{\.joindlg\{width:calc\(100vw \/ var\(--text-zoom,1\)\);max-width:none;height:calc\(100dvh \/ var\(--text-zoom,1\)\);max-height:none;margin:0;border-radius:0\}/, 'full-screen form on phones');
+  assert.match(template, /fetch\('\/api\/help-offers',\{method:'POST'/);
+  assert.doesNotMatch(template.slice(template.indexOf('function joinDialog'), template.indexOf('function joinCard()')), /api\/session\/signup|signInCode|donationKind|jdonate/, 'basic contact form, not a sign-up');
+  assert.match(don, /data-dtab="offers" aria-selected="false">📥 Ofrecimientos <b id="offCount"><\/b><\/button>/);
+  assert.match(don, /offers=await api\('\/offers'\)/);
+  assert.match(don, /api\('\/offers\/'\+encodeURIComponent\(o\.id\),'PATCH',\{status:status===o\.status\?'':status,note\}\)/, 'status + note follow-up');
 });
 
 test('«🕓 Historial de cambios» on a point in admin and Command; builders answer change requests too', () => {
@@ -3361,7 +3377,7 @@ test('«¿Cómo funciona?»: one illustrated 1-2-3 window (Scouts → Runners �
   assert.match(nav, /Cada parte es igual de importante\. Juntos, la ayuda llega\./);
   assert.match(nav, /<button type="button" class="mhow" data-how-open>❓ ¿Cómo funciona\?<\/button>/, 'in the avatar menu');
   for (const f of ['index.html', 'signup.html', 'runner.html']) assert.match(read(f), /data-how-open/, f);
-  assert.match(nav, /window\.AppNav = \{howItWorks,/, 'any page can open it');
+  assert.match(nav, /window\.AppNav = \{consentText: CONSENT, howItWorks,/, 'any page can open it');
 });
 
 test('«¿Cómo funciona?» closes with its last button, shows the runner icon in the cycle, and greets first-time visitors once', () => {
@@ -3525,13 +3541,12 @@ test('admin Usuarios: tapping a user\'s roles opens the role dialog for that use
   assert.match(admin, /u\.teamId\|\|\(rolesOnly\?'__none__':lastTeam\(\)\)/, 'no team stays no team');
 });
 
-test('home, phone, signed out: ☰ · «📍 Reportar» · «¿Cómo funciona?» · «Inicia sesión» on one header line', () => {
+test('public home (signed out): header only «🙋 Soy voluntario · Iniciar sesión» and «Aa» (no ☰, no Reportar / ¿Cómo funciona?)', () => {
   const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
-  assert.match(html, /const inBar=!!bar&&!!login&&matchMedia\('\(max-width:760px\)'\)\.matches&&!document\.body\.classList\.contains\('signed-in'\);if\(inBar&&rep\.parentElement!==bar\)\{login\.before\(rep,how\);rep\.textContent='📍 Reportar'\}/, 'moved into the bar, short text');
-  assert.match(html, /else if\(!inBar&&rep\.parentElement!==acts\)\{acts\.append\(rep,how\);rep\.textContent='📍 Reportar un lugar que necesita ayuda'\}/, 'signed in: back to the row under the header');
-  assert.match(html, /\.homeacts:empty\{display:none!important\}/);
-  assert.match(html, /body:has\(\.homeacts:empty\) \.app\{height:calc\(calc\(100dvh \/ var\(--text-zoom,1\)\) - 112px\)!important\}/, 'the map/list gets the freed row');
-  assert.match(html, /#mBar \.ha-how,#mBar \.mlogin\{flex:none;height:42px;[^}]*white-space:normal;[^}]*max-width:82px\}/, 'two short lines so the red button keeps its room');
+  assert.match(html, /body:not\(\.signed-in\) \.top #addBtn,body:not\(\.signed-in\) \.top \.howbtn,body:not\(\.signed-in\) #mMenu,body:not\(\.signed-in\) #mTitle,body:not\(\.signed-in\) #mLinks\{display:none!important\}/);
+  assert.match(html, /body:not\(\.signed-in\) \.homeacts\{display:none!important\}/, 'no row under the header either');
+  assert.match(html, /body:not\(\.signed-in\) header\.top>\.textsize\{display:block!important;flex:none\}/, '«Aa» also on phones');
+  assert.match(html, /function placeHomeActs\(\)\{[^\n]*acts\.append\(rep,how\)/, 'report + how stay in their row (signed in)');
 });
 
 test('Supply «🖨️ Informe PDF» next to the period: only for team members; the report itself is in reports.js (no phones)', () => {
@@ -3626,4 +3641,96 @@ test('«Mi equipo» «🎭 Por rol»: each role folded with its total; open one 
   assert.match(page, /byRole\?`<details class="rolegrp" data-role="\$\{clean\(h\)\}"\$\{openRoles\.has\(h\)\|\|q\?' open':''\}><summary><span>\$\{clean\(h\)\}<\/span>\$\{gi===0&&!q\?[^]*?<b>\$\{list\.length\}<\/b><\/summary>/);
   assert.match(page, /d\.open\?openRoles\.add\(d\.dataset\.role\):openRoles\.delete\(d\.dataset\.role\)/, 'stays open across refreshes');
   assert.match(page, /\$\{gi===0&&!q\?`<button type="button" class="rolesall" data-rolesall="\$\{allOpen\?'close':'open'\}">\$\{allOpen\?'⊟ Cerrar todos':'⊞ Abrir todos'\}<\/button>`:''\}/, 'expand / collapse all on the first role line');
+});
+
+test('home Resumen: earthquake card above «¿Quieres ayudar?» (what happened, effects, how to help, sources)', () => {
+  const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+  assert.match(html, /box\.innerHTML=quakeCard\(\)\+joinCard\(\)\+/, 'first in the summary');
+  assert.match(html, /<b>🌎 Terremoto en la península de Azuero<\/b><p class="qwhen">9 de octubre de 2026 · 12:56 p\. m\. · magnitud 7,7<\/p>/);
+  assert.match(html, /<button type="button" class="add" data-quake-report>📍 Reportar a alguien que necesita ayuda<\/button>/);
+  assert.match(html, /if\(e\.target\.closest\('\[data-quake-report\]'\)\)\$\('#addBtn'\)\.click\(\)/);
+  assert.match(html, /<small class="qsrc">Sismo: <a href="https:\/\/earthquake\.usgs\.gov\/earthquakes\/eventpage\/us6000u18k"[^>]*>USGS<\/a> · cifras oficiales al 16 oct 2026: <a href="https:\/\/www\.infobae\.com\//, 'sources cited');
+});
+
+test('public «📍 Reportar ayuda» form: 1 ¿Dónde estás? · 2 ¿Quién eres? (name, phone, consent) · 3 ¿Quién necesita ayuda? · 4 ¿Qué necesitan?; account created on send', () => {
+  const pf = readFileSync(new URL('./pointform.js', import.meta.url), 'utf8'), html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+  assert.match(pf, /section\(2, '¿Quién eres\?', `<div class="pf-grid">\$\{input\('coordinator', 'Tu nombre y apellido'/);
+  assert.match(pf, /<label class="pf-consent"><input type="checkbox" data-pf-consent><span>Acepto que mi nombre y teléfono se compartan/);
+  assert.match(pf, /section\(3, '¿Quién necesita ayuda\?'/);
+  assert.match(pf, /section\(4, '¿Qué necesitan\?'/);
+  assert.match(pf, /root\.innerHTML = html\(\{admin, edit, publicSteps: publicSteps && !me\}\);/, 'only signed-out public form');
+  assert.match(pf, /const who = section\(2, '¿Con quién estás\?'/, 'other pages keep their form');
+  assert.match(html, /if\(!\$\('#pointFields \[data-pf-consent\]'\)\.checked\)\{alert\('Marca la casilla/, 'consent required');
+  assert.match(html, /body:JSON\.stringify\(\{name:record\.coordinator,telephone:record\.coordinatorPhone,consent:true\}\)/, 'account from the report');
+  assert.match(html, /localStorage\.getItem\('rememberedCode'\)\|\|''\}catch\{\}if\(code\)\{try\{await signInCode\(code\);return\}/, 'reuses a remembered code instead of a second account');
+  assert.match(html, /if\(pub\)\{try\{await publicSignIn\(record\)\}catch\(err\)\{/);
+});
+
+test('home map: issue-icon pins, Panama-only zoom, and the 9 Oct earthquake layer with sources', () => {
+  const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+  assert.match(html, /const m=L\.marker\(r\.coords,\{icon:pinIcon\(kind,selected===r\.code\)/, 'icons, not circles');
+  assert.match(html, /const PANAMA=L\.latLngBounds\(\[\[7\.0,-83\.1\],\[9\.7,-77\.15\]\]\);map\.setMaxBounds\(PANAMA\.pad\(0\.12\)\);/);
+  assert.match(html, /map\.setMinZoom\(Math\.max\(6,map\.getBoundsZoom\(PANAMA,false\)\)\)/, 'no zooming out past Panama');
+  assert.match(html, /\{epi:true,at:\[7\.5868,-80\.769\],t:'Epicentro · magnitud 7,7'/, 'USGS epicenter (us6000u18k)');
+  for (const id of ['us6000u19w', 'us6000u1cf', 'us6000u18x', 'us6000u18t']) assert.ok(html.includes(`AFTER('${id}'`), 'USGS aftershock ' + id);
+  for (const town of ["t:'Tonosí'", "t:'Macaracas'", "t:'Isla de Cañas'", "t:'La Villa de Los Santos'"]) assert.ok(html.includes(town), town);
+  assert.match(html, /<small>Fuente: \$\{links\.map\(/, 'each marker cites its source');
+  assert.match(html, /<i class="lg epi">✱<\/i>Epicentro<\/span><span><i class="lg aft">✱<\/i>Réplica fuerte<\/span><span><i class="lg dmg">⚠<\/i>Daño reportado/, 'legend');
+  assert.match(html, /href="https:\/\/earthquake\.usgs\.gov\/earthquakes\/eventpage\/us6000u18k"/, 'USGS cited');
+  assert.match(html, /data-quake-map>🗺️ Ver el sismo en el mapa<\/button>/);
+});
+
+test('public map (signed out): tapping a point opens a small popup, also on phones; no buttons; reporter hidden when it is just «yo»', () => {
+  const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+  assert.match(html, /m\.on\('click',\(\)=>\{if\(!document\.body\.classList\.contains\('signed-in'\)\)\{m\.bindPopup\(publicPop\(r\),\{maxWidth:250,className:'ppop'\}\)\.openPopup\(\);return\}if\(!phoneLocked\(\)\)show\(r\)\}\)/);
+  const fn = html.match(/function publicPop\(r\)\{[^\n]*/)[0];
+  assert.doesNotMatch(fn, /<button|<a /, 'no buttons or links');
+  assert.match(fn, /showWho=who&&!\/\^yo\\\.\?\$\/i\.test\(who\)/);
+  assert.match(fn, /st=kind==='urgent'\?'<span class="pp u">Urgente<\/span>':''/, 'only «Urgente» is shown');
+});
+
+test('«¿Quieres ayudar?» card names the tasks and says donors are put in touch with the right charity; volunteer-only offers go to Admin «🙌 Voluntarios», donors also to Donaciones', () => {
+  const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8'), admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8'), don = readFileSync(new URL('./donations.html', import.meta.url), 'utf8');
+  assert.match(html, /<p>Hay mucho por hacer: reportar a quien necesita ayuda, llevar donaciones a las comunidades, organizar centros de acopio, cocinar, verificar reportes por teléfono o reparar casas\./);
+  assert.match(html, /¿Prefieres donar\? Te ponemos en contacto con la organización benéfica indicada/);
+  assert.match(admin, /data-utab="offers" aria-selected="false"><span aria-hidden="true">🙌<\/span> Voluntarios/);
+  assert.match(admin, /offers=await adminRequest\('\/api\/admin\/offers'\)/);
+  assert.match(admin, /voluntarios:'offers'/, 'deep link ?tab=voluntarios');
+  assert.match(don, /async function loadOffers\(\)\{try\{offers=await api\('\/offers'\)\}/, 'Donaciones gets every offer');
+});
+
+test('header: the Donaciones role sees «📥 N ofrecimientos nuevos» on every page (pulsing), and a badge on the Donaciones link', () => {
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  assert.match(nav, /newOffers = b\.newOffers \|\| 0;/);
+  assert.match(nav, /const onDon = location\.pathname === '\/donations\.html', showO = newOffers > 0;/, 'also on Donaciones, next to ＋🎁');
+  assert.match(nav, /oc\.id = 'offersNow'; oc\.className = 'runnow offersnow'; oc\.href = '\/donations\.html';/);
+  assert.match(nav, /sessionStorage\.setItem\('donTab', 'offers'\)/, 'opens the inbox tab');
+  assert.match(nav, /badge\('\/donations\.html', newOffers,/);
+  assert.match(nav, /\.offersnow\{background:#7b3fbf;animation:offpulse/);
+});
+
+test('home, signed in: no «Soy voluntario · Iniciar sesión»; header alerts (📥 / 🏃 / 📦) on the far right', () => {
+  const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+  assert.match(html, /body\.signed-in #loginBtn,body\.signed-in #mLogin,#loginBtn\[hidden\]\{display:none!important\}header\.top>\.runnow\{order:98\}/);
+  assert.match(html, /\.volbtn,body:not\(\.signed-in\) #loginBtn,body:not\(\.signed-in\) #mLogin\{display:flex;/, 'the volunteer button style only applies signed out');
+});
+
+test('Donaciones header like Supply / Runners: avatar, pages, global search, «+ 🎁 Registrar donación» (light purple) on the right; no «Salir» on phones', () => {
+  const don = readFileSync(new URL('./donations.html', import.meta.url), 'utf8');
+  assert.match(don, /<header class="top"><div class="brand"><span class="logo" title="Azuero Apoyo">✚<\/span><\/div><nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="find" type="search" data-global="1"/);
+  assert.match(don, /<div class="topright"><button type="button" class="add" id="newBtn" title="Registrar donación" aria-label="Registrar donación" hidden>＋🎁<\/button>/);
+  assert.doesNotMatch(don.slice(don.indexOf('<main class="wrap" id="app"')), /<h1>🎁 Donaciones<\/h1>/, 'the menu already says Donaciones');
+  assert.match(don, /\.top \.add\{[^}]*background:#9b6cf0/, 'light purple, not red');
+  assert.doesNotMatch(don, />Ver inicio</);
+  assert.match(don, /@media\(max-width:760px\)\{#navOut\{display:none!important\}\}/);
+});
+
+test('Donaciones: one search above both tabs; matches in the other tab show underneath and open there', () => {
+  const don = readFileSync(new URL('./donations.html', import.meta.url), 'utf8');
+  assert.match(don, /<input class="search" id="search" type="search" placeholder="🔍 Buscar en donaciones y ofrecimientos[^"]*"[^>]*><nav class="dtabs" id="dtabs"/, 'one search, above the tabs');
+  assert.doesNotMatch(don, /id="offSearch"/);
+  assert.match(don, /<h3>📥 También en Ofrecimientos <b>\$\{os\.length\}<\/b><\/h3>/);
+  assert.match(don, /<h3>🎁 También en Donaciones <b>\$\{ts\.length\}<\/b><\/h3>/);
+  assert.match(don, /if\(go\)\{offFilter='all';showDTab\('offers'\)/);
+  assert.match(don, /if\(gt\)\{filter='all';showDTab\('tickets'\);render\(\);document\.querySelector\(`#list \[data-id="\$\{gt\.dataset\.gticket\}"\]`\)\?\.click\(\)\}/);
 });

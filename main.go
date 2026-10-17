@@ -522,6 +522,9 @@ func openApp(path, static string) (*App, error) {
 		if _, e := tx.CreateBucketIfNotExists(needsBucket); e != nil {
 			return e
 		}
+		if e := ensureOffers(tx); e != nil {
+			return e
+		}
 		if _, e := tx.CreateBucketIfNotExists(boletinesBucket); e != nil {
 			return e
 		}
@@ -1625,6 +1628,7 @@ func (a *App) routes() http.Handler {
 	a.teamInviteRoutes(mux)
 	a.teamBoardRoutes(mux)
 	a.reportRoutes(mux)
+	a.offerRoutes(mux)
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		name := ""
 		switch r.URL.Path {
@@ -2818,7 +2822,7 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 		if u, ok := a.viewer(w, r); ok {
 			roles, panels := a.accessOf(u.ID)
 			// team: nombre del equipo (vacío sin equipo); el formulario de punto pone a quien entra como coordinador.
-			team, active, toDispatch := "", 0, 0
+			team, active, toDispatch, newOffers := "", 0, 0, 0
 			a.db.View(func(tx *bolt.Tx) error {
 				if t, ok := getTeam(tx, teamOf(tx, u.ID)); ok {
 					team = t.Name
@@ -2835,9 +2839,13 @@ func (a *App) runnerRoutes(mux *http.ServeMux) {
 					}
 					return nil
 				})
+				// newOffers: rol Donaciones: ofrecimientos de «¿Quieres ayudar?» todavía en «Nuevo» (aviso en el encabezado).
+				if u.has(roleDonations) {
+					newOffers = countNewOffers(tx)
+				}
 				return nil
 			})
-			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "telephone": u.Telephone, "team": team, "locationConsent": u.locationConsent() != "", "roles": roles, "panels": panels, "activeRuns": active, "toDispatch": toDispatch})
+			response(w, 200, map[string]any{"id": u.ID, "name": u.Name, "telephone": u.Telephone, "team": team, "locationConsent": u.locationConsent() != "", "roles": roles, "panels": panels, "activeRuns": active, "toDispatch": toDispatch, "newOffers": newOffers})
 		}
 	})
 	// «🏃 Quiero ser runner» (Runners, para quien entró pero no es runner): se da el rol de runner, sin equipo (lo pone

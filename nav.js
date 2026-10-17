@@ -19,7 +19,7 @@ html:has(dialog[open]),html:has(.modalbg.open){overflow:hidden}html:has(dialog[o
 .navtelpop{position:absolute;z-index:4000;min-width:210px;background:#fff;border:1px solid #cad9d9;border-radius:12px;box-shadow:0 12px 30px #17354233;padding:10px 12px;font-family:Inter,system-ui,sans-serif;color:#173c46}.ntp-h{font-weight:800;font-size:14px}.ntp-num{font-size:17px;font-weight:800;margin:4px 0 8px;letter-spacing:.02em}.ntp-acts{display:flex;gap:8px}.ntp-acts a{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:9px;font-weight:800;font-size:13px;text-decoration:none}.ntp-call{background:#19745f;color:#fff}.ntp-wa{background:#25d366;color:#08331b}.ntp-copy{display:block;width:100%;margin-top:6px;padding:6px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#36505a;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .swipe-l{animation:navSwipeL .22s ease-out}.swipe-r{animation:navSwipeR .22s ease-out}@keyframes navSwipeL{from{transform:translateX(28px);opacity:.35}}@keyframes navSwipeR{from{transform:translateX(-28px);opacity:.35}}@media (prefers-reduced-motion:reduce){.swipe-l,.swipe-r{animation:none}}
 .appconfirm{border:0;border-radius:16px;padding:0;width:min(380px,calc(92vw / var(--text-zoom,1)));box-shadow:0 20px 60px #10263a66;font-family:Inter,system-ui,sans-serif}.appconfirm::backdrop{background:#10263ab8}.appconfirm form{margin:0;padding:22px}.appconfirm h2{margin:0;font-size:19px;line-height:1.3;color:#152b3a}.appconfirm p{margin:8px 0 0;color:#667982;font-size:13px;line-height:1.45}.appconfirm p:empty{display:none}
-.textsize{position:relative;margin-left:8px;flex:none}.textsize>button{height:28px;padding:0 8px;border:1px solid #47657a;border-radius:8px;background:none;color:#c8d6db;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}.textsize>button:hover,.textsize>button[aria-expanded="true"]{background:#ffffff1a;color:#fff}
+.textsize{position:relative;margin-left:8px;flex:none}.top>.textsize{order:99;margin-left:auto}.top>.textsize .textsize-pop{left:auto;right:0}.textsize>button{height:28px;padding:0 8px;border:1px solid #47657a;border-radius:8px;background:none;color:#c8d6db;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}.textsize>button:hover,.textsize>button[aria-expanded="true"]{background:#ffffff1a;color:#fff}
 .textsize-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:3100;display:flex;align-items:center;gap:6px;background:#fff;border-radius:12px;padding:7px;box-shadow:0 10px 26px #0005}.textsize-pop[hidden]{display:none}.textsize-pop button{width:40px;height:36px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#173c46;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.textsize-pop button:disabled{opacity:.4;cursor:default}.textsize-pop span{min-width:46px;text-align:center;font:750 13px Inter,system-ui,sans-serif;color:#36505a}
 html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1))}
 .appnav-list .appnav-admin{margin-left:10px;border:1px dashed #ffb4a366;font-size:12px!important;opacity:.7;color:#ffb4a3!important}.appnav-list .appnav-admin:hover{opacity:1}
@@ -45,6 +45,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 @media (prefers-reduced-motion:reduce){.how-track{transition:none}}
 .runnow{flex:none;display:inline-flex;align-items:center;gap:7px;height:36px;margin:0 0 0 6px;padding:0 13px;border-radius:999px;background:#ed7654;color:#fff;font:800 13px Inter,system-ui,sans-serif;text-decoration:none;white-space:nowrap;box-shadow:0 4px 14px #ed765455;animation:runNow 1.8s ease-in-out infinite}.runnow[hidden]{display:none!important}.runnow .rn-n{display:none}@keyframes runNow{50%{box-shadow:0 0 0 5px #ed765433,0 4px 14px #ed765455}}@media (prefers-reduced-motion:reduce){.runnow{animation:none}}
 .runbadge{margin-left:6px;padding:1px 7px;border-radius:9px;background:#ed7654;color:#fff;font:800 11px/16px Inter,system-ui,sans-serif;white-space:nowrap}
+/* 📥 Ofrecimientos nuevos (Donaciones): morado y con pulso para que se note rápido. */.offersnow{background:#7b3fbf;animation:offpulse 1.6s ease-in-out infinite}@keyframes offpulse{50%{box-shadow:0 0 0 6px #7b3fbf44}}
 @media(max-width:760px){.runnow{height:42px;margin:0;padding:0 11px;border-radius:12px}.runnow .rn-t{display:none}.runnow .rn-n{display:inline}}
 .davatar{flex:none;display:grid;place-items:center;width:40px;height:40px;margin:0;padding:0;border:0;border-radius:50%;background:#ffd166;color:#10263a;box-shadow:0 0 0 2px #10263a,0 0 0 3px #ffd16699;cursor:pointer}.davatar[hidden],.navout[hidden]{display:none!important}.davatar[aria-expanded="true"]{background:#fff}.davatar .minit{font:900 15px/1 Inter,system-ui,sans-serif;letter-spacing:.02em}
 .navout{flex:none;display:inline-flex;align-items:center;gap:7px;height:40px;margin:0 0 0 auto;padding:0 13px;border:1px solid #47657a;border-radius:11px;background:#ffffff12;color:#ffd0c2;font:800 13px Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer}.navout:hover{background:#ffffff24;color:#fff}.navout svg{flex:none}
@@ -167,7 +168,8 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       const box = document.createElement('div');
       box.className = 'textsize';
       box.innerHTML = '<button type="button" id="textSizeBtn" aria-expanded="false" aria-controls="textSizePop" title="Tamaño del texto" aria-label="Tamaño del texto">Aa</button><div class="textsize-pop" id="textSizePop" hidden><button type="button" data-size="-1" aria-label="Texto más pequeño">A−</button><span role="status"></span><button type="button" data-size="1" aria-label="Texto más grande">A+</button></div>';
-      brand.appendChild(box);
+      // «Aa» al extremo derecho del encabezado (su menú se abre hacia adentro).
+      (brand.closest('.top') || brand).appendChild(box);
       const btn = box.querySelector('#textSizeBtn'), pop = box.querySelector('#textSizePop');
       const show = open => { pop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); };
       btn.onclick = () => show(pop.hidden);
@@ -263,7 +265,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const bar = document.createElement('div');
     bar.id = 'mBar';
     bar.className = 'mbar';
-    bar.innerHTML = `<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button><nav class="mlinks" id="mLinks" aria-label="Páginas"></nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled></button>${top.querySelector('.topsearch') ? `<button type="button" class="msearchbtn" id="mSearch" aria-expanded="false" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}</button>` : ''}<button type="button" class="madd" id="mAdd" hidden></button>${document.getElementById('loginBtn') ? '<button type="button" class="mlogin" id="mLogin">Inicia sesión</button>' : ''}`;
+    bar.innerHTML = `<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button><nav class="mlinks" id="mLinks" aria-label="Páginas"></nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled></button>${top.querySelector('.topsearch') ? `<button type="button" class="msearchbtn" id="mSearch" aria-expanded="false" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}</button>` : ''}<button type="button" class="madd" id="mAdd" hidden></button>${document.getElementById('loginBtn') ? `<button type="button" class="mlogin" id="mLogin" aria-label="${esc(document.getElementById('loginBtn').getAttribute('aria-label') || 'Iniciar sesión')}">${document.getElementById('loginBtn').innerHTML}</button>` : ''}`;
     top.appendChild(bar);
     const sheet = document.createElement('div');
     sheet.id = 'mSheet';
@@ -612,11 +614,11 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   // encabezado («🏃 1 run en curso», lleva a «Yo» en Runners) y «N en curso» junto a Runners en las listas de páginas.
   // Lo mismo para Supply: «📦 N por despachar» mientras su centro tiene carreras en «Despachando».
   // También el nombre del equipo, para el menú de tu avatar.
-  let activeRuns = 0, toDispatch = 0, myTeam = '';
+  let activeRuns = 0, toDispatch = 0, newOffers = 0, myTeam = '';
   async function loadActiveRuns() {
     const u = user();
-    if (!u) { activeRuns = toDispatch = 0; myTeam = ''; return drawRunNow(); }
-    try { const r = await fetch('/api/full/me', {credentials: 'same-origin', cache: 'no-store'}); if (r.ok) { const b = await r.json(); activeRuns = b.activeRuns || 0; toDispatch = b.toDispatch || 0; myTeam = b.team || ''; } } catch {}
+    if (!u) { activeRuns = toDispatch = newOffers = 0; myTeam = ''; return drawRunNow(); }
+    try { const r = await fetch('/api/full/me', {credentials: 'same-origin', cache: 'no-store'}); if (r.ok) { const b = await r.json(); activeRuns = b.activeRuns || 0; toDispatch = b.toDispatch || 0; newOffers = b.newOffers || 0; myTeam = b.team || ''; } } catch {}
     drawRunNow();
   }
   function drawRunNow() {
@@ -643,6 +645,24 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     });
     badge('/runner.html', activeRuns, `${activeRuns} en curso`);
     badge('/supplier.html', toDispatch, `${toDispatch} por despachar`);
+    badge('/donations.html', newOffers, `${newOffers} ${newOffers === 1 ? 'nuevo' : 'nuevos'}`);
+    // Donaciones: ofrecimientos de «¿Quieres ayudar?» sin atender, en el encabezado de cualquier página, también en
+    // Donaciones junto a «＋🎁» (pulsa para que se note); lleva a «📥 Ofrecimientos».
+    const onDon = location.pathname === '/donations.html', showO = newOffers > 0;
+    let oc = document.getElementById('offersNow');
+    if (!oc && showO) {
+      oc = document.createElement('a');
+      oc.id = 'offersNow'; oc.className = 'runnow offersnow'; oc.href = '/donations.html';
+      // En Donaciones abre la pestaña «📥 Ofrecimientos» sin recargar; en otras páginas lleva a Donaciones.
+      oc.onclick = e => { try { sessionStorage.setItem('donTab', 'offers'); } catch {} if (onDon && document.querySelector('[data-dtab="offers"]')) { e.preventDefault(); document.querySelector('[data-dtab="offers"]').click(); } };
+      const out = document.getElementById('navOut');
+      out ? top.insertBefore(oc, out) : top.appendChild(oc);
+    }
+    if (oc) {
+      if (oc.hidden !== !showO) oc.hidden = !showO;
+      const t = `${newOffers} ${newOffers === 1 ? 'ofrecimiento nuevo' : 'ofrecimientos nuevos'}`;
+      if (oc.dataset.t !== t) { oc.dataset.t = t; oc.innerHTML = `<span aria-hidden="true">📥</span><span class="rn-t">${t}</span><span class="rn-n">${newOffers}</span>`; oc.title = `Donaciones: ${t} de «¿Quieres ayudar?»`; oc.setAttribute('aria-label', `Donaciones: ${t}. Abrir la bandeja`); }
+    }
     // Supply: el mismo aviso en el encabezado de las otras páginas (lleva a «Despachando»).
     const showS = toDispatch > 0 && location.pathname !== '/supplier.html';
     let sc = document.getElementById('supplyNow');
@@ -913,7 +933,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     setTimeout(() => { howItWorks(); const d = document.getElementById('howDlg'); if (d) d._splash = true; }, 600);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', howSplash); else howSplash();
-  window.AppNav = {howItWorks,swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
+  window.AppNav = {consentText: CONSENT, howItWorks,swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
   mountSearch();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); mountSearch(); document.querySelector('header input[type=search]')?._tsSync?.(); }); else { draw(); mountTextSize(); mountMobileBar(); document.querySelector('header input[type=search]')?._tsSync?.(); }
