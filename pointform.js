@@ -160,11 +160,14 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   // público, solo el ícono («Verificado», sin equipo, persona ni fecha).
   const AWARD = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6.5" fill="#f2b705" stroke="#a87400" stroke-width="1.5"/><path d="M8.2 14.2 6.5 22l5.5-3 5.5 3-1.7-7.8" fill="#f2b705" stroke="#a87400" stroke-width="1.5" stroke-linejoin="round"/><path d="m9.3 9 1.9 1.9 3.6-3.7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const verifiedTitle = x => { const d = new Date(x.verifiedAt), when = isNaN(d) ? '' : d.toLocaleDateString('es-PA', {day: 'numeric', month: 'short'}); return x.verifiedTeam ? `Verificado por el equipo ${x.verifiedTeam.replace(/^equipo\s+/i, '')}${x.verifiedBy ? ' · ' + x.verifiedBy : ''}${when ? ' · ' + when : ''}` : 'Verificado'; };
-  // Siempre solo el ícono. Con los datos del equipo (solo llegan a quien es de un equipo) es un botón: tocarlo muestra
-  // qué equipo, quién y cuándo. Sin ellos (público, sin equipo) es solo el ícono, sin detalles.
+  // Siempre solo el ícono. Con los datos del equipo (solo llegan a quien es de un equipo) es un botón: tocarlo muestra, a
+  // quien es de ese equipo, qué equipo, quién y cuándo; a quien es de otro equipo, «Verificado por otro equipo» y cuándo.
+  // Sin ellos (público, sin equipo) es solo el ícono, sin detalles.
+  const verifiedWhen = x => { const d = new Date(x.verifiedAt); return isNaN(d) ? '' : ' · ' + d.toLocaleDateString('es-PA', {day: 'numeric', month: 'short'}); };
   const verifiedBadge = x => !x || !x.verifiedAt ? '' : x.verifiedTeam
-    ? `<button type="button" class="pf-verified tap" data-verified="${esc(verifiedTitle(x))}" aria-expanded="false" aria-label="Verificado: ver qué equipo">${AWARD}</button>`
+    ? `<button type="button" class="pf-verified tap" data-verified="${esc(verifiedTitle(x))}" data-vteam="${esc(x.verifiedTeam)}" data-vwhen="${esc(verifiedWhen(x))}" aria-expanded="false" aria-label="Verificado: ver qué equipo">${AWARD}</button>`
     : `<span class="pf-verified" title="Verificado" role="img" aria-label="Verificado">${AWARD}</span>`;
+  const verifiedText = b => { const mine = window.AppNav?.myTeam?.() || ''; return !mine || mine === b.dataset.vteam ? b.dataset.verified : 'Verificado por otro equipo' + (b.dataset.vwhen || ''); };
   const closeVerified = () => { document.querySelectorAll('.pf-vpop').forEach(x => x.remove()); document.querySelectorAll('.pf-verified.tap[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false')); };
   // En captura: el toque en la insignia no abre ni cierra la fila o la tarjeta donde está.
   if (typeof document.addEventListener === 'function') document.addEventListener('click', e => {
@@ -177,7 +180,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     const pop = document.createElement('div');
     pop.className = 'pf-vpop';
     pop.setAttribute('role', 'status');
-    pop.textContent = b.dataset.verified;
+    pop.textContent = verifiedText(b);
     document.body.appendChild(pop);
     b.setAttribute('aria-expanded', 'true');
     const r = b.getBoundingClientRect();

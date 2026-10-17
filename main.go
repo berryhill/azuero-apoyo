@@ -1629,15 +1629,21 @@ func (a *App) routes() http.Handler {
 	a.teamBoardRoutes(mux)
 	a.reportRoutes(mux)
 	a.offerRoutes(mux)
+	a.ogRoutes(mux)
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		name := ""
 		switch r.URL.Path {
 		case "/", "/index.html":
 			name = "index.html"
-		case "/admin.html", "/donations.html", "/supplier.html", "/signup.html", "/team.html", "/camp.html", "/scout.html", "/cook.html", "/runner.html", "/builder.html", "/command.html", "/reports.html", "/pointform.js", "/nav.js", "/qr.js", "/reports.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png":
+		case "/admin.html", "/donations.html", "/supplier.html", "/signup.html", "/team.html", "/camp.html", "/scout.html", "/cook.html", "/runner.html", "/builder.html", "/command.html", "/reports.html", "/pointform.js", "/i18n.js", "/nav.js", "/qr.js", "/reports.js", "/leaflet.css", "/leaflet.js", "/report/boletin_general.html", "/report/logo.png", "/unidos-por-azuero.png":
 			name = strings.TrimPrefix(r.URL.Path, "/")
 		default:
 			http.NotFound(w, r)
+			return
+		}
+		// Páginas: con las etiquetas Open Graph de la vista previa al compartir (og.go).
+		if strings.HasSuffix(name, ".html") && !strings.HasPrefix(name, "report/") {
+			a.serveHTML(w, r, filepath.Join(a.static, name))
 			return
 		}
 		w.Header().Set("Cache-Control", "no-store")

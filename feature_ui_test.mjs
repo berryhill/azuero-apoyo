@@ -110,7 +110,7 @@ test('public cards: area then people count on top; no generated ID or «Sin nomb
   assert.match(template, /\$\{r\.coordinator\?`<div class="meta">\$\{clean\(r\.coordinator\)\} sabe más<\/div>`:''\}/);
 });
 test('public point card on the map sits above the map controls and can be dragged by its top bar', () => {
-  assert.match(template.match(/function renderMarkers[^\n]*/)[0], /if\(!document\.body\.classList\.contains\('signed-in'\)\)\{m\.bindPopup\(publicPop\(r\)/, 'signed out: small pop-up; signed in: the card is the detail');
+  assert.match(template.match(/function renderMarkers[^\n]*/)[0], /if\(!document\.body\.classList\.contains\('signed-in'\)\)\{[^]*?L\.popup\(\{maxWidth:250,className:'ppop'\}\)\.setLatLng\(r\.coords\)\.setContent\(publicPop\(r\)\)\.openOn\(map\);return\}/, 'signed out: small pop-up (opens every time, no bindPopup toggle); signed in: the card is the detail');
   assert.match(template, /markers\.forEach\(\(m,code\)=>\{m\.setIcon\(pinIcon\(m\._kind,code===r\.code\)\)/, 'the chosen pin grows instead');
   assert.match(template, /<article class="detail" id="detail"><div class="detailgrip" id="detailGrip" title="Arrastrar para mover"><\/div><button class="close" id="closeDetail"/);
   assert.match(template, /\.detail\{position:absolute;z-index:1100;/, 'above Leaflet controls (1000), below dialogs (1200)');
@@ -169,7 +169,7 @@ test('runner top nav links to the public Agregar punto form, which opens from #a
 });
 test('runner map pin popup shows the full need card with ¡Yo lo llevo! like the list', () => {
   const grab = re => runner.match(re)[0];
-  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function reporterIn[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/), grab(/function popupList[^\n]*/), grab(/function popupNeed[^\n]*/)].join('\n');
+  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function reporterIn[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/function needButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/), grab(/function popupList[^\n]*/), grab(/function popupNeed[^\n]*/)].join('\n');
   // mine: carreras en curso; con 10 (el máximo) ya no se ofrece tomar otra.
   const make = (mine, available, agentMode = false) => new Function('mine', 'max', 'followup', 'available', 'apple', 'agentMode', `${src};return {popupNeed,popupList}`)(mine, 10, null, available, false, agentMode);
   const n = {id: 'n1', need: 'Agua <b>', urgency: 'urgente', camp: {id: 'c1', code: 'C-1', area: 'Cañas', coords: [7.4, -80.3]}};
@@ -248,7 +248,7 @@ test('camp needs show their creation time, or «Actualizado» once revised, in S
   assert.match(template, /title="\$\{clean\(needStamp\(at\)\)\}">\$\{clean\(agoEs\(at\)\)\}<\/small>/, 'just «hace 1 d»; the exact date on hover');
   assert.match(camp, /n\.revisedAt\?'Actualizado: '\+clean\(stamp\(n\.revisedAt\)\):'Creada: '\+\(n\.createdAt\?clean\(stamp\(n\.createdAt\)\)/);
   const grab = re => runner.match(re)[0];
-  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function reporterIn[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
+  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function reporterIn[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/function needButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
   const needDetails = new Function('apple', 'AppNav', `${src};return needDetails`)(false, {phone: p => `[${p}]`});
   const camp1 = {id: 'c', code: 'C-1'};
   assert.match(needDetails({id: 'n', need: 'Agua', urgency: 'urgente', createdAt: '2026-10-01T12:00:00Z', camp: camp1}), /<small class="when" title="Reportada: Oct 1, 2026 [^"]+">hace \d+ d<\/small>/, 'just «hace 1 d» in the footer; what and the exact date on hover');
@@ -258,7 +258,7 @@ test('camp needs show their creation time, or «Actualizado» once revised, in S
 });
 test('runner need card lists the camp contact phones with copy / call / WhatsApp (shared nav.js phone)', () => {
   const grab = re => runner.match(re)[0];
-  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function reporterIn[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
+  const src = [grab(/const clean=[^\n]*/), grab(/const stamp=[^\n]*/), grab(/const urgencyLabel=[^\n]*/), grab(/function locationLink[^\n]*/), grab(/const foldNeed=[^\n]*/), grab(/function needChips[^\n]*/), grab(/const svgI=[^\n]*/), grab(/const noGpsIco=[^\n]*/), grab(/function needTitle[^\n]*/), grab(/function reporterIn[^\n]*/), grab(/function cardMeta[^\n]*/), grab(/const PPL=[^\n]*/), grab(/function peopleLine[^\n]*/), grab(/function locButtons[^\n]*/), grab(/function needButtons[^\n]*/), grab(/const isCoord=[^\n]*/), grab(/function needDetails[^\n]*/)].join('\n');
   const needDetails = new Function('apple', 'AppNav', `${src};return needDetails`)(false, {phone: p => `[${p}]`});
   const html = needDetails({id: 'n', need: 'Agua', urgency: 'urgente', camp: {id: 'c', code: 'C-1', contacts: [{name: 'Ana', phone: '6555-1234'}, {phone: '+507 6000 0000'}]}});
   assert.match(html, /<li><svg[^]*?<\/svg><span>Ana \[6555-1234\]<\/span><\/li><li><svg[^]*?<\/svg><span>\[\+507 6000 0000\]<\/span><\/li>/, 'one icon line per contact');
@@ -321,7 +321,7 @@ test('point form people: legacy contacts become people, phone rule accepts any p
   assert.equal(PointForm.hasPhone({members: []}), false);
 });
 test('public and admin point forms use the shared PointForm with GPS link and dynamic people', () => {
-  assert.match(template, /<script src="\.\/pointform\.js"><\/script>/);
+  assert.match(template, /<script src="\/pointform\.js"><\/script>/, 'root-relative: the home page is also served at \/runner\/<código>');
   assert.match(template, /<form id="form"><div id="pointFields"><\/div>/);
   assert.match(template, /PointForm\.render\(\$\('#pointFields'\),\{nearby:publicNearby,me:codeMe\(\),publicSteps:true\}\)/);
   assert.match(template, /if\(!PointForm\.hasPhone\(record\)\)/);
@@ -475,7 +475,7 @@ test('runner need cards show needs as icon chips, with free text as plain chips'
   const needChips = new Function('PointForm', `${src};return needChips`)(PointForm);
   const html = needChips('agua, Alimentos, colchones');
   assert.match(html, /<span class="chip"><svg[^]*?<\/svg>Agua<\/span><span class="chip"><svg[^]*?<\/svg>Alimentos<\/span><span class="chip text">colchones<\/span>/);
-  assert.match(runner, /<script src="\.\/pointform\.js"><\/script>/);
+  assert.match(runner, /<script src="\/pointform\.js"><\/script>/, 'root-relative: runner.html is also served at \/runner\/<código>');
 });
 test('need priority is only Normal / Urgente on every page', () => {
   const builder = readFileSync(new URL('./builder.html', import.meta.url), 'utf8');
@@ -806,7 +806,7 @@ test('public pages show priority only as an Urgente badge, never Normal, and not
   // A need without text (reserved for an access-code runner) shows only its status: no empty text or time line.
   assert.match(template, /\$\{n\.need\?needChips\(n\.need\):''\}/);
   assert.match(camp, /\$\{n\.need\?`\$\{needChips\(n\.need\)\}/, 'same need chips as the other pages');
-  assert.match(camp, /<script src="\.\/pointform\.js"><\/script>/);
+  assert.match(camp, /<script src="\/pointform\.js"><\/script>/, 'root-relative: camp.html is also served at \/p\/<código>');
   assert.match(PointForm.needChipsHtml('Agua (Para beber), colchones'), /^<div class="pf-chips"><span class="pf-chip"><svg[^]*?<\/svg>Agua<span class="pf-netbadge pf-net-beber"[^>]*>para beber<\/span><\/span><span class="pf-chip text">colchones<\/span><\/div>$/);
 });
 test('public root page shows needs as icon chips, like the runner page', () => {
@@ -852,7 +852,7 @@ test('packing dialog is shared: type-ahead, quantity, review and save on the run
   assert.match(runner, /api\('\/api\/runner\/packing-items'\)/);
   assert.match(runner, /api\('\/api\/runner\/needs\/'\+encodeURIComponent\(n\.id\)\+'\/packing','POST',\{items:lines\}\)/);
   assert.match(runner, /<button class="btn take" type="button" data-take="\$\{clean\(n\.id\)\}"\$\{full\?[^}]*\}>¡Yo lo llevo!<\/button><\/div>\$\{n\.assigned\?packButton\(n\):''\}<\/article>/, 'open needs get the packing button only when assigned to this runner');
-  assert.match(runner, /\$\{needDetails\(n,false\)\}<div class="actrow">\$\{needButtons\(n\)\}<button class="btn take"/, 'map, Maps, share and ¡Yo lo llevo! in one row');
+  assert.match(runner, /\$\{needDetails\(n,false\)\}<div class="actrow"><button class="btn take"/, 'share moved up with the map pin and Maps; ¡Yo lo llevo! below');
   assert.match(runner, /\$\{c\.coords\?`<button type="button" class="iconbtn gps" data-where="\$\{clean\(n\.id\)\}" title="Ver en el mapa"[^`]*`:`<span class="iconbtn gps off"[^`]*\$\{noGpsIco\}<\/span>`\}/, 'look at it on the map before taking it; crossed pin when there is no GPS');
   assert.match(runner, /\$\{\(n\.packing\|\|\[\]\)\.length\?`<div class="steplist">\$\{PointForm\.packingHtml\(n\.packing\)\}<\/div>`:''\}\$\{mediaStage\(n,'pickup'\)\}<div class="runacts">\$\{packButton\(n\)\}/, 'step 1: packing list and departure photo before dispatch');
   const agent = runner.match(/if\(agentMode\)\{[^\n]*/)[0];
@@ -1224,12 +1224,19 @@ test('share a point link: public ?punto= opens its detail, runner ?punto= focuse
   assert.match(template, /const campLink=r=>location\.origin\+'\/\?punto='\+encodeURIComponent\(r\.id\|\|r\.code\);/);
   assert.match(template, /renderMarkers\(\);renderFeed\(\);openLinkedCamp\(\)[;}]/, 'opened after the data loads');
   assert.match(template, /const want=linkedCamp,r=all\(\)\.find\(x=>x\.id===want\|\|x\.code===want\);linkedCamp=null;[^\n]*if\(r\)show\(r\);else \$\('#gpsMessage'\)\.textContent='Ese punto no está publicado o ya no existe\.'/, 'unpublished points are not shown');
-  assert.match(runner, /data-share-camp="\$\{clean\(c\.id\)\}"[^>]*title="Compartir enlace" aria-label="Compartir enlace">\$\{shareIco\}<\/button>/, 'icon button');
-  assert.match(runner, /shareLink\(location\.origin\+'\/runner\.html\?punto='\+encodeURIComponent\(b\.dataset\.shareCamp\)/);
+  assert.match(runner, /data-share-camp="\$\{clean\(c\.code\|\|c\.id\)\}"[^>]*title="Compartir enlace" aria-label="Compartir enlace">\$\{shareIco\}<\/button>/, 'icon button');
+  assert.match(runner, /shareLink\(location\.origin\+'\/runner\/'\+encodeURIComponent\(b\.dataset\.shareCamp\),b\.dataset\.shareTitle,b\)/, 'the /runner/<código> link, like Supply and Scout');
+  assert.match(runner, /let linkedFind=new URLSearchParams\(location\.search\)\.get\('buscar'\);/, 'a runner opening /runner/<código> lands here (?buscar=)');
+  assert.match(runner, /if\(linkedFind\)\{const i=\$\('#tabFind'\);i\.value=linkedFind;i\.dispatchEvent\(new Event\('input',\{bubbles:true\}\)\)\}/, 'with the search filled in; ?buscar= stays in the address so a reload keeps it');
+  assert.match(readFileSync(new URL('./nav.js', import.meta.url), 'utf8'), /const pagePath = \(\) => \/\^\\\/runner\\\/\[\^\/\]\+\$\/\.test\(location\.pathname\) \? '\/' : location\.pathname;/, 'nav treats /runner/<código> as the home page');
+  assert.match(template, /const runRef=\(\(\)=>\{const m=location\.pathname\.match\(/, 'the home page reads /runner/<código>');
+  assert.match(template, /if\(\(u\?\.roles\|\|\[\]\)\.some\(r=>r==='runner'\|\|r==='agent'\)\)location\.replace\('\/runner\.html\?buscar='\+encodeURIComponent\(runRef\)\)/, 'a runner goes on to Runners with the search set');
+  assert.match(template, /\.runtabs\[hidden\],\.runpanel\[hidden\],\.mobile-nav button\[hidden\]\{display:none!important\}/, 'no «Esta donación» tab without a shared link');
+  assert.match(template, /<b>🙋 Hazte runner para llevar esta donación<\/b>/, '«Esta donación»: why and how to become a runner, then the card');
+  assert.match(template, /data-rp-share title="Compartir enlace"[^]*?data-rp-map title="Ver en el mapa"/, 'share, map pin and Maps on the card');
   assert.match(runner, /available=data\.available\|\|\[\];if\(sig===lastSig\)return;lastSig=sig;render\(\);openLinkedCamp\(\)\}/, 'applied after sign-in loads the needs');
   assert.match(runner, /if\(!hasCoords\(n\)\)\{goToNeed\(n\.id\);return\}highlightNeed=n\.id;focusCamp=want;pendingFocus=true;/, 'flag on the map and the card highlighted');
   assert.match(runner, /n=all\.find\(x=>x\.id===linkedNeed&&x\.camp\.id===want\)\|\|all\.find\(x=>x\.camp\.id===want\)/, '&necesidad= picks that run; otherwise the point');
-  assert.match(runner, /'\/runner\.html\?punto='\+encodeURIComponent\(b\.dataset\.shareCamp\)\+\(b\.dataset\.shareNeed\?'&necesidad='\+encodeURIComponent\(b\.dataset\.shareNeed\):''\)/, 'Compartir sends the run link');
   for (const page of [template, runner]) {
     assert.match(page, /async function shareLink\(url,title,btn\)\{if\(mobileDevice&&navigator\.share\)\{try\{await navigator\.share\(\{title,url\}\)\}catch\{\}return\}[^\n]*navigator\.clipboard\.writeText\(url\);(btn\.textContent='✓ Enlace copiado'|btn\.innerHTML='✓';btn\.title='Enlace copiado')/, 'share sheet on a phone, copy on a computer');
   }
@@ -1318,7 +1325,7 @@ test('public narrow view: 📊 tab holds the totals, Lista keeps only filters; t
   assert.match(template, /<\/div><div class="homeacts"><button type="button" class="ha-report" id="reportBar">📍 Reportar un lugar que necesita ayuda<\/button><button type="button" class="ha-how" data-how-open>¿Cómo funciona\?<\/button><\/div>/, 'phone: report + how it works right below the header');
   assert.match(template, /#mAdd\{display:none!important\}/, 'not in the top bar');
   assert.match(template, /\.mobile-nav button\[data-view\] span\{display:none\}/, 'icons only');
-  assert.match(template, /const order=\['map','stats'\],area=document\.querySelector\('\.side'\)/, 'swipe between the views');
+  assert.match(template, /const order=runRef\?\['run','map','stats'\]:\['map','stats'\],area=document\.querySelector\('\.side'\)/, 'swipe between the views (and «Esta donación»)');
   assert.match(template, /#navOut\{display:none!important\}/, 'no «Salir» before the avatar on the home page');
   assert.match(template, /<div class="sidehead"><button type="button" class="filtertoggle" id="filterToggle" aria-expanded="false" aria-controls="filterPanel" aria-label="Filtros">[^]*?<\/button><div class="filterpanel" id="filterPanel"><div class="stats pointstats">/, 'filters fold into one summary line; the list gets the space');
   assert.match(template, /\.filterpanel\{display:none;padding-top:12px\}\.filterpanel\.open,\.mobile-stats \.filterpanel\{display:block\}/, 'open on tap; always open in the stats view');
@@ -1558,11 +1565,13 @@ test('shared phone widget (nav.js): tapping a number opens «📞 Llamar / 💬 
   assert.match(nav, /html:has\(dialog\[open\]\),html:has\(\.modalbg\.open\)\{overflow:hidden\}/, 'the page behind an open pop-up does not scroll');
   assert.match(nav, /Object\.assign\(b\.style, \{position: 'fixed', top: `-\$\{locked\.y\}px`, left: '0', right: '0', width: '100%'\}\);/, 'iPhone: the body is pinned, then restored to the same spot');
   for (const page of ['runner.html', 'builder.html', 'camp.html', 'command.html']) assert.doesNotMatch(readFileSync(new URL('./' + page, import.meta.url), 'utf8'), /<a href="tel:/, page + ' uses the shared widget');
-  assert.match(readFileSync(new URL('./camp.html', import.meta.url), 'utf8'), /<script src="\.\/nav\.js"><\/script><script>/);
+  assert.match(readFileSync(new URL('./camp.html', import.meta.url), 'utf8'), /<script src="\/nav\.js"><\/script><script>/);
 });
 test('shared top navigation (nav.js): Inicio and the panels of the signed-in code user, current page marked', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
-  for (const page of [template, runner, agent]) assert.match(page, /<script src="\.\/nav\.js"><\/script>/);
+  assert.match(agent, /<script src="\.\/nav\.js"><\/script>/);
+  assert.match(template, /<script src="\/nav\.js"><\/script>/);
+  assert.match(runner, /<script src="\/nav\.js"><\/script>/);
   assert.match(readFileSync(new URL('./builder.html', import.meta.url), 'utf8'), /<script src="\.\/nav\.js"><\/script>/);
   assert.match(nav, /\['\/', '🏠', \(\) => 'Inicio', \(\) => true\]/, 'the public map page is «Inicio»');
   assert.match(nav, /\['\/runner\.html', '<svg class="walkico"[^']*<\/svg>', u => \(u\.roles \|\| \[\]\)\.includes\('agent'\) && !\(u\.roles \|\| \[\]\)\.includes\('runner'\) \? 'Empaque' : 'Runners', u => !!u/, 'the runner page is «Runners» with the blue en-camino walking icon');
@@ -1589,7 +1598,7 @@ test('shared top navigation (nav.js): Inicio and the panels of the signed-in cod
 test('command center (/command.html): admin-style rows, corner map, en-ruta monitor, view mode inside the row', () => {
   // Headers: just the logo, no «AZUERO / …» titles, on every page.
   for (const page of [template, runner, agent, readFileSync(new URL('./builder.html', import.meta.url), 'utf8'), admin]) assert.doesNotMatch(page.match(/<header[^]*?<\/header>/)[0], /AZUERO|topsmall/);
-  assert.match(agent, /<header class="top"><div class="brand"><span class="logo" title="Azuero Apoyo">✚<\/span><\/div><nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="search"[^>]*>/);
+  assert.match(agent, /<header class="top"><div class="brand"><span class="logo" title="Azuero Apoyo">✚<\/span><\/div><nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="gsearch"[^>]*>/);
   assert.match(agent, /<main class="board"><div class="boardmain" data-swipe-area>[^]*?<div class="feed" id="feed">[^]*?<aside class="mapcorner"><section class="mapwrap"><div id="map"/, 'rows first, small map in the top corner');
   assert.match(agent, /\.mapcorner\{position:sticky;top:84px\}/);
   assert.match(agent, /\.top\{position:sticky;top:0;z-index:1100\}/, 'header stays on top while scrolling (desktop)');
@@ -1602,7 +1611,7 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
   assert.match(agent, /fetch\('\/api\/session\/code',\{method:'POST'[^\n]*?body:JSON\.stringify\(\{accessCode\}\)[^\n]*?if\(!\(body\.roles\|\|\[\]\)\.includes\('agent'\)\)throw Error\('Tu código no tiene acceso al Centro de comando\.'\)/, 'one code login opens every panel of the user');
   assert.match(agent, /localStorage\.getItem\('agentCode'\)\|\|localStorage\.getItem\('runnerCode'\)\|\|localStorage\.getItem\('builderCode'\)/, 're-entry with a code saved by any page');
   // Header: shared nav, name copies the user ID with a tooltip, no ID footer.
-  assert.match(agent, /<input class="topsearch" id="search"[^>]*><div class="topright"><div class="who" id="who" hidden><button type="button" id="whoName" title="Copiar mi ID de usuario"><\/button><span class="idtip" id="idTip" role="status" hidden><\/span>/);
+  assert.match(agent, /<input class="topsearch" id="gsearch"[^>]*><div class="topright"><div class="who" id="who" hidden><button type="button" id="whoName" title="Copiar mi ID de usuario"><\/button><span class="idtip" id="idTip" role="status" hidden><\/span>/);
   assert.match(agent, /await navigator\.clipboard\.writeText\(userId\);text='ID copiado: '\+userId\.slice\(0,8\)\+'…'/);
   assert.doesNotMatch(agent, /id="idFoot"|← Mapa público/);
   assert.match(agent, /api\('\/api\/agent\/points'\),api\('\/api\/agent\/needs'\)/);
@@ -1765,10 +1774,10 @@ test('command center (/command.html): admin-style rows, corner map, en-ruta moni
 
 test('public map, desktop: the side panel is «📊 Resumen» only (no Lista tab); the summary shows totals from /api/stats without filters', () => {
   const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
-  assert.match(html, /<aside class="side"><div class="sidehead">/, 'no tabs: the side panel is the summary');
+  assert.match(html, /<aside class="side"><nav class="sidetabs runtabs" id="runTabs" role="tablist" aria-label="Vista" hidden>[^]*?<\/nav><div class="sidehead">/, 'no tabs (the side panel is the summary), except «📦 Esta donación» on a shared link');
   assert.doesNotMatch(html, /class="sidetabs"|data-side="list"/, 'no «Lista» tab on a computer');
   assert.match(html, /let sideTab='stats',summaryStats=null,summaryLoading=false;/, 'always starts on Resumen, not a remembered tab');
-  assert.match(html, /<section class="summary" id="summary" role="tabpanel" aria-label="Resumen" hidden><\/section><\/aside>/);
+  assert.match(html, /<section class="summary" id="summary" role="tabpanel" aria-label="Resumen" hidden><\/section><section class="runpanel" id="runPanel" role="tabpanel" aria-label="Esta donación" hidden><\/section><\/aside>/);
   assert.match(html, /fetch\('\/api\/stats',\{cache:'no-store'\}\)/);
   const draw = html.slice(html.indexOf('function drawSummary()'), html.indexOf("// Computadora: el panel lateral muestra solo el Resumen"));
   assert.match(draw, /const rows=all\(\)/, 'every published point, not the filtered list');
@@ -1791,7 +1800,7 @@ test('public map, desktop: the side panel is «📊 Resumen» only (no Lista tab
   assert.match(draw, /\.filter\(z=>z\.needing\)/, 'only zones that need something');
   assert.doesNotMatch(html, /data-sumpt|Sin GPS <small>/, 'no «Sin GPS» list in the side panel');
   assert.match(html, /@media\(max-width:760px\)\{\.sidetabs,\.summary\{display:none!important\}[^\n]*\}\n/, 'tabs on a computer; on a phone the 📊 view shows the summary');
-  assert.match(html, /openLinkedCamp\(\);if\(sideTab==='stats'\|\|document\.body\.classList\.contains\('mobile-stats'\)\)loadSummary\(\)\}/, 'refreshes with the map data');
+  assert.match(html, /openLinkedCamp\(\);renderRunPanel\(\);if\(sideTab==='stats'\|\|document\.body\.classList\.contains\('mobile-stats'\)\)loadSummary\(\)\}/, 'refreshes with the map data');
   assert.match(html, /body\.mobile-stats \.sidehead\{display:none!important\}body\.mobile-stats \.summary:not\(\[hidden\]\)\{display:block!important\}/, 'phone 📊 shows the same Resumen, not the filter panel');
   assert.match(html, /if\(view==='stats'\)\{drawSummary\(\);loadSummary\(\)\}/);
 });
@@ -1875,7 +1884,7 @@ test('run link: «Enlace para runner» in the command center opens runner.html o
 
 test('runner: «Mi recorrido» (only your runs and their route) and «Se necesita» (what else is open, team filter inside)', () => {
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
-  assert.match(runner, /<nav class="maintabs" id="mainTabs" role="tablist" aria-label="Vista"><button type="button" role="tab" data-main="mine" aria-selected="false" title="Mis carreras en camino"><svg class="walkico"[^]*?<\/svg> Yo <b id="cntMine"><\/b><\/button><button type="button" role="tab" data-main="needs" aria-selected="false" title="Necesidades por llevar"><span aria-hidden="true">🚩<\/span> Runs <b id="cntNeeds"><\/b><\/button><button type="button" role="tab" data-main="req"[^>]*><span aria-hidden="true">📦<\/span> Pedidos <b id="cntReq"><\/b><\/button><button type="button" role="tab" data-main="fix"[^>]*>[^]*?<\/button><button type="button" role="tab" data-main="meals"[^>]*><span aria-hidden="true">🍲<\/span> Comidas <b id="cntMeals"><\/b><\/button><button type="button" role="tab" data-main="hist"[^>]*>[^]*?Historial<\/button><\/nav><div class="rsearch"><div class="tabfind"><input type="search" id="tabFind" autocomplete="off" aria-label="Buscar en esta pestaña"><\/div><button type="button" class="rteam" id="teamToggle"[^>]*><span aria-hidden="true">👥<\/span><\/button><\/div><div class="rfilter" id="teamFilter"><select id="teamSelect" class="rselect" aria-label="Filtro"><option value="0">Todas<\/option><option value="1">Solo mi equipo<\/option><\/select><\/div>/, 'the search with the «Solo mi equipo» toggle on one row (the drop menu stays hidden as its state)');
+  assert.match(runner, /<nav class="maintabs" id="mainTabs" role="tablist" aria-label="Vista"><button type="button" role="tab" data-main="mine" aria-selected="false" title="Mis carreras en camino"><svg class="walkico"[^]*?<\/svg> Yo <b id="cntMine"><\/b><\/button><button type="button" role="tab" data-main="needs" aria-selected="false" title="Necesidades por llevar"><span aria-hidden="true">🚩<\/span> Runs <b id="cntNeeds"><\/b><\/button><button type="button" role="tab" data-main="req"[^>]*><span aria-hidden="true">📦<\/span> Pedidos <b id="cntReq"><\/b><\/button><button type="button" role="tab" data-main="fix"[^>]*>[^]*?<\/button><button type="button" role="tab" data-main="meals"[^>]*><span aria-hidden="true">🍲<\/span> Comidas <b id="cntMeals"><\/b><\/button><button type="button" role="tab" data-main="hist"[^>]*>[^]*?Historial<\/button><\/nav><div class="rsearch"><div class="tabfind"><input type="search" id="tabFind" data-keep autocomplete="off" aria-label="Buscar en esta pestaña"><\/div><button type="button" class="rteam" id="teamToggle"[^>]*><span aria-hidden="true">👥<\/span><\/button><\/div><div class="rfilter" id="teamFilter"><select id="teamSelect" class="rselect" aria-label="Filtro"><option value="0">Todas<\/option><option value="1">Solo mi equipo<\/option><\/select><\/div>/, 'the search with the «Solo mi equipo» toggle on one row (the drop menu stays hidden as its state)');
   const tabNow0 = new Function('mine', 'mainTab', 'requests', 'meals', `return (${runner.match(/const tabNow=(\(\)=>\{[^\n]*\});/)[1]})()`), tabNow = (mine, t) => tabNow0(mine, t, () => [1], [1]);
   assert.equal(tabNow([{id: 'a'}], ''), 'mine', 'opens on your route when you have one');
   assert.equal(tabNow([], ''), 'needs');
@@ -1901,7 +1910,7 @@ test('packing list dialog is full screen on phones (not centered under the keybo
 
 test('runner run card: «hace 2 d» at the bottom next to «No puedo continuar»; people stay on top', () => {
   const card = readFileSync(new URL('./runner.html', import.meta.url), 'utf8').match(/function runCard[^\n]*/)[0];
-  assert.match(runner, /<div class="roundbtns">\$\{locButtons\(n\)\}\$\{needButtons\(n\)\}<\/div>/, 'map, Maps and share (round) with the place, in step 2');
+  assert.match(runner, /<div class="roundbtns">\$\{locButtons\(n\)\}<\/div>/, 'share, map and Maps (round) with the place, in step 2');
   assert.match(card, /<div class="runfoot">\$\{n\.revisedAt\|\|n\.createdAt\?`<small class="when"[^`]*`:'<span><\/span>'\}<button class="btn quit" type="button" data-release="\$\{id\}">No puedo continuar<\/button><\/div>/);
 });
 
@@ -2047,7 +2056,7 @@ test('Supply «Necesidades» cards show when the need was last updated («🕓 A
 });
 test('phone header (nav.js, panels): logo · page name · «+» page action · ☰ menu with name + Salir, pages and text size', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
-  assert.match(nav, /bar\.innerHTML = `<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">\$\{svg\([^)]*\)\}<\/button><nav class="mlinks" id="mLinks" aria-label="Páginas"><\/nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled><\/button>\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"[^`]*` : ''\}<button type="button" class="madd" id="mAdd" hidden><\/button>\$\{document\.getElementById\('loginBtn'\) \? `<button type="button" class="mlogin" id="mLogin" aria-label="[^`]*">\$\{document\.getElementById\('loginBtn'\)\.innerHTML\}<\/button>` : ''\}`;/, 'avatar / ☰ far left · pages ▾ · 🔍 · action');
+  assert.match(nav, /bar\.innerHTML = `<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">\$\{svg\([^)]*\)\}<\/button><nav class="mlinks" id="mLinks" aria-label="Páginas"><\/nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled><\/button>\$\{top\.querySelector\('\.topsearch'\) \? `<button type="button" class="msearchbtn" id="mSearch"[^`]*` : ''\}<button type="button" class="madd" id="mAdd" hidden><\/button>\$\{document\.getElementById\('loginBtn'\) \? `<button type="button" class="mlogin" id="mLogin" aria-label="[^`]*">\$\{document\.getElementById\('loginBtn'\)\.innerHTML\}<\/button>` : ''\}\$\{langHome\(\) \? langSwitch\('mlang'\) : ''\}`;/, 'avatar / ☰ far left · pages ▾ · 🔍 · action · ES|EN on the home page');
   assert.match(nav, /const list = u \? pages\.filter\(\(\[url, , , ok, where\]\) => url === here \|\| ok\(u\) && where !== 'menu'\) : \[\];/, '«Mi equipo» only once in the avatar menu');
   assert.match(nav, /if \(!top \|\| !document\.getElementById\('appNav'\) \|\| document\.getElementById\('mBar'\)\) return;/, 'panels and the public map share the same phone header');
   assert.match(nav, /function fitMobileBar\(\) \{[^}]*?bar\.classList\.add\('tight'\);\s*drawTitle\(\);/, 'on phones the pages are always folded into «current page ▾», on every page, even when few');
@@ -2072,10 +2081,21 @@ test('phone header (nav.js, panels): logo · page name · «+» page action · �
   assert.doesNotMatch(nav, /¿Tienes cuenta\?/, 'Login lives in the bar only, not repeated in the menu');
   assert.match(nav, /body:has\(\.top>\.mbar\) \.addbar\{display:none!important\}/, 'the public page drops its second row');
   assert.match(nav, /\.top:has\(>\.mbar\)>\.appnav,\.top:has\(>\.mbar\) \.textsize,\.top:has\(>\.mbar\)>\.topright\{display:none!important\}/, 'on a phone the separate pieces fold into the menu');
-  assert.match(nav, /<div class="msuser"><b>\$\{esc\(name\)\}\$\{myTeam \? `<small class="msteam">👥 \$\{esc\(myTeam\)\}<\/small>` : ''\}\$\{roleChips\}<\/b>\$\{copyId \? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID<\/button>' : ''\}<button type="button" data-m="logout">/);
+  assert.match(nav, /<div class="msuser"><b>\$\{esc\(name\)\}\$\{myTeam \? `<small class="msteam">👥 \$\{esc\(myTeam\)\}<\/small>` : ''\}\$\{roleChips\}<\/b>\$\{idCard \? '<button type="button" data-m="idcard" class="msoft">🪪 Mi credencial<\/button>' : ''\}<button type="button" data-m="logout">/);
   assert.match(nav, /if \(e\.target\.closest\('\[data-m="logout"\]'\)\) \{ showSheet\(false\); const out = !document\.body\.dataset\.signedName && \(document\.getElementById\('logout'\) \|\| document\.getElementById\('codeLogout'\)\); if \(out\) out\.click\(\); else sharedLogout\(\); return; \}/, 'Salir uses the page\'s own sign-out (with its confirmation)');
   assert.match(nav, /<div class="msize"><span class="lbl">Tamaño del texto<\/span>/);
   assert.match(nav, /\.mbar,\.msheet\{display:none\}/, 'computer header unchanged');
+});
+
+test('🪪 Mi credencial: the avatar menu opens a full-screen ID card with a QR of the user ID on every page', () => {
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(nav, /Copiar mi ID<\/button>/, 'the menu no longer just copies the ID');
+  assert.match(nav, /if \(e\.target\.closest\('\[data-m="idcard"\]'\)\) \{ showSheet\(false\); showIdCard\(\); return; \}/);
+  assert.match(nav, /s\.src = '\/qr\.js'/, 'qr.js loads on demand on pages that do not include it');
+  assert.match(nav, /const url = location\.origin \+ '\/\?quien=' \+ encodeURIComponent\(id\);/);
+  assert.match(nav, /AppQR\.svg\(url, \{title: 'QR de ' \+ name\}\)/);
+  assert.match(nav, /d\.showModal\(\);\n    try \{ d\.requestFullscreen\?\.\(\)/, 'full screen for scanning');
+  assert.match(nav, /<button type="button" data-idc="copy">Copiar ID<\/button>/, 'copying the ID stays inside the card');
 });
 
 test('packing list dialog opens straight to the search: no visible title or point line (the card already says where)', () => {
@@ -2437,7 +2457,7 @@ test('Acopio (supplier.html): runs in progress with the runner, packing, departu
   assert.match(page, /<b class="rn">\$\{clean\(n\.runnerName\|\|'Runner'\)\}<\/b>\$\{n\.runnerPhone\?/, 'who carries it, with call buttons');
   assert.match(page, /La tomó \$\{clean\(agoEs\(n\.enRouteAt\)\)\}/);
   assert.match(page, /data-runnerlive="\$\{clean\(n\.id\)\}">📍 Ver runner en el mapa<\/button>/, 'live position on the map when shared');
-  assert.match(page, /secHead\('h-dest','📍','Destino'[^\n]*\$\{needDetails\(\{\.\.\.n,packing:null,noWhat:split\},true,false\)\}\$\{addedByLine\(n\)\}\$\{share\?`<div class="actrow">\$\{needButtons\(n\)\}/, 'point, contacts and needs (no packing here), see on map');
+  assert.match(page, /secHead\('h-dest','📍','Destino'[^\n]*\$\{needDetails\(\{\.\.\.n,packing:null,noWhat:split\},true,false\)\}\$\{addedByLine\(n\)\}<\/section>`\}/, 'point, contacts and needs (no packing here), see on map');
   assert.match(page, /secHead\('h-load','📦','Para cargar'[^\n]*PointForm\.packingHtml\(n\.packing\)[^\n]*\$\{mediaStrip\(n\)\}/, 'packing and departure photos together');
   assert.match(admin, /<input type="checkbox" name="roles" value="supplier"> 📦 Supply<\/label>/);
   assert.match(admin, /n\.status==='IN_PROGRESS'&&n\.dispatchedAt\?'Despachada · en camino'/);
@@ -2679,7 +2699,7 @@ test('needs with a brand: «Tarjeta de datos prepago» (Tigo / +Móvil) and «Ga
 });
 
 test('home on phones opens on «📊 Resumen» (a link to a point still opens that point)', () => {
-  assert.match(template, /if\(window\.matchMedia\('\(max-width:760px\)'\)\.matches&&!new URLSearchParams\(location\.search\)\.get\('punto'\)\)mobileView\('stats'\);/);
+  assert.match(template, /if\(window\.matchMedia\('\(max-width:760px\)'\)\.matches&&!new URLSearchParams\(location\.search\)\.get\('punto'\)&&!runRef\)mobileView\('stats'\);if\(runRef\)openRunTab\(\);/);
 });
 
 test('«Verificado por equipo»: gold badge on points and needs across pages; public pages without names', () => {
@@ -2687,8 +2707,9 @@ test('«Verificado por equipo»: gold badge on points and needs across pages; pu
   const ctx = PointForm;
   assert.equal(ctx.verifiedBadge({}), '');
   assert.equal(ctx.verifiedBadge({verifiedAt: '2026-10-15T12:00:00Z'}, {text: true}).replace(/<svg[^]*<\/svg>/, ''), '<span class="pf-verified" title="Verificado" role="img" aria-label="Verificado"></span>', 'without team data (public, no team): just the icon, no details');
-  assert.match(ctx.verifiedBadge({verifiedAt: '2026-10-15T12:00:00Z', verifiedTeam: 'Equipo Norte', verifiedBy: 'Ana'}, {text: true}), /^<button type="button" class="pf-verified tap" data-verified="Verificado por el equipo Norte · Ana · [^"]+" aria-expanded="false" aria-label="Verificado: ver qué equipo"><svg[^]*<\/svg><\/button>$/, 'team members: icon only; tapping it shows the team');
-  assert.match(pfSrc, /pop\.textContent = b\.dataset\.verified;/);
+  assert.match(ctx.verifiedBadge({verifiedAt: '2026-10-15T12:00:00Z', verifiedTeam: 'Equipo Norte', verifiedBy: 'Ana'}, {text: true}), /^<button type="button" class="pf-verified tap" data-verified="Verificado por el equipo Norte · Ana · [^"]+" data-vteam="Equipo Norte" data-vwhen=" · [^"]+" aria-expanded="false" aria-label="Verificado: ver qué equipo"><svg[^]*<\/svg><\/button>$/, 'team members: icon only; tapping it shows the team');
+  assert.match(pfSrc, /pop\.textContent = verifiedText\(b\);/);
+  assert.match(pfSrc, /const verifiedText = b => \{ const mine = window\.AppNav\?\.myTeam\?\.\(\) \|\| ''; return !mine \|\| mine === b\.dataset\.vteam \? b\.dataset\.verified : 'Verificado por otro equipo' \+ \(b\.dataset\.vwhen \|\| ''\); \};/, 'another team: «Verificado por otro equipo», no name');
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8'), supplier = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8'), cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8'), camp = readFileSync(new URL('./camp.html', import.meta.url), 'utf8');
   assert.match(runner, /v=\(n\.verifiedAt\|\|''\)>\(c\.verifiedAt\|\|''\)\?n:c;[^\n]*PointForm\.verifiedBadge\(v,\{text:true\}\)/);
   assert.match(supplier, /const verifiedOf=n=>\{const c=n\.camp,v=\(n\.verifiedAt\|\|''\)>\(c\.verifiedAt\|\|''\)\?n:c;return [^\n]*PointForm\.verifiedBadge\(v\)/);
@@ -2742,7 +2763,7 @@ test('phone menu button shows the signed-in person\'s initials; Comando always h
 
 test('Comando: Buscar in the header (🔍 on phones, like Runners); totals with icons in the «Puntos» tab', () => {
   const cmd = readFileSync(new URL('./command.html', import.meta.url), 'utf8');
-  assert.match(cmd, /<header class="top"><div class="brand">[^]*?<\/div><nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="search" type="search" placeholder="Buscar…"/);
+  assert.match(cmd, /<header class="top"><div class="brand">[^]*?<\/div><nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="gsearch" type="search" data-global="1" placeholder="Buscar en todo…"/);
   assert.doesNotMatch(cmd, /<input class="search" id="search"/, 'no second search box in the list');
   assert.match(cmd, /const counts=`<span class="tcnt" title="[^\n]*?">\$\{icoPinS\}/);
   assert.match(cmd, /\$\{pending\?`<span class="tcnt pend" title="\$\{pending\} por revisar">\$\{icoReviewS\}\$\{pending\}<\/span>`:''\}/);
@@ -2771,7 +2792,7 @@ test('Supply map: team runners in live (only my team, strict rule) even without 
 
 test('runner cards: map pin and Maps top right; people count with breakdown before «Necesita»; no persistent selected color', () => {
   const grab = re => runner.match(re)[0];
-  assert.match(grab(/function locButtons[^\n]*/), /<span class="cardloc">\$\{c\.coords\?`<button type="button" class="iconbtn gps" data-where=/);
+  assert.match(grab(/function locButtons[^\n]*/), /<span class="cardloc">\$\{needButtons\(n\)\}\$\{c\.coords\?`<button type="button" class="iconbtn gps" data-where=/);
   assert.doesNotMatch(grab(/function needButtons[^\n]*/), /data-where|iconbtn gps/, 'bottom row: share only');
   const peopleLine = new Function('clean', 'ico', 'stamp', 'agoEs', 'PointForm', `${grab(/const PPL=[^\n]*/)};${grab(/function peopleLine[^\n]*/)};return peopleLine`)(s => String(s), () => '<svg/>', () => 'x', () => 'hace 1 h', {icons: {adult: '<i>a</i>', child: '<i>c</i>', family: '<i>f</i>'}});
   const html = peopleLine({createdAt: '2026-10-15T10:00:00Z', camp: {people: '60', adults: '30', children: '25', babies: '0', families: '12'}});
@@ -2818,8 +2839,11 @@ test('«Reportado por» (megaphone) replaces «Coordinador» in labels; the stor
   const sup = readFileSync(new URL('./supplier.html', import.meta.url), 'utf8');
   assert.doesNotMatch(sup, /Reportado por/, 'Supply cards: the reporter is just the name and phone');
   assert.match(sup, /when=n\.activityAt\?'':n\.revisedAt\|\|n\.createdAt;/, 'Necesidades cards: no «hace …» in the people row (they have «Actualizada hace …»)');
-  assert.match(sup, /🙋 Necesito runner<\/button>`\}\$\{needButtons\(n\)\}<\/div><\/article>`\}/, 'share button in the same row as «Despachar» / «Necesito runner»');
-  assert.match(sup, /<div class="dispatchrow"><button class="btn dispatch" type="button" data-dispatch="\$\{id\}">🚚 Despachar<\/button>\$\{needButtons\(n\)\}<\/div>/, 'Despachando: share next to Despachada');
+  assert.match(sup, /return `<span class="cardloc">\$\{needButtons\(n\)\}\$\{c\.coords\?/, 'share at the top, left of the GPS pin and Maps');
+  assert.equal((sup.match(/needButtons\(n\)/g) || []).length, 2, 'only there (defined once, used once)');
+  assert.match(sup, /shareLink\(location\.origin\+'\/runner\/'\+encodeURIComponent\(b\.dataset\.shareCamp\),b\.dataset\.shareTitle,b\)/, 'Supply shares /runner/<código>');
+  assert.match(sup, /data-share-camp="\$\{clean\(c\.code\|\|c\.id\)\}"/);
+  assert.match(sup, /<div class="dispatchrow"><button class="btn dispatch" type="button" data-dispatch="\$\{id\}">🚚 Despachar<\/button><\/div>/, 'Despachando: share moved to the top icons');
   assert.match(sup, /\$\{needDetails\(\{\.\.\.n,packing:null,noWhat:split\},true,false\)\}\$\{addedByLine\(n\)\}/, '«Agregado por» on Despachando too');
   assert.match(sup, /textOk=n=>!q\|\|foldNeed\(\[n\.runnerName,n\.runnerPhone,n\.addedByName,[^\n]*?,match=n=>teamOk\(n\)&&textOk\(n\);/, 'search finds who added it');
   assert.match(sup, /out=teamOnly&&q&&src\?src\(\)\.filter\(n=>!teamOk\(n\)&&textOk\(n\)\)\.length:0,t=\$\('#teamToggle'\)/, '«Solo mi equipo» with a search counts the matches it hides on the 👥 badge');
@@ -3023,15 +3047,19 @@ test('camp page «🕓 Actividad del punto» (public log, teammates by name) and
   assert.match(camp, /if\(!r\|\|!r\.ok\)r=await get\('\/api\/camps\/'\+encodeURIComponent\(id\)\+'\/log'\)/);
   assert.doesNotMatch(camp, /Por privacidad no se muestran/);
   assert.match(scout, /fetch\('\/api\/full\/scout'/);
-  assert.match(scout, /<nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="find" type="search" placeholder="Buscar…"/, 'search in the header after the nav, like Runners');
+  assert.match(scout, /<nav class="appnav" id="appNav" hidden><\/nav><input class="topsearch" id="gfind" type="search" data-global="1" placeholder="Buscar en todo…"/, 'global search in the header, like Runners');
+  assert.match(scout, /<div class="sidehead"><div class="tabfind"><input type="search" id="find" data-keep /, 'its own page search, like Supply and Runners');
+  assert.match(scout, /const extra=who!=='all'&&q\?cnt\('all'\)-cnt\(who\):0;/, '«Yo»/«Mi equipo» + search: red count on «Todos» of what the filter hides');
   assert.match(scout, /<main class="app" id="app" hidden><section class="mapwrap"><div id="map"[^>]*><\/div>[^]*?<section class="side">/, 'map left, list right, like Supply');
   assert.match(scout, /<span class="whotabs" id="mainTabs" role="tablist"[^>]*><button type="button" role="tab" data-who="all"[^>]*>.*🌐.*<button type="button" role="tab" data-who="mine" data-whotoggle/, 'phone: 🌐 and one 🙋/👥 toggle instead of the selector');
+  assert.match(scout, /<span class="cardloc">\$\{shareBtn\(p\)\}\$\{hasCoords\(p\)\?/, 'share at the top, left of the GPS pin and Maps (like Supply)');
+  assert.match(scout, /shareLink\(location\.origin\+'\/runner\/'\+encodeURIComponent\(b\.dataset\.shareCamp\),b\.dataset\.shareTitle,b\)/);
   assert.match(scout, /if\(wt\.hasAttribute\('data-whotoggle'\)&&who!=='all'\)return pickWho\(who==='mine'\?'team':'mine'\);/, 'tap again: mine ↔ my team');
   assert.match(scout, /<button type="button" class="mview" id="mview" aria-pressed="false"/, 'one list/map toggle');
   assert.match(scout, /if\(e\.target\.closest\('#mview'\)\)return setView\(view==='map'\?'list':'map'\);/);
-  assert.match(scout, /\.wcount:empty\{display:none\}\.whosel\{display:none\}/, 'the selector stays on computers only');
+  assert.match(scout, /\.wcount:empty\{display:none\}\.whopill\{display:none\}/, 'the pill stays on computers only');
   assert.doesNotMatch(scout.slice(scout.indexOf('<main class="app"')), /<h1>/, 'no page title (only on the sign-in card)');
-  assert.match(scout, /<select class="whosel" id="who" aria-label="Qué puntos ver"><option value="all">Todos los puntos<\/option><option value="mine">Creados por mí<\/option><option value="team">Creados por mi equipo<\/option><\/select>/, 'filter is a dropdown');
+  assert.match(scout, /<div class="whopill" id="who" role="radiogroup" aria-label="Qué puntos ver"><button type="button" role="radio" data-whopick="all" aria-checked="true" title="Todos los puntos">Todos<b class="wbadge"><\/b><\/button><button type="button" role="radio" data-whopick="mine" aria-checked="false" title="Creados por mí">Yo<\/button><button type="button" role="radio" data-whopick="team" aria-checked="false" title="Creados por mi equipo">Mi equipo<\/button><\/div>/, 'filter is a three-option pill: Todos · Yo · Mi equipo');
   assert.match(scout, /data-update="\$\{clean\(p\.id\)\}">📝 Actualizar necesidades<\/button>/, 'the card action is «Actualizar necesidades»');
   assert.match(scout, /\$\{myTeam\?`<button type="button" class="btn small" data-update=/, 'only people on a team update needs');
   assert.match(scout, /Va en camino: se puede cambiar, no quitar\./);
@@ -3339,7 +3367,7 @@ test('Runners: one search for all tabs (kept when switching tab), each tab filte
 test('a run in progress is obvious everywhere: orange «🏃 N run en curso» in the header, «N en curso» next to Runners, Yo badge orange', () => {
   const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8'), runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
   assert.match(nav, /const r = await fetch\('\/api\/full\/me'[^\n]*activeRuns = b\.activeRuns \|\| 0; toDispatch = b\.toDispatch \|\| 0;/);
-  assert.match(nav, /const show = activeRuns > 0 && location\.pathname !== '\/runner\.html';/);
+  assert.match(nav, /const show = activeRuns > 0 && pagePath\(\) !== '\/runner\.html';/);
   assert.match(nav, /chip\.onclick = \(\) => \{ try \{ sessionStorage\.setItem\('runnerTab', 'mine'\); \} catch \{\} \};/, 'opens «Yo»');
   assert.match(nav, /badge\('\/runner\.html', activeRuns, `\$\{activeRuns\} en curso`\);/);
   assert.match(nav, /badge\('\/supplier\.html', toDispatch, `\$\{toDispatch\} por despachar`\);/, 'Supply: «N por despachar» too');
@@ -3350,7 +3378,7 @@ test('a run in progress is obvious everywhere: orange «🏃 N run en curso» in
 test('«Yo» run card step by step: 1 pick up (packing + departure photo editable until dispatched), 2 go (round map / Maps / share, «Ver detalles del lugar»), 3 deliver (read-only load, «Pedir cambio» after dispatch); stopping with a load returns it or takes it elsewhere', () => {
   const runner = readFileSync(new URL('./runner.html', import.meta.url), 'utf8');
   assert.match(runner, /const locked=n=>!!\(n\.supplier&&n\.dispatchedAt\);/);
-  assert.match(runner, /<div class="locrow"><button type="button" class="locmore-btn" data-locmore="\$\{clean\(n\.id\)\}"[^>]*>Ver detalles del lugar<\/button><div class="roundbtns">\$\{locButtons\(n\)\}\$\{needButtons\(n\)\}<\/div><\/div><div class="locmore"/, '«Ver detalles del lugar» on the same row as map / Maps / share');
+  assert.match(runner, /<div class="locrow"><button type="button" class="locmore-btn" data-locmore="\$\{clean\(n\.id\)\}"[^>]*>Ver detalles del lugar<\/button><div class="roundbtns">\$\{locButtons\(n\)\}<\/div><\/div><div class="locmore"/, '«Ver detalles del lugar» on the same row as map / Maps / share');
   assert.match(runner, /\.roundbtns \.iconbtn\{width:44px;height:44px;border-radius:50%!important;/, 'round buttons');
   assert.match(runner, /data-pchange="\$\{id\}">✏️ Pedir cambio en la carga<\/button>/);
   assert.match(runner, /api\('\/api\/runner\/needs\/'\+encodeURIComponent\(pcNeed\.id\)\+'\/packing\/change','POST'/);
@@ -3378,7 +3406,7 @@ test('«¿Cómo funciona?»: one illustrated 1-2-3 window (Scouts → Runners �
   assert.match(nav, /Cada parte es igual de importante\. Juntos, la ayuda llega\./);
   assert.match(nav, /<button type="button" class="mhow" data-how-open>❓ ¿Cómo funciona\?<\/button>/, 'in the avatar menu');
   for (const f of ['index.html', 'signup.html', 'runner.html']) assert.match(read(f), /data-how-open/, f);
-  assert.match(nav, /window\.AppNav = \{consentText: CONSENT, howItWorks,/, 'any page can open it');
+  assert.match(nav, /window\.AppNav = \{consentText: CONSENT, myTeam: \(\) => myTeam, howItWorks,/, 'any page can open it');
 });
 
 test('«¿Cómo funciona?» closes with its last button, shows the runner icon in the cycle, and greets first-time visitors once', () => {
@@ -3684,7 +3712,7 @@ test('home map: issue-icon pins, Panama-only zoom, and the 9 Oct earthquake laye
 
 test('public map (signed out): tapping a point opens a small popup, also on phones; no buttons; reporter hidden when it is just «yo»', () => {
   const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
-  assert.match(html, /m\.on\('click',\(\)=>\{if\(!document\.body\.classList\.contains\('signed-in'\)\)\{m\.bindPopup\(publicPop\(r\),\{maxWidth:250,className:'ppop'\}\)\.openPopup\(\);return\}if\(!phoneLocked\(\)\)show\(r\)\}\)/);
+  assert.match(html, /m\.on\('click',\(\)=>\{if\(!document\.body\.classList\.contains\('signed-in'\)\)\{[^]*?L\.popup\(\{maxWidth:250,className:'ppop'\}\)\.setLatLng\(r\.coords\)\.setContent\(publicPop\(r\)\)\.openOn\(map\);return\}if\(!phoneLocked\(\)\)show\(r\)\}\)/);
   const fn = html.match(/function publicPop\(r\)\{[^\n]*/)[0];
   assert.doesNotMatch(fn, /<button|<a /, 'no buttons or links');
   assert.match(fn, /showWho=who&&!\/\^yo\\\.\?\$\/i\.test\(who\)/);
@@ -3694,7 +3722,7 @@ test('public map (signed out): tapping a point opens a small popup, also on phon
 test('«¿Quieres ayudar?» card names the tasks and says donors are put in touch with the right charity; volunteer-only offers go to Admin «🙌 Voluntarios», donors also to Donaciones', () => {
   const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8'), admin = readFileSync(new URL('./admin.html', import.meta.url), 'utf8'), don = readFileSync(new URL('./donations.html', import.meta.url), 'utf8');
   assert.match(html, /<p>Hay mucho por hacer: reportar a quien necesita ayuda, llevar donaciones a las comunidades, organizar centros de acopio, cocinar, verificar reportes por teléfono o reparar casas\./);
-  assert.match(html, /¿Prefieres donar\? Te ponemos en contacto con la organización benéfica indicada/);
+  assert.match(html, /<a class="jgive" href="https:\/\/unidosporazuero\.com\/" target="_blank" rel="noopener noreferrer"><img src="\/unidos-por-azuero\.png" alt="Unidos por Azuero"[^>]*><span><b>¿Prefieres donar\?<\/b> Dona con Unidos por Azuero\.<u>unidosporazuero\.com ↗<\/u><\/span><\/a>/);
   assert.match(admin, /data-utab="offers" aria-selected="false"><span aria-hidden="true">🙌<\/span> Voluntarios/);
   assert.match(admin, /offers=await adminRequest\('\/api\/admin\/offers'\)/);
   assert.match(admin, /voluntarios:'offers'/, 'deep link ?tab=voluntarios');
@@ -3735,4 +3763,25 @@ test('Donaciones: one search above both tabs; matches in the other tab show unde
   assert.match(don, /<h3>🎁 También en Donaciones <b>\$\{ts\.length\}<\/b><\/h3>/);
   assert.match(don, /if\(go\)\{offFilter='all';showDTab\('offers'\)/);
   assert.match(don, /if\(gt\)\{filter='all';showDTab\('tickets'\);render\(\);document\.querySelector\(`#list \[data-id="\$\{gt\.dataset\.gticket\}"\]`\)\?\.click\(\)\}/);
+});
+
+test('home page in English or Spanish: «ES | EN» next to «Aa» (phone: in the top bar), i18n.js translates known UI phrases only', () => {
+  const nav = readFileSync(new URL('./nav.js', import.meta.url), 'utf8'), home = readFileSync(new URL('./index.html', import.meta.url), 'utf8'), src = readFileSync(new URL('./i18n.js', import.meta.url), 'utf8');
+  assert.match(home, /<script src="\/pointform\.js"><\/script><script src="\/i18n\.js"><\/script><script src="\/nav\.js"><\/script>/, 'only the home page loads i18n.js');
+  assert.match(nav, /const langHome = \(\) => \['\/', '\/index\.html'\]\.includes\(pagePath\(\)\) && !!window\.I18n;/, 'only on the home page (also \/runner\/<código>)');
+  assert.match(nav, /<button type="button" data-lang="es" aria-pressed="\$\{lang === 'es'\}" title="Español">ES<\/button><button type="button" data-lang="en" aria-pressed="\$\{lang === 'en'\}" title="English">EN<\/button>/);
+  assert.match(nav, /if \(langHome\(\)\) box\.insertAdjacentHTML\('beforebegin', langSwitch\('langsw'\)\);/, 'computer: right before «Aa»');
+  assert.match(nav, /try \{ localStorage\.setItem\('lang', lang\); \} catch \{\}\n    window\.I18n\?\.set\(lang\);/, 'remembered in this browser');
+  const window = {};
+  new Function('window', 'document', 'MutationObserver', 'NodeFilter', src)(window, {}, function () {}, {});
+  const t = window.I18n.tr;
+  assert.equal(t('📍 Reportar un lugar que necesita ayuda'), '📍 Report a place that needs help', 'emoji kept');
+  assert.equal(t('  Mapa '), '  Map ', 'spacing kept');
+  assert.equal(t('hace 3 h'), '3 h ago');
+  assert.equal(t('12 personas'), '12 people');
+  assert.equal(t('Agua: ¿Para qué?'), 'Water: What for?');
+  assert.equal(t('Agua buena'), 'Agua buena', 'user data (a place name) stays as written');
+  assert.equal(t('Chicho sabe más'), 'Chicho knows more', 'names stay');
+  assert.equal(t('🙋 Hazte runner para llevar esta donación'), '🙋 Become a runner to deliver this donation');
+  for (const k of ['Iniciar sesión', '¿Prefieres donar?', 'Dona con Unidos por Azuero.', 'Inicia sesión con tu código o crea tu cuenta para llevarla.', 'Gas de cocina', 'para beber']) assert.ok(k in window.I18n.EN, k);
 });

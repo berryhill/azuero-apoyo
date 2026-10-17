@@ -4,6 +4,22 @@
 // Cada página pone <nav class="appnav" id="appNav" hidden></nav> en su encabezado y llama AppNav.draw() al entrar o salir.
 // En pantalla angosta (≤760px) se pliega: un botón con la página actual abre la lista completa bajo el encabezado.
 (() => {
+  // La página actual: /runner/<código> (enlace compartido de una donación) es el inicio.
+  const pagePath = () => /^\/runner\/[^/]+$/.test(location.pathname) ? '/' : location.pathname;
+  // Idioma del inicio (público): «ES | EN» junto a «Aa» (en el teléfono, en la barra de arriba). Se recuerda en este
+  // navegador; sin elección, inglés si el navegador está en inglés. Solo en el inicio: i18n.js lo carga solo index.html.
+  const langHome = () => ['/', '/index.html'].includes(pagePath()) && !!window.I18n;
+  let lang = 'es';
+  try { lang = localStorage.getItem('lang') || (/^en\b/i.test(navigator.language || '') ? 'en' : 'es'); } catch {}
+  if (lang !== 'en') lang = 'es';
+  const langSwitch = cls => `<div class="${cls}" role="group" aria-label="Idioma · Language" translate="no"><button type="button" data-lang="es" aria-pressed="${lang === 'es'}" title="Español">ES</button><button type="button" data-lang="en" aria-pressed="${lang === 'en'}" title="English">EN</button></div>`;
+  function setLang(l) {
+    lang = l === 'en' ? 'en' : 'es';
+    try { localStorage.setItem('lang', lang); } catch {}
+    window.I18n?.set(lang);
+    document.querySelectorAll('[data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-lang]'); if (b) { e.preventDefault(); setLang(b.dataset.lang); } });
   const css = `.appnav{position:relative;display:flex;align-items:center;min-width:0}.appnav[hidden]{display:none}
 .appnav-list{display:flex;align-items:center;gap:2px;background:#ffffff12;border-radius:10px;padding:3px}
 .appnav-list a{display:inline-flex;align-items:center;gap:6px;color:#c8d6db;text-decoration:none;font-size:13px;font-weight:750;padding:7px 11px;border-radius:8px;white-space:nowrap}.appnav-list a:hover{background:#ffffff1a;color:#fff}
@@ -19,7 +35,7 @@ html:has(dialog[open]),html:has(.modalbg.open){overflow:hidden}html:has(dialog[o
 .navtelpop{position:absolute;z-index:4000;min-width:210px;background:#fff;border:1px solid #cad9d9;border-radius:12px;box-shadow:0 12px 30px #17354233;padding:10px 12px;font-family:Inter,system-ui,sans-serif;color:#173c46}.ntp-h{font-weight:800;font-size:14px}.ntp-num{font-size:17px;font-weight:800;margin:4px 0 8px;letter-spacing:.02em}.ntp-acts{display:flex;gap:8px}.ntp-acts a{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:9px;font-weight:800;font-size:13px;text-decoration:none}.ntp-call{background:#19745f;color:#fff}.ntp-wa{background:#25d366;color:#08331b}.ntp-copy{display:block;width:100%;margin-top:6px;padding:6px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#36505a;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .swipe-l{animation:navSwipeL .22s ease-out}.swipe-r{animation:navSwipeR .22s ease-out}@keyframes navSwipeL{from{transform:translateX(28px);opacity:.35}}@keyframes navSwipeR{from{transform:translateX(-28px);opacity:.35}}@media (prefers-reduced-motion:reduce){.swipe-l,.swipe-r{animation:none}}
 .appconfirm{border:0;border-radius:16px;padding:0;width:min(380px,calc(92vw / var(--text-zoom,1)));box-shadow:0 20px 60px #10263a66;font-family:Inter,system-ui,sans-serif}.appconfirm::backdrop{background:#10263ab8}.appconfirm form{margin:0;padding:22px}.appconfirm h2{margin:0;font-size:19px;line-height:1.3;color:#152b3a}.appconfirm p{margin:8px 0 0;color:#667982;font-size:13px;line-height:1.45}.appconfirm p:empty{display:none}
-.textsize{position:relative;margin-left:8px;flex:none}.top>.textsize{order:99;margin-left:auto}.top>.textsize .textsize-pop{left:auto;right:0}.textsize>button{height:28px;padding:0 8px;border:1px solid #47657a;border-radius:8px;background:none;color:#c8d6db;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}.textsize>button:hover,.textsize>button[aria-expanded="true"]{background:#ffffff1a;color:#fff}
+.textsize{position:relative;margin-left:8px;flex:none}.langsw{display:inline-flex;order:99;margin-left:auto;flex:none;border:1px solid #47657a;border-radius:8px;overflow:hidden}.langsw button,.mlang button{border:0;background:none;color:#c8d6db;font:800 12px Inter,system-ui,sans-serif;cursor:pointer}.langsw button{height:26px;padding:0 8px}.langsw button[aria-pressed="true"],.mlang button[aria-pressed="true"]{background:#fff;color:#10263a}.top .langsw+.textsize{margin-left:6px!important}.mlang{display:none}.top>.textsize{order:99;margin-left:auto}.top>.textsize .textsize-pop{left:auto;right:0}.textsize>button{height:28px;padding:0 8px;border:1px solid #47657a;border-radius:8px;background:none;color:#c8d6db;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}.textsize>button:hover,.textsize>button[aria-expanded="true"]{background:#ffffff1a;color:#fff}
 .textsize-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:3100;display:flex;align-items:center;gap:6px;background:#fff;border-radius:12px;padding:7px;box-shadow:0 10px 26px #0005}.textsize-pop[hidden]{display:none}.textsize-pop button{width:40px;height:36px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#173c46;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.textsize-pop button:disabled{opacity:.4;cursor:default}.textsize-pop span{min-width:46px;text-align:center;font:750 13px Inter,system-ui,sans-serif;color:#36505a}
 html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1))}
 .appnav-list .appnav-admin{margin-left:10px;border:1px dashed #ffb4a366;font-size:12px!important;opacity:.7;color:#ffb4a3!important}.appnav-list .appnav-admin:hover{opacity:1}
@@ -52,6 +68,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 .top.has-avatar .brand .logo,.top.has-avatar>.adminlogo,.top.has-avatar .topright .who,.top.has-avatar #codeUser,.top.has-avatar .textsize{display:none!important}.top.has-avatar .topright{margin-left:auto}
 @media(min-width:761px){.msheet{left:12px;right:auto;width:min(360px,calc(100% - 24px));border-radius:0 0 16px 16px}}
 @media(max-width:760px){.navout{width:42px;height:42px;margin:0;padding:0;justify-content:center;border-radius:12px}.navout .navout-t{display:none}.davatar{display:none!important}}
+/* 🪪 Mi credencial: tarjeta con tu QR a pantalla completa para que otro la escanee. */.idcard{width:calc(100vw / var(--text-zoom,1));max-width:none;height:calc(100dvh / var(--text-zoom,1));max-height:none;margin:0;padding:16px;border:0;border-radius:0;background:#fff;color:#10263a}.idcard[open]{display:flex;align-items:center;justify-content:center}.idcard::backdrop{background:#10263a}.idc-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;text-align:center;font-family:Inter,system-ui,sans-serif}.idc-av{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:#ffd166;color:#10263a;font:800 20px Inter,system-ui,sans-serif;box-shadow:0 0 0 2px #10263a}.idc-name{font-size:22px;font-weight:800;letter-spacing:-.01em}.idc-team{font-size:14px;font-weight:700;color:#4b6670}.idc-roles{display:flex;flex-wrap:wrap;justify-content:center;gap:5px}.idc-roles span{padding:2px 9px;border-radius:99px;background:#eef3f3;font-size:12px;font-weight:800;color:#35505e}.idc-qr{width:min(calc(80vw / var(--text-zoom,1)),calc(52dvh / var(--text-zoom,1)))}.idc-qr svg{display:block;width:100%;height:auto}.idc-id{font:700 12px ui-monospace,monospace;color:#64808a}.idc-btns{display:flex;gap:8px}.idc-btns button{border:1px solid #cad9d9;border-radius:11px;background:#fff;color:#10263a;padding:10px 16px;font:800 14px Inter,system-ui,sans-serif;cursor:pointer}.idc-btns .idc-close{background:#10263a;border-color:#10263a;color:#fff}
 .mlive{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid #ffffff1f;color:#fff;cursor:pointer}.mlive-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.mlive-t b{font:800 14px Inter,system-ui,sans-serif}.mlive-t small{font:600 12px/1.35 Inter,system-ui,sans-serif;color:#b7cdd3}.mlive.on .mlive-t small{color:#9be0b4}.mlive input{position:absolute;opacity:0;pointer-events:none}.mlive-sw{flex:none;position:relative;width:44px;height:26px;border-radius:13px;background:#47657a;transition:background .15s}.mlive-sw:after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .15s}.mlive input:checked+.mlive-sw{background:#2fa36b}.mlive input:checked+.mlive-sw:after{transform:translateX(18px)}.mlive input:focus-visible+.mlive-sw{outline:2px solid #ffd166;outline-offset:2px}
 .sgconsent{display:flex!important;align-items:flex-start;gap:9px;margin:10px 0 4px;font-size:12.5px;line-height:1.4;font-weight:600;color:inherit;opacity:.9;cursor:pointer}.sgconsent input{flex:none;width:18px!important;height:18px;margin:1px 0 0!important;padding:0!important;accent-color:#ed7654}
 @media(min-width:761px){.top.nav-icons .appnav-list a:not([aria-current]) .appnav-label{display:none}.top.nav-icons .appnav-list a{padding:7px 9px;font-size:15px}.top.nav-icons .appnav-list .appnav-admin{margin-left:4px}
@@ -63,7 +80,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 .mbar{display:flex;align-items:center;gap:8px;flex:1;min-width:0}.mlinks{flex:1;min-width:0;display:flex;gap:3px;overflow:hidden;background:#ffffff12;border-radius:11px;padding:3px}.mlinks a{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:9px;color:#c8d6db;text-decoration:none;font:800 14px Inter,system-ui,sans-serif;white-space:nowrap}.mlinks a[aria-current="page"]{background:#fff;color:#10263a}.mlinks .mi{display:inline-flex}.mbar .mtitle{display:none}.mbar.tight .mlinks{display:none}.mbar.tight .mtitle{display:flex}.mtitle{flex:1;min-width:0;align-items:center;gap:7px;margin:0;padding:8px 10px;border:0;border-radius:11px;background:none;color:#fff;font:800 17px Inter,system-ui,sans-serif;text-align:left;white-space:nowrap;overflow:hidden}.mtitle .mtl{min-width:0;overflow:hidden;text-overflow:ellipsis}.mtitle:not(:disabled){background:#ffffff12;cursor:pointer}.mtitle:disabled{opacity:1;cursor:default}.mtitle .chev{margin-left:auto;padding-left:4px;font-size:12px;opacity:.85}.mtitle[aria-expanded="true"]{background:#fff;color:#10263a}
 .mdrop{position:absolute;top:100%;left:8px;right:8px;z-index:3001;display:flex;flex-direction:column;gap:2px;padding:6px;background:#10263a;border-radius:0 0 14px 14px;box-shadow:0 16px 34px #0008}.mdrop[hidden]{display:none}.mdrop a{display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:10px;color:#e3ecef;text-decoration:none;font:800 16px Inter,system-ui,sans-serif}.mdrop a[aria-current="page"]{background:#fff;color:#10263a}.mdrop .ml{display:inline!important}.mdrop .mdrop-admin{margin-top:6px;border:1px dashed #ffb4a366;color:#ffb4a3;font-size:14px;opacity:.85}
 .mmenu.me{border-radius:50%;background:#ffd166;border-color:#ffd166;color:#10263a;box-shadow:0 0 0 2px #10263a,0 0 0 3px #ffd16699}.minit{font:900 15px/1 Inter,system-ui,sans-serif;letter-spacing:.02em}.mmenu.me[aria-expanded="true"]{background:#fff;border-color:#fff}}
-.madd,.mmenu,.msearchbtn{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:12px;border:0;cursor:pointer;text-decoration:none}.madd{background:#ed7654;color:#fff}.madd[hidden]{display:none}.mmenu,.msearchbtn{background:#ffffff14;border:1px solid #47657a;color:#fff}.msearchbtn[aria-expanded="true"]{background:#fff;color:#10263a}.madd.text{width:auto;padding:0 14px;font:800 15px Inter,system-ui,sans-serif;white-space:nowrap}.top:has(>.mbar){flex-wrap:wrap;height:auto;min-height:62px;align-content:center}@media(max-width:760px){.top:has(>.mbar) .topsearch{display:none!important}}.top.msearch .topsearch{display:block!important;flex:1 0 100%;order:9;max-width:none;margin:0 0 10px}body:has(.top>.mbar) .addbar{display:none!important}.msuser .msoft{color:#c8d6db}.mlogin{display:none}.mbar.public .mlinks,.mbar.public .mtitle,.mbar.public .msearchbtn{display:none!important}.mbar.public .madd{order:-1}.mbar.public .mlogin{display:inline-flex;align-items:center;height:42px;margin-left:auto;padding:0 14px;border:1px solid #ffffff55;border-radius:12px;background:none;color:#fff;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.top.msearch:has(.mbar.public) .topsearch{display:none!important}.msuser .mgo{background:#ed7654;border-color:#ed7654;color:#fff}.mmenu[aria-expanded="true"]{background:#fff;color:#10263a}
+.madd,.mmenu,.msearchbtn{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:12px;border:0;cursor:pointer;text-decoration:none}.madd{background:#ed7654;color:#fff}.madd[hidden]{display:none}.mmenu,.msearchbtn{background:#ffffff14;border:1px solid #47657a;color:#fff}.msearchbtn[aria-expanded="true"]{background:#fff;color:#10263a}.madd.text{width:auto;padding:0 14px;font:800 15px Inter,system-ui,sans-serif;white-space:nowrap}.top:has(>.mbar){flex-wrap:wrap;height:auto;min-height:62px;align-content:center}@media(max-width:760px){.top:has(>.mbar) .topsearch{display:none!important}}.top.msearch .topsearch{display:block!important;flex:1 0 100%;order:9;max-width:none;margin:0 0 10px}body:has(.top>.mbar) .addbar{display:none!important}.msuser .msoft{color:#c8d6db}.mlogin{display:none}.mbar.public .mlinks,.mbar.public .mtitle,.mbar.public .msearchbtn{display:none!important}.mbar.public .madd{order:-1}.mbar.public .mlogin{display:inline-flex;align-items:center;height:42px;margin-left:auto;padding:0 14px;border:1px solid #ffffff55;border-radius:12px;background:none;color:#fff;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.top.msearch:has(.mbar.public) .topsearch{display:none!important}.msuser .mgo{background:#ed7654;border-color:#ed7654;color:#fff}.mbar.public .mlang{display:inline-flex;flex:none;height:42px;margin-left:6px;border:1px solid #ffffff55;border-radius:12px;overflow:hidden}.mbar.public .mlang button{padding:0 9px;font-size:13px}.top:has(>.mbar)>.langsw{display:none!important}.mmenu[aria-expanded="true"]{background:#fff;color:#10263a}
 .msheet{position:absolute;top:100%;left:0;right:0;z-index:3000;background:#10263a;padding:6px 14px 16px;box-shadow:0 16px 34px #0008;border-radius:0 0 16px 16px;font-family:Inter,system-ui,sans-serif}.msheet:not([hidden]){display:block}
 .msuser{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid #ffffff1f;color:#fff}.msuser b{flex:1;min-width:0;font-size:15px;overflow-wrap:anywhere}.msuser button{border:1px solid #ffffff40;background:none;color:#ffd0c2;border-radius:9px;padding:8px 12px;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}
 .msroles{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.msrole{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:#ffffff1f;color:#d7e6ea}.mpages{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid #ffffff1f}.mpages a{display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:10px;color:#e3ecef;text-decoration:none;font-size:15px;font-weight:750}.mpages a[aria-current="page"]{background:#fff;color:#10263a}.mpages a:active{background:#ffffff26}
@@ -97,7 +114,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   function draw() {
     const el = document.getElementById('appNav');
     if (!el) return;
-    const u = user(), here = location.pathname === '/index.html' ? '/' : location.pathname;
+    const u = user(), here = pagePath() === '/index.html' ? '/' : pagePath();
     let list = u ? pages.filter(([url, , , ok]) => url === here || ok(u)) : [];
     // En el panel de administración solo Inicio y «🔒 Administración» (la actual); sus herramientas están en su ☰.
     if (here === '/admin.html') list = [pages[0], ['/admin.html', '🔒', () => window.adminViewLabel?.() || 'Administración', () => true]];
@@ -168,8 +185,9 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       const box = document.createElement('div');
       box.className = 'textsize';
       box.innerHTML = '<button type="button" id="textSizeBtn" aria-expanded="false" aria-controls="textSizePop" title="Tamaño del texto" aria-label="Tamaño del texto">Aa</button><div class="textsize-pop" id="textSizePop" hidden><button type="button" data-size="-1" aria-label="Texto más pequeño">A−</button><span role="status"></span><button type="button" data-size="1" aria-label="Texto más grande">A+</button></div>';
-      // «Aa» al extremo derecho del encabezado (su menú se abre hacia adentro).
+      // «Aa» al extremo derecho del encabezado (su menú se abre hacia adentro); en el inicio, «ES | EN» justo antes.
       (brand.closest('.top') || brand).appendChild(box);
+      if (langHome()) box.insertAdjacentHTML('beforebegin', langSwitch('langsw'));
       const btn = box.querySelector('#textSizeBtn'), pop = box.querySelector('#textSizePop');
       const show = open => { pop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); };
       btn.onclick = () => show(pop.hidden);
@@ -265,7 +283,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const bar = document.createElement('div');
     bar.id = 'mBar';
     bar.className = 'mbar';
-    bar.innerHTML = `<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button><nav class="mlinks" id="mLinks" aria-label="Páginas"></nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled></button>${top.querySelector('.topsearch') ? `<button type="button" class="msearchbtn" id="mSearch" aria-expanded="false" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}</button>` : ''}<button type="button" class="madd" id="mAdd" hidden></button>${document.getElementById('loginBtn') ? `<button type="button" class="mlogin" id="mLogin" aria-label="${esc(document.getElementById('loginBtn').getAttribute('aria-label') || 'Iniciar sesión')}">${document.getElementById('loginBtn').innerHTML}</button>` : ''}`;
+    bar.innerHTML = `<button type="button" class="mmenu" id="mMenu" aria-expanded="false" aria-controls="mSheet" aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button><nav class="mlinks" id="mLinks" aria-label="Páginas"></nav><button type="button" class="mtitle" id="mTitle" aria-haspopup="true" aria-expanded="false" disabled></button>${top.querySelector('.topsearch') ? `<button type="button" class="msearchbtn" id="mSearch" aria-expanded="false" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}</button>` : ''}<button type="button" class="madd" id="mAdd" hidden></button>${document.getElementById('loginBtn') ? `<button type="button" class="mlogin" id="mLogin" aria-label="${esc(document.getElementById('loginBtn').getAttribute('aria-label') || 'Iniciar sesión')}">${document.getElementById('loginBtn').innerHTML}</button>` : ''}${langHome() ? langSwitch('mlang') : ''}`;
     top.appendChild(bar);
     const sheet = document.createElement('div');
     sheet.id = 'mSheet';
@@ -283,7 +301,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   function drawMobileBar() {
     const title = document.getElementById('mTitle');
     if (!title) return;
-    const u = user() || {}, here = location.pathname;
+    const u = user() || {}, here = pagePath();
     // Páginas de poco uso (Mi equipo) van solo en el menú ☰, salvo que sea la página actual.
     const list = user() ? pages.filter(([url, , , ok, where]) => url === here || ok(u) && where !== 'menu') : [], links = document.getElementById('mLinks');
     links.innerHTML = list.length > 1 ? list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''} title="${esc(label(u))}"><span class="mi" aria-hidden="true">${icon}</span><span class="ml">${esc(label(u))}</span></a>`).join('') : '';
@@ -306,7 +324,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   function drawTitle() {
     const title = document.getElementById('mTitle'), drop = document.getElementById('mDrop'), links = document.getElementById('mLinks'), bar = document.getElementById('mBar');
     if (!title || !drop || !links) return;
-    const u = user() || {}, here = location.pathname, adminPage = here === '/admin.html', page = adminPage ? ['/admin.html', '🔒', () => window.adminViewLabel?.() || 'Administración'] : pages.find(([url]) => url === here), label = page ? page[2](u) : document.title.replace(/^(DEV|PRUEBA) · /, '').split('·')[0].trim();
+    const u = user() || {}, here = pagePath(), adminPage = here === '/admin.html', page = adminPage ? ['/admin.html', '🔒', () => window.adminViewLabel?.() || 'Administración'] : pages.find(([url]) => url === here), label = page ? page[2](u) : document.title.replace(/^(DEV|PRUEBA) · /, '').split('·')[0].trim();
     // Con el rol Admin (o la sesión de administración abierta) la lista de páginas termina con «🔒 Administración», como en
     // la computadora (pide confirmar antes de ir).
     const admin = (adminOK || (u.roles || []).includes('admin')) && here !== '/admin.html';
@@ -405,34 +423,58 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   const liveOn = () => { try { return localStorage.getItem('runnerLive') === '1'; } catch { return false; } };
   function liveRow(u) {
     if (!(u?.roles || []).includes('runner')) return '';
-    const on = liveOn(), here = location.pathname === '/runner.html';
+    const on = liveOn(), here = pagePath() === '/runner.html';
     const msg = on ? (here ? 'Estás compartiendo tu ubicación en vivo con tu equipo.' : 'Compartes tu ubicación en vivo mientras tengas abierta la página Runners.') : 'No estás compartiendo tu ubicación.';
     return `<label class="mlive${on ? ' on' : ''}"><span class="mlive-t"><b>📍 Ubicación en vivo</b><small>${msg}</small></span><input type="checkbox" role="switch" data-mlive${on ? ' checked' : ''} aria-label="Compartir mi ubicación en vivo"><span class="mlive-sw" aria-hidden="true"></span></label>`;
   }
   document.addEventListener('change', e => {
     const sw = e.target.closest('[data-mlive]');
     if (!sw) return;
-    if (location.pathname === '/runner.html') dispatchEvent(new CustomEvent('livetoggle', {detail: {on: sw.checked}}));
+    if (pagePath() === '/runner.html') dispatchEvent(new CustomEvent('livetoggle', {detail: {on: sw.checked}}));
     else {
       try { sw.checked ? localStorage.setItem('runnerLive', '1') : localStorage.removeItem('runnerLive'); } catch {}
       if (!sw.checked) fetch('/api/full/location/stop', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: '{}'}).catch(() => {});
     }
     setTimeout(() => showSheet(true), 300);
   });
+  // 🪪 Mi credencial (menú de tu avatar): tu nombre, equipo, roles y un QR con tu ID de usuario, a pantalla completa
+  // para que otra persona lo escanee y vea quién eres en el sistema. El QR lleva un enlace (/?quien=<ID>) para usarlo
+  // más adelante; por ahora abre el inicio. «Copiar ID» sigue a mano (Administración lo pide para ubicar cuentas).
+  const loadQR = () => window.AppQR ? Promise.resolve() : new Promise((ok, fail) => { const s = document.createElement('script'); s.src = '/qr.js'; s.onload = ok; s.onerror = fail; document.head.appendChild(s); });
+  async function showIdCard() {
+    let u = user() || {}, id = u.id;
+    if (!id) { try { const r = await fetch('/api/full/me', {credentials: 'same-origin', cache: 'no-store'}); if (r.ok) { const b = await r.json(); id = b.id; u = {...u, id, name: b.name || u.name, roles: b.roles || u.roles}; } } catch {} }
+    if (!id) { const t = document.createElement('div'); t.className = 'accesstoast'; t.setAttribute('role', 'status'); t.textContent = 'No se pudo obtener tu ID. Vuelve a entrar.'; document.body.appendChild(t); setTimeout(() => t.remove(), 5000); return; }
+    try { await loadQR(); } catch {}
+    const name = signedName() || u.name || '';
+    const roleNames = {scout: 'Scout', runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', cook: 'Cocina', reports: 'Boletín', teammanager: 'Team manager', admin: 'Admin'};
+    let d = document.getElementById('idCard');
+    if (!d) { d = document.createElement('dialog'); d.id = 'idCard'; d.className = 'idcard'; d.setAttribute('aria-label', 'Mi credencial'); document.body.appendChild(d); }
+    const url = location.origin + '/?quien=' + encodeURIComponent(id);
+    d.innerHTML = `<div class="idc-wrap"><span class="idc-av" aria-hidden="true">${esc(initialsOf(name) || '?')}</span><b class="idc-name">${esc(name)}</b>${myTeam ? `<span class="idc-team">👥 ${esc(myTeam)}</span>` : ''}${(u.roles || []).length ? `<span class="idc-roles">${u.roles.map(r => `<span>${esc(roleNames[r] || r)}</span>`).join('')}</span>` : ''}<div class="idc-qr">${window.AppQR ? AppQR.svg(url, {title: 'QR de ' + name}) : ''}</div><code class="idc-id">ID ${esc(id.slice(0, 8))}…</code><div class="idc-btns"><button type="button" data-idc="copy">Copiar ID</button><button type="button" class="idc-close" data-idc="close">Cerrar</button></div></div>`;
+    d.onclick = async e => {
+      const b = e.target.closest('[data-idc]');
+      if (b?.dataset.idc === 'close') { try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} d.close(); }
+      else if (b?.dataset.idc === 'copy') { try { await navigator.clipboard.writeText(id); b.textContent = 'ID copiado'; } catch { b.textContent = id; } }
+    };
+    d.onclose = () => { try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} };
+    d.showModal();
+    try { d.requestFullscreen?.().catch(() => {}); } catch {}
+  }
   function showSheet(open) {
     const sheet = document.getElementById('mSheet'), btn = document.getElementById('mMenu');
     if (!sheet) return;
     if (open) {
-      const u = user(), here = location.pathname === '/index.html' ? '/' : location.pathname, out = document.getElementById('logout') || document.getElementById('codeLogout');
+      const u = user(), here = pagePath() === '/index.html' ? '/' : pagePath(), out = document.getElementById('logout') || document.getElementById('codeLogout');
       const name = location.pathname === '/admin.html' ? adminName() : document.getElementById('whoName')?.title || u?.name || '';
-      const signedIn = !!out && !out.closest('[hidden]') || sharedOut(), login = !signedIn && document.getElementById('loginBtn'), copyId = signedIn && document.getElementById('copyMyId');
+      const signedIn = !!out && !out.closest('[hidden]') || sharedOut(), login = !signedIn && document.getElementById('loginBtn'), idCard = signedIn && !!(u?.id || u);
       const list = u ? pages.filter(([url, , , ok, where]) => url === here || ok(u) && where !== 'menu') : [];
       const outLabel = out && out.textContent.trim() !== '✕' ? out.textContent.trim() : 'Salir';
       // Roles de quien entró (chips bajo su nombre) y las páginas de poco uso (Mi equipo), solo en este menú.
       const roleNames = {scout: 'Scout', runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', cook: 'Cocina', reports: 'Boletín', teammanager: 'Team manager', admin: 'Admin'};
       const roleChips = signedIn && u?.roles?.length ? `<span class="msroles">${u.roles.map(r => `<span class="msrole">${esc(roleNames[r] || r)}</span>`).join('')}</span>` : '';
       const menuOnly = signedIn && u ? pages.filter(([url, , , ok, where]) => where === 'menu' && url !== here && ok(u)).map(([url, icon, label]) => `<nav class="mpages" aria-label="Más"><a href="${url}"><span aria-hidden="true">${icon}</span>${esc(label(u))}</a></nav>`).join('') : '';
-      sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${myTeam ? `<small class="msteam">👥 ${esc(myTeam)}</small>` : ''}${roleChips}</b>${copyId ? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}${menuOnly}${liveRow(u)}<button type="button" class="mhow" data-how-open>❓ ¿Cómo funciona?</button><div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>${(adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? '<a href="/admin.html" class="madmin" data-admin-link><span aria-hidden="true">🔒</span> Administración</a>' : ''}`;
+      sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${myTeam ? `<small class="msteam">👥 ${esc(myTeam)}</small>` : ''}${roleChips}</b>${idCard ? '<button type="button" data-m="idcard" class="msoft">🪪 Mi credencial</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}${menuOnly}${liveRow(u)}<button type="button" class="mhow" data-how-open>❓ ¿Cómo funciona?</button><div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>${(adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? '<a href="/admin.html" class="madmin" data-admin-link><span aria-hidden="true">🔒</span> Administración</a>' : ''}`;
       drawRunNow();
       sheet.querySelector('[data-msize="-1"]').disabled = zoom === sizes[0];
       sheet.querySelector('[data-msize="1"]').disabled = zoom === sizes[sizes.length - 1];
@@ -454,8 +496,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     if (e.target.closest('[data-m="logout"]')) { showSheet(false); const out = !document.body.dataset.signedName && (document.getElementById('logout') || document.getElementById('codeLogout')); if (out) out.click(); else sharedLogout(); return; }
     if (e.target.closest('#mLogin')) { showSheet(false); document.getElementById('loginBtn')?.click(); return; }
     if (e.target.closest('[data-m="login"]')) { showSheet(false); document.getElementById('loginBtn')?.click(); return; }
-    const cid = e.target.closest('[data-m="copyid"]');
-    if (cid) { document.getElementById('copyMyId')?.click(); cid.textContent = 'ID copiado'; return; }
+    if (e.target.closest('[data-m="idcard"]')) { showSheet(false); showIdCard(); return; }
     if (e.target.closest('#mAdd')) { showSheet(false); document.querySelector('.top .topright .add')?.click(); return; }
     const sb = e.target.closest('#mSearch');
     if (sb && document.querySelector('header input[type=search][data-global]')) { showSheet(false); openGlobalSearch(document.querySelector('header input[type=search]').value); return; }
@@ -624,7 +665,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   function drawRunNow() {
     const top = document.querySelector('header.top');
     if (!top) return;
-    const show = activeRuns > 0 && location.pathname !== '/runner.html';
+    const show = activeRuns > 0 && pagePath() !== '/runner.html';
     let chip = document.getElementById('runNow');
     if (!chip && show) {
       chip = document.createElement('a');
@@ -803,6 +844,27 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     }
     sync();
   }
+  // «Buscar en esta página» (Supply, Runners, Scout, Checkup: data-keep): lo escrito se guarda por página, así que al ir a
+  // otra página y volver sigue puesto, y cada página tiene lo suyo. Se guarda al escribir y al salir de la página (también
+  // lo que la página borre o cambie por su cuenta, como «✕ Borrar búsqueda»).
+  function mountPageFind() {
+    document.querySelectorAll('input[type=search][data-keep]').forEach(input => {
+      if (input.dataset.keepReady) return;
+      input.dataset.keepReady = '1';
+      // Una clave por página (/runner/<código> es Runners).
+      const key = () => 'find:' + pagePath();
+      const save = () => { try { input.value ? sessionStorage.setItem(key(), input.value) : sessionStorage.removeItem(key()); } catch {} };
+      input.addEventListener('input', save);
+      addEventListener('pagehide', save);
+      let saved = '';
+      try { saved = sessionStorage.getItem(key()) || ''; } catch {}
+      if (saved && !input.value) {
+        input.value = saved;
+        const fire = () => setTimeout(() => input.dispatchEvent(new Event('input', {bubbles: true})));
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fire); else fire();
+      }
+    });
+  }
   // «🔎 Búsqueda global»: pantalla encima de la página (en el teléfono ocupa todo) con los puntos que coinciden en
   // código, zona, lugar, indicaciones, quién reporta, necesidades o notas, como en Checkup. «‹ Volver», ✕ o Atrás del
   // teléfono la cierran y se vuelve a lo que se estaba haciendo, sin cambiar nada.
@@ -892,7 +954,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     {bg: 'linear-gradient(150deg,#ffe7c2,#ffd166)', art: '<span class="how-emoji">🧭</span>', t: 'Scouts', sub: 'Reportan quién necesita ayuda',
       li: [['📍', 'El lugar y su contacto'], ['🍲', 'Qué hace falta: comida, agua, una silla de ruedas, gas, una medicina…'], ['💪', 'Solo con reportar ya estás ayudando']]},
     {bg: 'linear-gradient(150deg,#d6ecff,#9fd0ff)', art: RUNNER_ICON, t: 'Runners', sub: 'Llevan la ayuda hasta allá',
-      li: [['🚗', 'Tienes carro, pickup o moto'], ['📦', 'Recoges donaciones: no tienen que ser tuyas'], ['🏠', 'Las llevas a donde hacen falta']]},
+      li: [['🚗', 'Tienes carro, pickup o moto'], ['📦', 'Recoges donaciones: no tienen que ser tuyas'], ['💜', 'Las llevas a donde hacen falta']]},
     {bg: 'linear-gradient(150deg,#d9f2e3,#9edcb8)', art: '<span class="how-emoji">📦</span>', t: 'Centros de acopio', sub: 'Conectan la donación con quien la necesita',
       li: [['📋', 'Ven lo que reportaron los scouts'], ['🚚', 'Preparan la carga y piden un runner'], ['🧾', 'Llevan la cuenta de todo lo que sale']]},
   ];
@@ -926,10 +988,11 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   }
   document.addEventListener('click', e => { if (e.target.closest('[data-how-open]')) { e.preventDefault(); showSheet(false); howItWorks(); } });
   // «¿Cómo funciona?» nunca se abre solo (ni la primera vez ni al salir): solo al tocar un botón [data-how-open].
-  window.AppNav = {consentText: CONSENT, howItWorks,swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
+  window.AppNav = {consentText: CONSENT, myTeam: () => myTeam, howItWorks,swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
-  mountSearch();
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); mountSearch(); document.querySelector('header input[type=search]')?._tsSync?.(); }); else { draw(); mountTextSize(); mountMobileBar(); document.querySelector('header input[type=search]')?._tsSync?.(); }
+  mountSearch(); mountPageFind();
+  if (langHome() && lang === 'en') window.I18n.set('en');
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); mountSearch(); mountPageFind(); document.querySelector('header input[type=search]')?._tsSync?.(); }); else { draw(); mountTextSize(); mountMobileBar(); document.querySelector('header input[type=search]')?._tsSync?.(); }
   // Entrar o salir en otra pestaña actualiza esta.
   addEventListener('storage', e => { if (e.key === 'codeUser' || e.key === null) draw(); if (e.key === 'textZoom' || e.key === null) { zoom = sizes.includes(savedSize()) ? savedSize() : 1; applySize(); } });
 })();
