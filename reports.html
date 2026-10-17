@@ -1,0 +1,22 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reportes · Azuero Apoyo</title><style>
+/* 📰 Reportes: informes del equipo para imprimir o guardar en PDF (reports.js). Solo team managers y el rol «📰 Boletín»,
+   y hay que ser de un equipo. */
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#152b3a;background:#f5f8f7}*{box-sizing:border-box}body{margin:0;min-height:calc(100vh / var(--text-zoom,1));background:#f5f8f7}button,input,select{font:inherit}[hidden]{display:none!important}
+.top{height:62px;background:#10263a;color:#fff;display:flex;align-items:center;gap:12px;padding:0 14px}.brand{display:flex;align-items:center;gap:10px}.logo{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#ed7654;color:#fff;font-size:20px}
+.topsearch{flex:1;max-width:420px;min-width:0;padding:10px 13px;border:1px solid #2e4b60;border-radius:9px;background:#1a3349;color:#fff;outline:none}
+#navOut{display:none!important}
+.wrap{max-width:640px;margin:0 auto;padding:14px 14px 40px}h1{margin:0 0 4px;font-size:21px}.sub{margin:0 0 14px;color:#4b6670;font-size:14px;line-height:1.45}
+.card{background:#fff;border:1px solid #dfe8e7;border-radius:14px;padding:16px;margin:0 0 12px}.btn{display:inline-block;border:0;border-radius:10px;padding:11px 15px;font-weight:800;background:#19745f;color:#fff;text-decoration:none}
+</style></head><body>
+<header class="top"><div class="brand"><span class="logo" title="Azuero Apoyo">✚</span></div><nav class="appnav" id="appNav" hidden></nav><input class="topsearch" id="find" type="search" data-global="1" placeholder="Buscar en todo…" aria-label="Búsqueda global: todos los puntos (Enter para buscar)" autocomplete="off"></header>
+<main class="wrap">
+<section id="gate" class="card" hidden><h1>📰 Reportes</h1><p class="sub" id="gateText">Entra con tu código de acceso.</p><a class="btn" href="/signup.html">Entrar</a></section>
+<div id="app" hidden><h1 id="title">📰 Reportes</h1><p class="sub">Necesidades abiertas, lo que va en camino y las entregas de un período (de un día a otro), sin teléfonos ni contactos. Elige el formato: 🧾 sencillo o 📰 con el estilo del boletín de tu equipo.</p><div class="card" id="form"></div></div>
+</main>
+<script src="./reports.js"></script><script src="./nav.js"></script><script>
+const $=s=>document.querySelector(s);
+(async()=>{let r;try{r=await fetch('/api/full/reports',{credentials:'same-origin',cache:'no-store'})}catch{}const b=r?await r.json().catch(()=>({})):{};if(!r||!r.ok){$('#gate').hidden=false;$('#gateText').textContent=r&&r.status===403?(b.error||'Los reportes son para team managers o quien tiene el rol «📰 Boletín», y hay que ser de un equipo.'):'Entra con tu código de acceso para ver los reportes de tu equipo.';return}
+$('#app').hidden=false;$('#title').textContent='📰 Reportes · '+b.team;Reports.form($('#form'),{teamOnly:true,preset:'7'})})();
+// Acceso al día (nav.js): sin el permiso, de vuelta al inicio.
+window.AppNav?.watchAccess('/api/full/me','/reports.html');
+</script></body></html>

@@ -36,7 +36,7 @@ const (
 	roleScout = "scout"
 )
 
-var userRoles = []string{roleScout, roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier, roleCook, roleTeamManager, roleAdmin}
+var userRoles = []string{roleScout, roleRunner, roleBuilder, roleAgent, roleDonations, roleSupplier, roleCook, roleReports, roleTeamManager, roleAdmin}
 
 type User struct {
 	ID        string `json:"id"`

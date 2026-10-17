@@ -58,7 +58,6 @@ func signupCode(name string) string {
 	return word + string(rune('0'+randomBelow(10))) + string(rune('0'+randomBelow(10))) + signupNamePart(name) + string(rune('0'+randomBelow(10)))
 }
 
-
 const signupNote = "Se registró solo (página pública o entrada de un panel), sin aprobación manual. Cambia su acceso o desactívalo si hace falta."
 
 func (a *App) signupRoutes(mux *http.ServeMux) {

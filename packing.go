@@ -167,13 +167,16 @@ func (a *App) packingRoutes(mux *http.ServeMux, runners *crew) {
 			if n.Status != "OPEN" && n.Status != "IN_PROGRESS" {
 				return errPackingClosed
 			}
+			if !s.agent && n.SupplierID != "" && n.DispatchedAt != "" {
+				return errPackingDispatched
+			}
 			return addPacking(tx, &n, lines, u.ID, u.Name)
 		})
 		if errors.Is(err, errUserDisabled) {
 			fail(w, 403, err.Error())
 			return
 		}
-		if errors.Is(err, errPackingClosed) {
+		if errors.Is(err, errPackingClosed) || errors.Is(err, errPackingDispatched) {
 			fail(w, 409, err.Error())
 			return
 		}

@@ -28,7 +28,10 @@ var (
 )
 
 // needsAreaCode: sin código o con el automático.
-func needsAreaCode(code string) bool { code = strings.TrimSpace(code); return code == "" || autoCodeRe.MatchString(code) }
+func needsAreaCode(code string) bool {
+	code = strings.TrimSpace(code)
+	return code == "" || autoCodeRe.MatchString(code)
+}
 
 // areaWords: las palabras de la zona sin tildes, en minúsculas y sin artículos («El Cacao» → [cacao]).
 func areaWords(area string) []string {

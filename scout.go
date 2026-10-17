@@ -52,7 +52,9 @@ func scoutContacts(p Point) []scoutContact {
 
 // scoutEditable: necesidades que Scout puede cambiar: abiertas o en camino, normales (no reparaciones, comidas ni
 // servicios). Quitar solo las abiertas: una en camino la lleva un runner.
-func scoutEditable(n CampNeed) bool { return (n.Status == "OPEN" || n.Status == "IN_PROGRESS") && n.Kind == "" }
+func scoutEditable(n CampNeed) bool {
+	return (n.Status == "OPEN" || n.Status == "IN_PROGRESS") && n.Kind == ""
+}
 
 // errScoutNoTeam: en Scout actualizan necesidades solo las personas de un equipo (cualquier punto, sin solicitud de cambio).
 var errScoutNoTeam = userFieldError{"team", "Solo las personas de un equipo pueden actualizar necesidades. Pide a un team manager que te invite."}

@@ -8,8 +8,11 @@
 // el historial del navegador (conserva lista y filtros) y dicen a cuál; si no, van al inicio como siempre.
 const cameFrom=(()=>{try{const u=new URL(document.referrer);if(u.origin===location.origin&&u.pathname!=='/camp.html')return u}catch{}return null})();
 const BACK_NAMES={'/':'Inicio','/index.html':'Inicio','/scout.html':'Scout','/runner.html':'Runners','/command.html':'Checkup','/supplier.html':'Supply','/builder.html':'Constructores','/cook.html':'Cocina','/team.html':'Mi equipo','/admin.html':'Administración'};
-function backLinks(){if(!cameFrom)return;const name=BACK_NAMES[cameFrom.pathname];document.querySelectorAll('[data-back]').forEach(a=>{a.href=cameFrom.pathname+cameFrom.search+cameFrom.hash;a.textContent=name?`← Volver a ${name}`:'← Volver'})}
-document.addEventListener('click',e=>{const a=e.target.closest('[data-back]');if(a&&cameFrom&&history.length>1&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey){e.preventDefault();history.back()}});
+// Abierta desde «Búsqueda global» (?gs=texto): «← Volver a la búsqueda «texto»» vuelve a la página de donde venías con
+// la búsqueda abierta otra vez; si no, «← Volver a <página>» (o Atrás del navegador).
+const fromSearch=new URLSearchParams(location.search).get('gs');
+function backLinks(){if(!cameFrom)return;const name=BACK_NAMES[cameFrom.pathname];document.querySelectorAll('[data-back]').forEach(a=>{if(fromSearch!==null){a.href=cameFrom.pathname+cameFrom.search+'#gs='+encodeURIComponent(fromSearch);a.textContent=fromSearch?`← Volver a la búsqueda «${fromSearch.length>24?fromSearch.slice(0,24)+'…':fromSearch}»`:'← Volver a la búsqueda'}else{a.href=cameFrom.pathname+cameFrom.search+cameFrom.hash;a.textContent=name?`← Volver a ${name}`:'← Volver'}})}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-back]');if(a&&cameFrom&&fromSearch===null&&history.length>1&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey){e.preventDefault();history.back()}});
 backLinks();
 const clean=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Fechas en hora local con formato «Oct 13, 2026 7:33pm».

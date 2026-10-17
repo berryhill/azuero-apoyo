@@ -19,6 +19,8 @@ type Team struct {
 	Name      string `json:"name"`
 	CreatedAt string `json:"createdAt,omitempty"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
+	// Formato del boletín del equipo (reports.go, boletinTemplates); vacío = el de Unidos por Azuero.
+	Template string `json:"template,omitempty"`
 }
 
 // adminTeam es lo que ve el panel: el equipo con la cantidad de miembros.

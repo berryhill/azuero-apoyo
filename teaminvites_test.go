@@ -32,7 +32,7 @@ func TestTeamManagerInvites(t *testing.T) {
 	}
 	mia, leo, lu := s.viewerCookie("MIA7777"), s.viewerCookie("LEO7777"), s.viewerCookie("LU77777")
 	if w := s.as(leo, "GET", "/api/full/team", ""); w.Code != 403 {
-		t.Fatalf("only team managers: %d", w.Code)
+		t.Fatalf("not on a team: %d", w.Code)
 	}
 	if w := s.as(mia, "GET", "/api/full/team", ""); w.Code != 200 || !strings.Contains(w.Body.String(), "Equipo Mia") || !strings.Contains(w.Body.String(), "Mia Manager") {
 		t.Fatalf("team page: %d %s", w.Code, w.Body.String())

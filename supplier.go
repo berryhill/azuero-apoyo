@@ -205,8 +205,8 @@ type supplierRun struct {
 	// «Necesidades»: última actualización de la necesidad (needActivity); ordena la lista y se muestra «hace …».
 	ActivityAt string `json:"activityAt,omitempty"`
 	// «Necesidades» y «Despachando», solo para quien es de un equipo: quién agregó la necesidad (o el punto) y su teléfono.
-	AddedByName  string `json:"addedByName,omitempty"`
-	AddedByPhone string `json:"addedByPhone,omitempty"`
+	AddedByName      string `json:"addedByName,omitempty"`
+	AddedByPhone     string `json:"addedByPhone,omitempty"`
 	RunnerName       string `json:"runnerName,omitempty"`
 	RunnerPhone      string `json:"runnerPhone,omitempty"`
 	DispatchedAt     string `json:"dispatchedAt,omitempty"`
@@ -282,6 +282,29 @@ func (a *App) supplierSession(w http.ResponseWriter, r *http.Request) (User, run
 // supplierOwns: carrera de suministros en camino, con corredor, ligada a este acopio.
 func supplierOwns(n CampNeed, me string) bool {
 	return !isRepair(n) && n.Status == "IN_PROGRESS" && n.RunnerID != "" && n.SupplierID == me
+}
+
+// centerOwns: la carrera es de mi centro de acopio — ligada a mí o a otra persona de Supply del mismo centro (el de la
+// carrera al despacharla, o el actual de quien la tiene). Quien trabaja en ese centro la ve en «Despachando» y puede
+// armar la carga, la foto de partida y marcarla «Despachada».
+func centerOwns(tx *bolt.Tx, n CampNeed, me string) bool {
+	if supplierOwns(n, me) {
+		return true
+	}
+	if isRepair(n) || n.Status != "IN_PROGRESS" || n.RunnerID == "" || n.SupplierID == "" {
+		return false
+	}
+	u, ok := getUser(tx, me)
+	if !ok || foldText(u.SupplyCenter) == "" {
+		return false
+	}
+	c := n.SupplyCenter
+	if c == "" {
+		if sup, found := getUser(tx, n.SupplierID); found {
+			c = sup.SupplyCenter
+		}
+	}
+	return foldText(c) != "" && foldText(c) == foldText(u.SupplyCenter)
 }
 
 // supplierCanRequest: necesidad de suministros abierta, sin corredor, que no es un servicio programado.
@@ -475,7 +498,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				camp, ok := camps[n.CampID]
 				// Historial: runs de este acopio o de su equipo ya entregados, con su carga, fotos y runner.
 				if ok && !isRepair(n) && n.Status == "COMPLETED" && (tv.mate(n.SupplierID) || tv.mate(n.DispatchedBy)) {
-					run := supplierRun{runnerNeed: runnerNeed{ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, CreatedAt: n.CreatedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName, SupplyCenter: n.SupplyCenter, CompletedAt: n.CompletedAt, RunnerTeam: tv.mate(n.RunnerID)}
+					run := supplierRun{runnerNeed: runnerNeed{PackingChange: n.PackingChange, PackingChanges: n.PackingChanges, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, CreatedAt: n.CreatedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName, SupplyCenter: n.SupplyCenter, CompletedAt: n.CompletedAt, RunnerTeam: tv.mate(n.RunnerID)}
 					if u, found := getUser(tx, n.RunnerID); found {
 						run.RunnerName, run.RunnerPhone = u.Name, u.Telephone
 					}
@@ -484,14 +507,15 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 				}
 				asking := supplyAskOpen(n)
 				// En camino con otro acopio (o sin acopio): se puede mandar otro runner a lo mismo.
-				other := !isRepair(n) && !isMealKind(n) && n.Status == "IN_PROGRESS" && n.RunnerID != "" && n.SupplierID != me.ID && !asking
-				if !ok || !(supplierOwns(n, me.ID) || supplierCanRequest(n) || asking || other) {
+				mine := centerOwns(tx, n, me.ID)
+				other := !isRepair(n) && !isMealKind(n) && n.Status == "IN_PROGRESS" && n.RunnerID != "" && !mine && !asking
+				if !ok || !(mine || supplierCanRequest(n) || asking || other) {
 					return nil
 				}
 				if n.Need, _ = splitRepair(n.Need); n.Need == "" {
 					return nil
 				}
-				run := supplierRun{runnerNeed: runnerNeed{Also: alsoFor(tx, groups, n), VerifiedTeam: teamOnly(tv, n.VerifiedTeam), VerifiedBy: teamOnly(tv, n.VerifiedBy), VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName, SupplyCenter: n.SupplyCenter}
+				run := supplierRun{runnerNeed: runnerNeed{PackingChange: n.PackingChange, PackingChanges: n.PackingChanges, Also: alsoFor(tx, groups, n), VerifiedTeam: teamOnly(tv, n.VerifiedTeam), VerifiedBy: teamOnly(tv, n.VerifiedBy), VerifiedAt: n.VerifiedAt, ID: n.ID, Need: n.Need, Status: n.Status, Urgency: n.Urgency, RequesterName: n.RequesterName, RequesterPhone: n.RequesterPhone, CreatedAt: n.CreatedAt, RevisedAt: n.RevisedAt, EnRouteAt: n.EnRouteAt, Packing: n.Packing, Media: n.Media, Kind: n.Kind, RepeatDays: n.RepeatDays, Assigned: true, Camp: camp}, DispatchedAt: n.DispatchedAt, DispatchedByName: n.DispatchedByName, SupplyCenter: n.SupplyCenter}
 				if n.Status == "OPEN" {
 					run.Media, run.Packing = nil, nil
 					// «¡Yo abastezco!»: si este acopio ya ofreció y cuántos acopios ofrecen en total.
@@ -1029,7 +1053,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			if e := json.Unmarshal(v, &n); e != nil {
 				return e
 			}
-			if !a.campExists(tx, n.CampID) || !supplierOwns(n, u.ID) {
+			if !a.campExists(tx, n.CampID) || !centerOwns(tx, n, u.ID) {
 				return errNotARun
 			}
 			return addPacking(tx, &n, lines, u.ID, u.Name)
@@ -1045,20 +1069,20 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 	})
 	inRun := func(me string) func(tx *bolt.Tx, n CampNeed) error {
 		return func(tx *bolt.Tx, n CampNeed) error {
-			if !supplierOwns(n, me) {
+			if !centerOwns(tx, n, me) {
 				return errMissing
 			}
 			return nil
 		}
 	}
-	// Foto de partida: solo esa etapa (la de entrega es del corredor en el punto).
+	// Foto de partida (y de entrega, cuando el acopio completa la carrera en nombre del runner desde el Historial).
 	mux.HandleFunc("POST /api/supplier/needs/{id}/media", func(w http.ResponseWriter, r *http.Request) {
 		u, _, ok := a.supplierSession(w, r)
 		if !ok || !sameOrigin(w, r) {
 			return
 		}
-		if r.URL.Query().Get("stage") != "pickup" {
-			failField(w, 400, "stage", "Acopio sube solo fotos de partida.")
+		if st := r.URL.Query().Get("stage"); st != "pickup" && st != "delivery" {
+			failField(w, 400, "stage", "Indica si es foto de partida o de entrega.")
 			return
 		}
 		a.receiveMedia(w, r, u.ID, u.Name, inRun(u.ID))
@@ -1095,7 +1119,7 @@ func (a *App) supplierRoutes(mux *http.ServeMux) {
 			if e := json.Unmarshal(v, &n); e != nil {
 				return e
 			}
-			if !a.campExists(tx, n.CampID) || !supplierOwns(n, u.ID) {
+			if !a.campExists(tx, n.CampID) || !centerOwns(tx, n, u.ID) {
 				return errNotARun
 			}
 			if undo {

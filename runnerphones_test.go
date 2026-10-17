@@ -35,7 +35,9 @@ func TestRunnerPhonesOnlyForTheTeam(t *testing.T) {
 		t.Fatalf("Ana's teammate sees her phone: %s", body)
 	}
 	// Scout (team members of any team): same rule, the name stays.
-	scout := func(code string) string { return s.as(s.viewerCookie(code), "GET", "/api/full/scout", "").Body.String() }
+	scout := func(code string) string {
+		return s.as(s.viewerCookie(code), "GET", "/api/full/scout", "").Body.String()
+	}
 	if body := scout("CAROB1"); strings.Contains(body, "6111") || !strings.Contains(body, "Ana Equipo A") {
 		t.Fatalf("scout, other team: name without phone: %s", body)
 	}

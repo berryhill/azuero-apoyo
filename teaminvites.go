@@ -33,6 +33,9 @@ type TeamInvite struct {
 	// ForUser: invitación de administración para una persona en particular (su ID de usuario); solo esa persona,
 	// con su sesión de código, la puede usar.
 	ForUser string `json:"forUser,omitempty"`
+	// Token: el enlace de las invitaciones de «Mi equipo», para volver a mostrar su QR mientras siga sin usar. Solo lo ven
+	// los team managers del equipo y solo mientras está pendiente.
+	Token string `json:"token,omitempty"`
 }
 
 // teamInviteView: la invitación como la ve el team manager (sin token ni hash).
@@ -44,10 +47,11 @@ type teamInviteView struct {
 	UsedByName string `json:"usedByName,omitempty"`
 	UsedAt     string `json:"usedAt,omitempty"`
 	Status     string `json:"status"` // pending | used | expired | revoked
+	Token      string `json:"token,omitempty"`
 }
 
 // Roles que un team manager puede dar o quitar en su equipo; agente, donaciones (datos privados) y admin solo administración.
-var teamManagerRoles = []string{roleScout, roleRunner, roleBuilder, roleSupplier, roleCook, roleTeamManager}
+var teamManagerRoles = []string{roleScout, roleRunner, roleBuilder, roleSupplier, roleCook, roleReports, roleTeamManager}
 
 func teamManagerCan(role string) bool {
 	for _, r := range teamManagerRoles {
@@ -106,8 +110,9 @@ func (a *App) teamManager(w http.ResponseWriter, r *http.Request) (User, Team, b
 }
 
 func (a *App) teamInviteRoutes(mux *http.ServeMux) {
-	// «Mi equipo»: solo para el team manager (o el rol Admin) de un equipo: miembros con sus notas, invitaciones y qué
-	// roles puede dar. Los demás miembros ven las notas de sus compañeros en Runners («Mi equipo»).
+	// «Mi equipo»: para todo el que está en un equipo. Todos ven la actividad del equipo y a sus compañeros (contacto,
+	// última actividad, en línea, notas); los roles, las invitaciones y los cambios son solo del team manager (los roles
+	// también los ve el rol Admin).
 	mux.HandleFunc("GET /api/full/team", func(w http.ResponseWriter, r *http.Request) {
 		me, ok := a.viewer(w, r)
 		if !ok {
@@ -120,32 +125,46 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 			fail(w, 403, "No eres parte de un equipo.")
 			return
 		}
-		if !me.has(roleTeamManager) && !me.has(roleAdmin) {
-			fail(w, 403, errNotTeamManager.Error())
-			return
-		}
 		manager := me.has(roleTeamManager)
+		seeRoles := manager || me.has(roleAdmin)
 		type member struct {
 			ID           string   `json:"id"`
 			Name         string   `json:"name"`
 			Telephone    string   `json:"telephone,omitempty"`
-			Roles        []string `json:"roles"`
+			Roles        []string `json:"roles,omitempty"`
 			LastActiveAt string   `json:"lastActiveAt,omitempty"`
 			CreatedAt    string   `json:"createdAt,omitempty"`
 			Online       bool     `json:"online,omitempty"`
 			Notes        string   `json:"notes,omitempty"`
 		}
 		members, invites := []member{}, []teamInviteView{}
+		var board teamBoard
 		now := time.Now()
 		err := a.db.View(func(tx *bolt.Tx) error {
 			if e := eachUser(tx, func(u User) error {
 				if u.TeamID == team.ID && !u.Disabled {
-					members = append(members, member{ID: u.ID, Name: u.Name, Telephone: u.Telephone, Roles: u.Roles, LastActiveAt: u.LastActiveAt, CreatedAt: u.CreatedAt, Online: a.withPresence(u.admin()).Online, Notes: u.Notes})
+					m := member{ID: u.ID, Name: u.Name, Telephone: u.Telephone, LastActiveAt: u.LastActiveAt, CreatedAt: u.CreatedAt, Online: a.withPresence(u.admin()).Online, Notes: u.Notes}
+					if seeRoles {
+						m.Roles = u.Roles
+					}
+					members = append(members, m)
 				}
 				return nil
 			}); e != nil {
 				return e
 			}
+			ids := map[string]string{}
+			for _, m := range members {
+				ids[m.ID] = m.Name
+				board.Members++
+				if m.Online {
+					board.Online++
+				}
+				if t, e := time.Parse(time.RFC3339, m.LastActiveAt); e == nil && now.Sub(t) < 24*time.Hour {
+					board.Active24++
+				}
+			}
+			teamActivity(tx, ids, now, &board)
 			if !manager {
 				return nil
 			}
@@ -163,7 +182,11 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 				if inv.TeamID != team.ID {
 					return nil
 				}
-				invites = append(invites, teamInviteView{ID: inv.ID, CreatedAt: inv.CreatedAt, ExpiresAt: inv.ExpiresAt, CreatedBy: name(inv.CreatedBy), UsedByName: name(inv.UsedBy), UsedAt: inv.UsedAt, Status: inv.status(now)})
+				view := teamInviteView{ID: inv.ID, CreatedAt: inv.CreatedAt, ExpiresAt: inv.ExpiresAt, CreatedBy: name(inv.CreatedBy), UsedByName: name(inv.UsedBy), UsedAt: inv.UsedAt, Status: inv.status(now)}
+				if view.Status == "pending" {
+					view.Token = inv.Token
+				}
+				invites = append(invites, view)
 				return nil
 			})
 		})
@@ -176,7 +199,7 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 		if manager {
 			grantable = teamManagerRoles
 		}
-		response(w, 200, map[string]any{"team": team, "members": members, "invites": invites, "grantable": grantable, "manager": manager, "me": me.ID})
+		response(w, 200, map[string]any{"team": team, "members": members, "invites": invites, "grantable": grantable, "manager": manager, "me": me.ID, "board": board})
 	})
 	// Nueva invitación de un solo uso; vence en hours horas (24, 72 o 168). El token se devuelve una vez.
 	mux.HandleFunc("POST /api/full/team/invites", func(w http.ResponseWriter, r *http.Request) {
@@ -197,7 +220,7 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 		}
 		token := randomToken()
 		now := time.Now().UTC()
-		inv := TeamInvite{ID: randomToken()[:16], Hash: inviteHash(token), TeamID: team.ID, CreatedBy: u.ID, CreatedAt: now.Format(time.RFC3339), ExpiresAt: now.Add(time.Duration(hours) * time.Hour).Format(time.RFC3339)}
+		inv := TeamInvite{ID: randomToken()[:16], Hash: inviteHash(token), TeamID: team.ID, CreatedBy: u.ID, CreatedAt: now.Format(time.RFC3339), ExpiresAt: now.Add(time.Duration(hours) * time.Hour).Format(time.RFC3339), Token: token}
 		err := a.db.Update(func(tx *bolt.Tx) error { return putJSON(tx.Bucket(teamInvitesBucket), inv.Hash, inv) })
 		if serviceError(w, err) {
 			return
@@ -225,7 +248,7 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 				}
 				found = true
 				if inv.UsedBy == "" {
-					inv.Revoked = true
+					inv.Revoked, inv.Token = true, ""
 					return putJSON(b, string(k), inv)
 				}
 				return nil
@@ -468,6 +491,71 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 		}
 		response(w, 201, map[string]any{"id": inv.ID, "token": token, "expiresAt": inv.ExpiresAt, "team": team.Name, "user": who.Name, "userId": who.ID})
 	})
+	// Antes de unirse: quien abre el enlace (ya con su sesión de código) ve qué equipo es, quién lo invitó y quiénes están
+	// (sin teléfonos), y decide. Nadie queda en un equipo sin tocar «Unirme» (accept).
+	mux.HandleFunc("POST /api/full/invites/preview", func(w http.ResponseWriter, r *http.Request) {
+		u, ok := a.viewer(w, r)
+		if !ok {
+			return
+		}
+		f, ok := decodeFields(w, r, map[string]int{"token": 128})
+		if !ok {
+			return
+		}
+		type mate struct {
+			Name         string `json:"name"`
+			Online       bool   `json:"online,omitempty"`
+			LastActiveAt string `json:"lastActiveAt,omitempty"`
+		}
+		var team Team
+		var inv TeamInvite
+		var by, current string
+		mates := []mate{}
+		already := false
+		err := a.db.View(func(tx *bolt.Tx) error {
+			v := tx.Bucket(teamInvitesBucket).Get([]byte(inviteHash(fieldText(f, "token"))))
+			if v == nil || json.Unmarshal(v, &inv) != nil {
+				return errInviteInvalid
+			}
+			var found bool
+			if team, found = getTeam(tx, inv.TeamID); !found {
+				return errInviteInvalid
+			}
+			me, _ := getUser(tx, u.ID)
+			already = me.TeamID == team.ID
+			if !already && inv.status(time.Now()) != "pending" {
+				return errInviteInvalid
+			}
+			if !already && inv.ForUser != "" && inv.ForUser != u.ID {
+				return errInviteNotYou
+			}
+			if c, ok := getUser(tx, inv.CreatedBy); ok {
+				by = c.Name
+			}
+			if t, ok := getTeam(tx, me.TeamID); ok && !already {
+				current = t.Name
+			}
+			return eachUser(tx, func(m User) error {
+				if m.TeamID == team.ID && !m.Disabled {
+					mates = append(mates, mate{Name: m.Name, Online: a.withPresence(m.admin()).Online, LastActiveAt: m.LastActiveAt})
+				}
+				return nil
+			})
+		})
+		if errors.Is(err, errInviteInvalid) {
+			fail(w, 410, err.Error())
+			return
+		}
+		if errors.Is(err, errInviteNotYou) {
+			fail(w, 403, err.Error())
+			return
+		}
+		if serviceError(w, err) {
+			return
+		}
+		sort.Slice(mates, func(i, j int) bool { return runnerNameKey(mates[i].Name) < runnerNameKey(mates[j].Name) })
+		response(w, 200, map[string]any{"team": team.Name, "invitedBy": by, "members": mates, "already": already, "currentTeam": current, "expiresAt": inv.ExpiresAt})
+	})
 	mux.HandleFunc("POST /api/full/invites/accept", func(w http.ResponseWriter, r *http.Request) {
 		u, ok := a.viewer(w, r)
 		if !ok {
@@ -511,7 +599,7 @@ func (a *App) teamInviteRoutes(mux *http.ServeMux) {
 			}
 			already = me.TeamID == team.ID
 			me.TeamID, me.UpdatedAt = team.ID, nowStamp()
-			inv.UsedBy, inv.UsedAt = me.ID, nowStamp()
+			inv.UsedBy, inv.UsedAt, inv.Token = me.ID, nowStamp(), ""
 			if e := putJSON(b, key, inv); e != nil {
 				return e
 			}

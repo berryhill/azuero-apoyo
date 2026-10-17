@@ -32,6 +32,20 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
 .tsclear{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#ffffff26;color:#fff;font:800 12px Inter,system-ui,sans-serif;cursor:pointer}.tsclear:hover{background:#ffffff40}.tsclear[hidden]{display:none}
 .mbar,.msheet{display:none}
 .dsearchbtn{display:none}
+.howlink{border:0;background:none;padding:0 0 0 6px;color:#126e7c;font:inherit;font-weight:800;text-decoration:underline;cursor:pointer}.ri-cta .howlink{display:block;margin:10px auto 0}.msteam{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:9px;background:#ffffff1f;color:#ffd166;font:800 12px Inter,system-ui,sans-serif;vertical-align:middle}.mhow{display:block;width:100%;margin:6px 0;padding:12px 4px;border:0;border-bottom:1px solid #ffffff1f;background:none;color:#ffd166;font:800 14px Inter,system-ui,sans-serif;text-align:left;cursor:pointer}
+.howdlg{border:0;border-radius:22px;padding:0;width:min(440px,calc(94vw / var(--text-zoom,1)));max-height:calc(94dvh / var(--text-zoom,1));overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#173c46;background:#fff}.howdlg::backdrop{background:#10263acc}
+.how-top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0}.how-top b{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#5d7680}.how-x{width:36px;height:36px;border:0;border-radius:50%;background:#eef3f3;color:#35505e;font:800 16px Inter,system-ui,sans-serif;cursor:pointer}
+.how-viewport{overflow-x:hidden}.how-track{display:flex;transition:transform .3s ease;touch-action:pan-y}.how-slide{flex:0 0 100%;box-sizing:border-box;padding:6px 22px 4px;text-align:center}
+.how-art{width:150px;height:150px;margin:6px auto 10px;border-radius:50%;display:grid;place-items:center;position:relative}.how-art svg{width:84px;height:84px}.how-emoji{font-size:76px;line-height:1}.how-li{list-style:none;margin:4px auto 0;padding:0;max-width:330px;text-align:left}.how-li li{display:flex;align-items:center;gap:12px;padding:8px 0;font-size:15px;font-weight:650;color:#35505e;border-bottom:1px solid #eef2f2}.how-li li:last-child{border-bottom:0}.how-li li span{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#f2f6f6;font-size:20px}.how-n{position:absolute;top:4px;right:4px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#10263a;color:#fff;font:900 17px Inter,system-ui,sans-serif;box-shadow:0 0 0 4px #fff}
+.how-slide h2{margin:0;font-size:23px;letter-spacing:-.02em}.how-slide .how-sub{margin:2px 0 10px;font-size:14px;font-weight:800;color:#ed7654}.how-slide p{margin:0 0 8px;font-size:14.5px;line-height:1.5;color:#35505e}.how-slide .how-cheer{margin-top:10px;padding:10px 12px;border-radius:12px;background:#fff6e0;color:#7a5a12;font-weight:700;font-size:13.5px}
+.how-cycle{display:flex;align-items:center;justify-content:center;gap:6px;margin:8px 0 2px;font-size:20px}.how-cycle svg{width:22px;height:22px}.how-cycle i{font-style:normal;color:#b9c9c9;font-size:14px}
+.how-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px max(14px,env(safe-area-inset-bottom))}.how-dots{display:flex;gap:7px}.how-dots button{width:9px;height:9px;padding:0;border:0;border-radius:5px;background:#cfdcdc;cursor:pointer;transition:width .2s}.how-dots button[aria-current="true"]{width:24px;background:#ed7654}
+.how-btn{border:0;border-radius:12px;padding:12px 18px;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.how-back{background:#eef3f3;color:#35505e}.how-next{background:#ed7654;color:#fff;box-shadow:0 6px 16px #ed765455}.how-btn[hidden]{display:none}
+@media(max-width:760px){.howdlg{inset:0;width:auto;max-width:none;height:calc(100dvh / var(--text-zoom,1));max-height:none;margin:0;border-radius:0;flex-direction:column}.howdlg[open]{display:flex}.how-viewport{flex:1;overflow-y:auto}}
+@media (prefers-reduced-motion:reduce){.how-track{transition:none}}
+.runnow{flex:none;display:inline-flex;align-items:center;gap:7px;height:36px;margin:0 0 0 6px;padding:0 13px;border-radius:999px;background:#ed7654;color:#fff;font:800 13px Inter,system-ui,sans-serif;text-decoration:none;white-space:nowrap;box-shadow:0 4px 14px #ed765455;animation:runNow 1.8s ease-in-out infinite}.runnow[hidden]{display:none!important}.runnow .rn-n{display:none}@keyframes runNow{50%{box-shadow:0 0 0 5px #ed765433,0 4px 14px #ed765455}}@media (prefers-reduced-motion:reduce){.runnow{animation:none}}
+.runbadge{margin-left:6px;padding:1px 7px;border-radius:9px;background:#ed7654;color:#fff;font:800 11px/16px Inter,system-ui,sans-serif;white-space:nowrap}
+@media(max-width:760px){.runnow{height:42px;margin:0;padding:0 11px;border-radius:12px}.runnow .rn-t{display:none}.runnow .rn-n{display:inline}}
 .davatar{flex:none;display:grid;place-items:center;width:40px;height:40px;margin:0;padding:0;border:0;border-radius:50%;background:#ffd166;color:#10263a;box-shadow:0 0 0 2px #10263a,0 0 0 3px #ffd16699;cursor:pointer}.davatar[hidden],.navout[hidden]{display:none!important}.davatar[aria-expanded="true"]{background:#fff}.davatar .minit{font:900 15px/1 Inter,system-ui,sans-serif;letter-spacing:.02em}
 .navout{flex:none;display:inline-flex;align-items:center;gap:7px;height:40px;margin:0 0 0 auto;padding:0 13px;border:1px solid #47657a;border-radius:11px;background:#ffffff12;color:#ffd0c2;font:800 13px Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer}.navout:hover{background:#ffffff24;color:#fff}.navout svg{flex:none}
 .top.has-avatar .brand .logo,.top.has-avatar>.adminlogo,.top.has-avatar .topright .who,.top.has-avatar #codeUser,.top.has-avatar .textsize{display:none!important}.top.has-avatar .topright{margin-left:auto}
@@ -71,7 +85,9 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     ['/supplier.html', '📦', () => 'Supply', u => has(u, 'supplier')],
     ['/cook.html', '🍳', () => 'Cocina', u => has(u, 'cook')],
     ['/donations.html', '🎁', () => 'Donaciones', u => has(u, 'donations')],
-    ['/team.html', '👥', () => 'Mi equipo', u => has(u, 'teammanager') || has(u, 'admin'), 'menu'],
+    // Mi equipo: todo el que está en un equipo (el servidor lo pone en sus páginas).
+    ['/reports.html', '📰', () => 'Reportes', u => (u?.panels || []).some(p => p.url === '/reports.html'), 'menu'],
+    ['/team.html', '👥', () => 'Mi equipo', u => (u?.panels || []).some(p => p.url === '/team.html'), 'menu'],
   ];
   function user() {
     try { return JSON.parse(localStorage.getItem('codeUser') || 'null'); } catch { return null; }
@@ -107,7 +123,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   document.addEventListener('click', e => {
     const el = document.getElementById('appNav');
     if (!el) return;
-    if (e.target.closest('.appnav-toggle')) setOpen(!el.classList.contains('open'));
+    if (e.target.closest('.appnav-toggle')) { if (document.getElementById('mSheet') && location.pathname !== '/admin.html') { setOpen(false); const sh = document.getElementById('mSheet'); sh.hidden ? showSheet(true) : showSheet(false); } else setOpen(!el.classList.contains('open')); }
     else if (!el.contains(e.target) || e.target.closest('.appnav-list a')) setOpen(false);
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
@@ -288,7 +304,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   function drawTitle() {
     const title = document.getElementById('mTitle'), drop = document.getElementById('mDrop'), links = document.getElementById('mLinks'), bar = document.getElementById('mBar');
     if (!title || !drop || !links) return;
-    const u = user() || {}, here = location.pathname, adminPage = here === '/admin.html', page = adminPage ? ['/admin.html', '🔒', () => window.adminViewLabel?.() || 'Administración'] : pages.find(([url]) => url === here), label = page ? page[2](u) : document.title.replace(/^DEV · /, '').split('·')[0].trim();
+    const u = user() || {}, here = location.pathname, adminPage = here === '/admin.html', page = adminPage ? ['/admin.html', '🔒', () => window.adminViewLabel?.() || 'Administración'] : pages.find(([url]) => url === here), label = page ? page[2](u) : document.title.replace(/^(DEV|PRUEBA) · /, '').split('·')[0].trim();
     // Con el rol Admin (o la sesión de administración abierta) la lista de páginas termina con «🔒 Administración», como en
     // la computadora (pide confirmar antes de ir).
     const admin = (adminOK || (u.roles || []).includes('admin')) && here !== '/admin.html';
@@ -310,7 +326,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   const initialsOf = name => String(name || '').split(/\s+/).filter(w => /^\p{L}/u.test(w)).slice(0, 2).map(w => w[0].toLocaleUpperCase('es')).join('');
   // Páginas sin botón de salir propio (Scout, Cocina, Mi equipo, ficha del punto): con sesión de código, el menú ☰
   // ofrece «Salir» igual (sharedLogout).
-  const sharedOut = () => !document.getElementById('logout') && !document.getElementById('codeLogout') && !!user();
+  const sharedOut = () => !!document.body?.dataset.signedName || !document.getElementById('logout') && !document.getElementById('codeLogout') && !!user();
   // Salir es global: en cualquier página cierra TODAS las sesiones de este navegador (cada panel tiene la suya: si
   // quedara una, al volver al inicio la sesión general te haría entrar de nuevo), también la de administración, y
   // termina en el inicio.
@@ -332,6 +348,8 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   const adminName = () => location.pathname === '/admin.html' && document.getElementById('dashboard') && !document.getElementById('dashboard').hidden ? user()?.name || 'Administración' : '';
   function signedName() {
     if (location.pathname === '/admin.html') return adminName();
+    // Una página puede decir quién entró aunque no tenga su propia sesión (p. ej. Runners mostrando «Sé runner» a un scout).
+    if (document.body?.dataset.signedName) return document.body.dataset.signedName;
     const out = document.getElementById('logout') || document.getElementById('codeLogout');
     if (sharedOut()) return user()?.name || '';
     if (!out || out.closest('[hidden]')) return '';
@@ -409,10 +427,11 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       const list = u ? pages.filter(([url, , , ok, where]) => url === here || ok(u) && where !== 'menu') : [];
       const outLabel = out && out.textContent.trim() !== '✕' ? out.textContent.trim() : 'Salir';
       // Roles de quien entró (chips bajo su nombre) y las páginas de poco uso (Mi equipo), solo en este menú.
-      const roleNames = {scout: 'Scout', runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', cook: 'Cocina', teammanager: 'Team manager', admin: 'Admin'};
+      const roleNames = {scout: 'Scout', runner: 'Runner', builder: 'Constructor', agent: 'Agente', donations: 'Donaciones', supplier: 'Supply', cook: 'Cocina', reports: 'Boletín', teammanager: 'Team manager', admin: 'Admin'};
       const roleChips = signedIn && u?.roles?.length ? `<span class="msroles">${u.roles.map(r => `<span class="msrole">${esc(roleNames[r] || r)}</span>`).join('')}</span>` : '';
       const menuOnly = signedIn && u ? pages.filter(([url, , , ok, where]) => where === 'menu' && url !== here && ok(u)).map(([url, icon, label]) => `<nav class="mpages" aria-label="Más"><a href="${url}"><span aria-hidden="true">${icon}</span>${esc(label(u))}</a></nav>`).join('') : '';
-      sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${roleChips}</b>${copyId ? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${menuOnly}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}${liveRow(u)}<div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>${(adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? '<a href="/admin.html" class="madmin" data-admin-link><span aria-hidden="true">🔒</span> Administración</a>' : ''}`;
+      sheet.innerHTML = `${signedIn ? `<div class="msuser"><b>${esc(name)}${myTeam ? `<small class="msteam">👥 ${esc(myTeam)}</small>` : ''}${roleChips}</b>${copyId ? '<button type="button" data-m="copyid" class="msoft">Copiar mi ID</button>' : ''}<button type="button" data-m="logout">${esc(outLabel)}</button></div>` : ''}${list.length > 1 && document.getElementById('mBar')?.classList.contains('tight') ? `<nav class="mpages" aria-label="Páginas">${list.map(([url, icon, label]) => `<a href="${url}"${url === here ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${esc(label(u))}</a>`).join('')}</nav>` : ''}${menuOnly}${liveRow(u)}<button type="button" class="mhow" data-how-open>❓ ¿Cómo funciona?</button><div class="msize"><span class="lbl">Tamaño del texto</span><button type="button" data-msize="-1" aria-label="Texto más pequeño">A−</button><output>${Math.round(zoom * 100)}%</output><button type="button" data-msize="1" aria-label="Texto más grande">A+</button></div>${(adminOK || (u?.roles || []).includes('admin')) && here !== '/admin.html' ? '<a href="/admin.html" class="madmin" data-admin-link><span aria-hidden="true">🔒</span> Administración</a>' : ''}`;
+      drawRunNow();
       sheet.querySelector('[data-msize="-1"]').disabled = zoom === sizes[0];
       sheet.querySelector('[data-msize="1"]').disabled = zoom === sizes[sizes.length - 1];
     }
@@ -423,13 +442,14 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   document.addEventListener('click', e => {
     const sheet = document.getElementById('mSheet');
     if (!sheet) return;
-    if (e.target.closest('#mTitle')) { showSheet(false); if (location.pathname === '/admin.html') { document.dispatchEvent(new Event('appnav:adminmenu')); return; } const d = document.getElementById('mDrop'); showDrop(d.hidden); return; }
+    // Un solo menú: «página ▾» abre el mismo menú que el avatar (tu nombre, las páginas, ajustes y Salir).
+    if (e.target.closest('#mTitle')) { if (location.pathname === '/admin.html') { showSheet(false); document.dispatchEvent(new Event('appnav:adminmenu')); return; } showDrop(false); showSheet(sheet.hidden); return; }
     if (!e.target.closest('#mDrop')) showDrop(false);
     if (e.target.closest('#mMenu,#dAvatar')) { showSheet(sheet.hidden); return; }
-    if (e.target.closest('#navOut')) { showSheet(false); const out = document.getElementById('logout') || document.getElementById('codeLogout'); if (out) out.click(); else sharedLogout(); return; }
+    if (e.target.closest('#navOut')) { showSheet(false); const out = !document.body.dataset.signedName && (document.getElementById('logout') || document.getElementById('codeLogout')); if (out) out.click(); else sharedLogout(); return; }
     const size = e.target.closest('[data-msize]');
     if (size) { zoom = sizes[Math.min(sizes.length - 1, Math.max(0, sizes.indexOf(zoom) + Number(size.dataset.msize)))]; try { localStorage.setItem('textZoom', String(zoom)); } catch {} applySize(); showSheet(true); return; }
-    if (e.target.closest('[data-m="logout"]')) { showSheet(false); const out = document.getElementById('logout') || document.getElementById('codeLogout'); if (out) out.click(); else sharedLogout(); return; }
+    if (e.target.closest('[data-m="logout"]')) { showSheet(false); const out = !document.body.dataset.signedName && (document.getElementById('logout') || document.getElementById('codeLogout')); if (out) out.click(); else sharedLogout(); return; }
     if (e.target.closest('#mLogin')) { showSheet(false); document.getElementById('loginBtn')?.click(); return; }
     if (e.target.closest('[data-m="login"]')) { showSheet(false); document.getElementById('loginBtn')?.click(); return; }
     const cid = e.target.closest('[data-m="copyid"]');
@@ -438,7 +458,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const sb = e.target.closest('#mSearch');
     if (sb && document.querySelector('header input[type=search][data-global]')) { showSheet(false); openGlobalSearch(document.querySelector('header input[type=search]').value); return; }
     if (sb) { const top = document.querySelector('header.top'), open = !top.classList.contains('msearch'); top.classList.toggle('msearch', open); sb.setAttribute('aria-expanded', String(open)); showSheet(false); if (open) top.querySelector('input[type=search]')?.focus(); return; }
-    if (!sheet.hidden && (!sheet.contains(e.target) || e.target.closest('a'))) showSheet(false);
+    if (!sheet.hidden && !e.target.closest('.appnav-toggle') && (!sheet.contains(e.target) || e.target.closest('a'))) showSheet(false);
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { showSheet(false); showDrop(false); } });
 
@@ -587,7 +607,60 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   }
   // Nombre corto para encabezados: nombre + primeras letras del apellido («Arianne Ori…»).
   const shortName = n => { const w = String(n || '').trim().split(/\s+/).filter(Boolean); return w.length < 2 ? w.join('') : w[0] + ' ' + (w[1].length > 3 ? w[1].slice(0, 3) + '…' : w[1]); };
-  const drawAll = () => { draw(); drawMobileBar(); drawTitle(); fitTopSoon(); };
+  const drawAll = () => { draw(); drawMobileBar(); drawTitle(); drawRunNow(); fitTopSoon(); };
+  // Runner con una carrera en camino: se nota en todas las páginas hasta que la complete — un aviso naranja en el
+  // encabezado («🏃 1 run en curso», lleva a «Yo» en Runners) y «N en curso» junto a Runners en las listas de páginas.
+  // Lo mismo para Supply: «📦 N por despachar» mientras su centro tiene carreras en «Despachando».
+  // También el nombre del equipo, para el menú de tu avatar.
+  let activeRuns = 0, toDispatch = 0, myTeam = '';
+  async function loadActiveRuns() {
+    const u = user();
+    if (!u) { activeRuns = toDispatch = 0; myTeam = ''; return drawRunNow(); }
+    try { const r = await fetch('/api/full/me', {credentials: 'same-origin', cache: 'no-store'}); if (r.ok) { const b = await r.json(); activeRuns = b.activeRuns || 0; toDispatch = b.toDispatch || 0; myTeam = b.team || ''; } } catch {}
+    drawRunNow();
+  }
+  function drawRunNow() {
+    const top = document.querySelector('header.top');
+    if (!top) return;
+    const show = activeRuns > 0 && location.pathname !== '/runner.html';
+    let chip = document.getElementById('runNow');
+    if (!chip && show) {
+      chip = document.createElement('a');
+      chip.id = 'runNow'; chip.className = 'runnow'; chip.href = '/runner.html';
+      chip.onclick = () => { try { sessionStorage.setItem('runnerTab', 'mine'); } catch {} };
+      const out = document.getElementById('navOut');
+      out ? top.insertBefore(chip, out) : top.appendChild(chip);
+    }
+    if (chip) {
+      if (chip.hidden !== !show) chip.hidden = !show;
+      const t = `${activeRuns} ${activeRuns === 1 ? 'run en curso' : 'runs en curso'}`;
+      if (chip.dataset.t !== t) { chip.dataset.t = t; chip.innerHTML = `<span aria-hidden="true">🏃</span><span class="rn-t">${t}</span><span class="rn-n">${activeRuns}</span>`; chip.title = `Tienes ${t}: complétalo en Runners`; chip.setAttribute('aria-label', `Tienes ${t}: abrir Runners`); }
+    }
+    const badge = (href, n, text) => document.querySelectorAll(`a[href="${href}"]:not(.runnow)`).forEach(a => {
+      let b = a.querySelector('.runbadge');
+      if (n > 0) { if (!b) { b = document.createElement('span'); b.className = 'runbadge'; a.appendChild(b); } if (b.textContent !== text) b.textContent = text; }
+      else b?.remove();
+    });
+    badge('/runner.html', activeRuns, `${activeRuns} en curso`);
+    badge('/supplier.html', toDispatch, `${toDispatch} por despachar`);
+    // Supply: el mismo aviso en el encabezado de las otras páginas (lleva a «Despachando»).
+    const showS = toDispatch > 0 && location.pathname !== '/supplier.html';
+    let sc = document.getElementById('supplyNow');
+    if (!sc && showS) {
+      sc = document.createElement('a');
+      sc.id = 'supplyNow'; sc.className = 'runnow'; sc.href = '/supplier.html';
+      sc.onclick = () => { try { sessionStorage.setItem('supplyTab', 'todo'); } catch {} };
+      const out = document.getElementById('navOut');
+      out ? top.insertBefore(sc, out) : top.appendChild(sc);
+    }
+    if (sc) {
+      if (sc.hidden !== !showS) sc.hidden = !showS;
+      const t = `${toDispatch} por despachar`;
+      if (sc.dataset.t !== t) { sc.dataset.t = t; sc.innerHTML = `<span aria-hidden="true">📦</span><span class="rn-t">${t}</span><span class="rn-n">${toDispatch}</span>`; sc.title = `Tu centro tiene ${t}: ábrelo en Supply`; sc.setAttribute('aria-label', `Tu centro tiene ${t}: abrir Supply`); }
+    }
+  }
+  const watchRuns = () => { loadActiveRuns(); setInterval(loadActiveRuns, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) loadActiveRuns(); }); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchRuns); else watchRuns();
   // Pantallas medianas y anchas (más que un teléfono): el encabezado va en UNA fila. Las páginas van todas con su nombre
   // si caben; si no, todas plegadas en «página actual ▾» (nunca una con nombre y las demás solo con icono). Antes de
   // plegarlas, la búsqueda pasa a un botón 🔍 (también si la caja quedaría tan angosta que no se nota que se puede
@@ -627,7 +700,9 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       return !s || !s.offsetWidth || s.getBoundingClientRect().width >= 200;
     };
     if (!matchMedia('(max-width:760px)').matches) {
-      for (const step of FIT_STEPS) { top.classList.remove(...all); top.classList.add(...step); if (fits()) break; }
+      // data-search-icon (inicio): la búsqueda siempre es el botón 🔍, para que quepan los botones de la página.
+      const base = top.hasAttribute('data-search-icon') ? ['search-icon'] : [];
+      for (const step of FIT_STEPS) { top.classList.remove(...all); top.classList.add(...step, ...base); if (fits()) break; }
     }
     if (!top.classList.contains('search-icon')) top.classList.remove('dsearch');
     fitting = false;
@@ -643,7 +718,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
   document.addEventListener('keydown', e => { const top = document.querySelector('header.top.dsearch'); if (e.key === 'Escape' && top) { top.classList.remove('dsearch'); top.querySelector('.dsearchbtn')?.setAttribute('aria-expanded', 'false'); } });
   // Entorno de desarrollo (localhost, red local, *.local, túnel ngrok a la máquina local): franja ámbar arriba, «DEV» en la esquina y «DEV ·» en el
   // título de la pestaña, para no confundirlo con el sitio público. admin.html también carga nav.js.
-  const DEV_HOST=/^(localhost|127\.|0\.0\.0\.0$|::1$|\[::1\]$|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|\.(local|localhost|test)$|\.ngrok(-free)?\.(app|dev|io)$/;function devMark(){if(!DEV_HOST.test(location.hostname)||document.querySelector('.devstripe'))return;document.head.insertAdjacentHTML('beforeend','<style>.devstripe{position:fixed;top:0;left:0;right:0;height:4px;z-index:99990;pointer-events:none;background:repeating-linear-gradient(-45deg,#ffb300 0 8px,#10263a 8px 16px)}.devpill{position:fixed;top:4px;left:4px;z-index:99991;padding:1px 6px;border-radius:0 0 6px 6px;background:#ffb300;color:#10263a;font:900 10px/1.4 system-ui,sans-serif;letter-spacing:.08em;pointer-events:auto;cursor:help;box-shadow:0 1px 3px #0005}</style>');document.body.insertAdjacentHTML('afterbegin','<div class="devstripe" aria-hidden="true"></div><span class="devpill" title="Entorno de desarrollo: '+location.host+'. No es el sitio público.">DEV</span>');if(!document.title.startsWith('DEV · '))document.title='DEV · '+document.title}
+  const DEV_HOST=/^(localhost|127\.|0\.0\.0\.0$|::1$|\[::1\]$|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|\.(local|localhost|test)$|\.ngrok(-free)?\.(app|dev|io)$/;function devMark(){if(!DEV_HOST.test(location.hostname)||document.querySelector('.devstripe'))return;document.head.insertAdjacentHTML('beforeend','<style>.devstripe{position:fixed;top:0;left:0;right:0;height:4px;z-index:99990;pointer-events:none;background:repeating-linear-gradient(-45deg,#ffb300 0 8px,#10263a 8px 16px)}.devpill{position:fixed;top:4px;left:50%;transform:translateX(-50%);z-index:99991;min-width:150px;text-align:center;padding:1px 20px;border:0;border-radius:0 0 6px 6px;background:#ffb300;color:#10263a;font:900 10px/1.4 system-ui,sans-serif;letter-spacing:.06em;cursor:pointer;box-shadow:0 1px 3px #0005}.devnote{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:99992;display:flex;align-items:flex-start;gap:10px;width:min(460px,calc(calc(100vw / var(--text-zoom,1)) - 24px));box-sizing:border-box;padding:12px 14px;border-radius:14px;background:#fff7e0;border:2px solid #ffb300;color:#4a3700;font:600 13.5px/1.45 system-ui,sans-serif;box-shadow:0 10px 28px #10263a55}.devnote[hidden]{display:none}.devnote b{display:block;font-size:14.5px;color:#10263a}.devnote button{flex:none;border:0;background:#ffb30033;border-radius:50%;width:28px;height:28px;font:800 14px system-ui,sans-serif;cursor:pointer;color:#4a3700}</style>');const msg='<div><b>🧪 Entorno de prueba (sandbox)</b>No es el sitio real ('+location.host+'). Lo que hagas aquí no llega al sitio público y los datos se pueden borrar en cualquier momento.</div>';document.body.insertAdjacentHTML('afterbegin','<div class="devstripe" aria-hidden="true"></div><button type="button" class="devpill" id="devPill" title="Entorno de prueba: los datos no se guardan en el sitio real. Toca para saber más.">🧪 PRUEBA · sandbox</button><div class="devnote" id="devNote" role="status" hidden>'+msg+'<button type="button" aria-label="Cerrar" id="devNoteX">✕</button></div>');const note=document.getElementById('devNote');document.getElementById('devPill').onclick=()=>{note.hidden=!note.hidden};document.getElementById('devNoteX').onclick=()=>{note.hidden=true};let seen=false;try{seen=sessionStorage.getItem('devNoteSeen')==='1';sessionStorage.setItem('devNoteSeen','1')}catch{}if(!seen){note.hidden=false;setTimeout(()=>{note.hidden=true},9000)}if(!document.title.startsWith('PRUEBA · '))document.title='PRUEBA · '+document.title.replace(/^DEV · /,'')}
   // «Buscar» del encabezado: una ✕ adentro borra lo escrito, y lo escrito se guarda por pestaña y por página, así que al
   // volver (Atrás, o desde el menú de páginas) la búsqueda sigue puesta. Al restaurar, en el teléfono se deja abierta la
   // barra de búsqueda.
@@ -671,7 +746,8 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     // lista ni se guarda (cada página tiene su «Buscar en …» por pestaña).
     if (input.dataset.global) {
       x.hidden = true;
-      input.addEventListener('input', () => { x.hidden = !input.value; });
+      // Al escribir (2 letras o más) se abre «Búsqueda global» con lo escrito y se sigue escribiendo ahí.
+      input.addEventListener('input', () => { x.hidden = !input.value; if (input.value.trim().length >= 2) { const q = input.value; input.value = ''; x.hidden = true; openGlobalSearch(q); } });
       input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); openGlobalSearch(input.value); } });
       x.onclick = () => { input.value = ''; x.hidden = true; input.focus(); };
       return;
@@ -737,7 +813,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const pending = p.pointStatus === 'pending', needs = p.activeNeeds || [], maps = p.coords?.length === 2 ? `https://www.google.com/maps/search/?api=1&query=${p.coords.join(',')}` : p.gps || '';
     const when = p.lastCheckup ? `Checkup ${gsAgo(p.lastCheckup)}` : `Creado ${gsAgo(p.created)}`;
     const contacts = (p.contacts || []).map(c => c.name).filter(Boolean);
-    return `<article class="gs-card"><small class="gs-when">${esc(when)}</small><h3>${esc([p.area, p.place].filter(Boolean).join(' · ') || p.code)}${p.code && !/^P-[0-9a-f]{12}$/i.test(p.code) ? ` <small class="gs-code">${esc(p.code)}</small>` : ''}${p.highestUrgency === 'urgente' ? ' <span class="gs-badge urg">Urgente</span>' : ''}${pending ? ' <span class="gs-badge pend">Por revisar</span>' : ''}${p.coords?.length === 2 ? '' : ' <span class="gs-badge">📍 sin GPS</span>'}</h3><p class="gs-meta">${[p.directions && '📍 ' + esc(p.directions), p.coordinator && '📣 ' + esc(p.coordinator), p.people && '👥 ' + esc(p.people) + ' personas'].filter(Boolean).join(' · ')}</p>${contacts.length ? `<p class="gs-meta">👤 ${esc(contacts.slice(0, 3).join(', '))}${contacts.length > 3 ? ` y ${contacts.length - 3} más` : ''}</p>` : ''}${needs.length ? `<ul class="gs-needs">${needs.map(n => `<li><span class="gs-st${n.status === 'IN_PROGRESS' ? ' route' : ''}">${n.status === 'IN_PROGRESS' ? '🏃 En camino' + (n.runnerName ? ' · ' + esc(n.runnerName) : '') : 'Necesita'}</span>${n.urgency === 'urgente' ? '<span class="gs-badge urg">Urgente</span>' : ''}${gsChips(n.need)}</li>`).join('')}</ul>` : pending && p.needs ? `<div class="gs-needs">${gsChips(p.needs)}</div>` : '<p class="gs-meta">Sin necesidades abiertas</p>'}<div class="gs-acts"><a class="gs-btn" href="/camp.html?id=${encodeURIComponent(p.id)}">Ficha ›</a>${maps ? `<a class="gs-btn" target="_blank" rel="noopener noreferrer" href="${esc(maps)}">Abrir en Maps ↗</a>` : ''}</div></article>`;
+    return `<article class="gs-card"><small class="gs-when">${esc(when)}</small><h3>${esc([p.area, p.place].filter(Boolean).join(' · ') || p.code)}${p.code && !/^P-[0-9a-f]{12}$/i.test(p.code) ? ` <small class="gs-code">${esc(p.code)}</small>` : ''}${p.highestUrgency === 'urgente' ? ' <span class="gs-badge urg">Urgente</span>' : ''}${pending ? ' <span class="gs-badge pend">Por revisar</span>' : ''}${p.coords?.length === 2 ? '' : ' <span class="gs-badge">📍 sin GPS</span>'}</h3><p class="gs-meta">${[p.directions && '📍 ' + esc(p.directions), p.coordinator && '📣 ' + esc(p.coordinator), p.people && '👥 ' + esc(p.people) + ' personas'].filter(Boolean).join(' · ')}</p>${contacts.length ? `<p class="gs-meta">👤 ${esc(contacts.slice(0, 3).join(', '))}${contacts.length > 3 ? ` y ${contacts.length - 3} más` : ''}</p>` : ''}${needs.length ? `<ul class="gs-needs">${needs.map(n => `<li><span class="gs-st${n.status === 'IN_PROGRESS' ? ' route' : ''}">${n.status === 'IN_PROGRESS' ? '🏃 En camino' + (n.runnerName ? ' · ' + esc(n.runnerName) : '') : 'Necesita'}</span>${n.urgency === 'urgente' ? '<span class="gs-badge urg">Urgente</span>' : ''}${gsChips(n.need)}</li>`).join('')}</ul>` : pending && p.needs ? `<div class="gs-needs">${gsChips(p.needs)}</div>` : '<p class="gs-meta">Sin necesidades abiertas</p>'}<div class="gs-acts"><a class="gs-btn" href="/camp.html?id=${encodeURIComponent(p.id)}&gs=${encodeURIComponent(document.getElementById('gsInput')?.value.trim() || '')}">Ficha ›</a>${maps ? `<a class="gs-btn" target="_blank" rel="noopener noreferrer" href="${esc(maps)}">Abrir en Maps ↗</a>` : ''}</div></article>`;
   }
   function gsDraw() {
     const raw = document.getElementById('gsInput').value.trim(), q = gsFold(raw), list = document.getElementById('gsList'), count = document.getElementById('gsCount');
@@ -752,8 +828,11 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
     const d = gsDialog(), input = d.querySelector('#gsInput');
     input.value = String(q || '').trim();
     if (!d.open) { d.showModal(); window.history.pushState({gs: 1}, ''); gs.pushed = true; }
-    gsDraw(); await gsLoad(); gsDraw(); input.focus();
+    gsDraw(); input.focus(); input.setSelectionRange?.(input.value.length, input.value.length); await gsLoad(); gsDraw();
   }
+  // Volver de una ficha abierta desde «Búsqueda global» («#gs=texto»): la búsqueda se abre otra vez con lo que tenías.
+  const reopenSearch = () => { const m = location.hash.match(/^#gs=(.*)$/); if (!m) return; let q = ''; try { q = decodeURIComponent(m[1]); } catch {} window.history.replaceState(window.history.state, '', location.pathname + location.search); openGlobalSearch(q); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', reopenSearch); else setTimeout(reopenSearch);
   // Deslizar a los lados sobre la lista (teléfono) pasa a la pestaña siguiente / anterior de tabs (las visibles), como
   // tocarla. No cuenta si el gesto empieza en un campo, un mapa, un diálogo o algo que se desplaza a los lados.
   function swipeTabs(area, tabs) {
@@ -780,10 +859,61 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       area.classList.remove('swipe-l', 'swipe-r'); void area.offsetWidth; area.classList.add(dx < 0 ? 'swipe-l' : 'swipe-r');
     }, {passive: true});
   }
-  // Toda página con pestañas (#mainTabs) y su lista (#feed o #list): deslizar cambia de pestaña en el teléfono.
-  const wireSwipe = () => swipeTabs(document.getElementById('feed') || document.getElementById('list'), document.getElementById('mainTabs'));
+  // Toda página con pestañas (#mainTabs) y su lista (#feed o #list, o el área marcada data-swipe-area): deslizar cambia
+  // de pestaña en el teléfono.
+  const wireSwipe = () => swipeTabs(document.querySelector('[data-swipe-area]') || document.getElementById('feed') || document.getElementById('list'), document.getElementById('mainTabs'));
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireSwipe); else wireSwipe();
-  window.AppNav = {swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
+  // «¿Cómo funciona?»: tres pasos con los íconos de sus páginas (🧭 Scouts, 🏃 Runners, 📦 Centros de acopio) y tres
+  // líneas cortas con ícono cada uno: Scouts reportan, Runners llevan, Centros de acopio conectan. Se abre desde
+  // el menú de tu avatar y desde las entradas (inicio, Login, «Sé runner»); se pasa con «Siguiente», los puntos o
+  // deslizando. Corto y para animar a ayudar: cada parte es independiente e igual de importante.
+  const RUNNER_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="#1f63c6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="4" r="2"/><path d="M12.5 7.5 10 13"/><path d="m12 8 4 2.5 3-1"/><path d="m12 8-4 1.5-2 2.5"/><path d="m10 13 3.5 3-1 5"/><path d="m10 13-2.5 4H4"/></svg>';
+  const HOW = [
+    {bg: 'linear-gradient(150deg,#ffe7c2,#ffd166)', art: '<span class="how-emoji">🧭</span>', t: 'Scouts', sub: 'Reportan quién necesita ayuda',
+      li: [['📍', 'El lugar y su contacto'], ['🍲', 'Qué hace falta: comida, agua, una silla de ruedas, gas, una medicina…'], ['💪', 'Solo con reportar ya estás ayudando']]},
+    {bg: 'linear-gradient(150deg,#d6ecff,#9fd0ff)', art: RUNNER_ICON, t: 'Runners', sub: 'Llevan la ayuda hasta allá',
+      li: [['🚗', 'Tienes carro, pickup o moto'], ['📦', 'Recoges donaciones: no tienen que ser tuyas'], ['🏠', 'Las llevas a donde hacen falta']]},
+    {bg: 'linear-gradient(150deg,#d9f2e3,#9edcb8)', art: '<span class="how-emoji">📦</span>', t: 'Centros de acopio', sub: 'Conectan la donación con quien la necesita',
+      li: [['📋', 'Ven lo que reportaron los scouts'], ['🚚', 'Preparan la carga y piden un runner'], ['🧾', 'Llevan la cuenta de todo lo que sale']]},
+  ];
+  function howItWorks(start = 0) {
+    let d = document.getElementById('howDlg');
+    if (!d) {
+      document.body.insertAdjacentHTML('beforeend', `<dialog id="howDlg" class="howdlg" aria-labelledby="howTitle"><div class="how-top"><b id="howTitle">¿Cómo funciona?</b><button type="button" class="how-x" data-how-close aria-label="Cerrar">✕</button></div><div class="how-viewport"><div class="how-track">${HOW.map((s, i) => `<section class="how-slide" aria-roledescription="paso" aria-label="Paso ${i + 1} de ${HOW.length}"><div class="how-art" style="background:${s.bg}">${s.art}<span class="how-n">${i + 1}</span></div><h2>${s.t}</h2><p class="how-sub">${s.sub}</p><ul class="how-li">${s.li.map(([ic, t]) => `<li><span aria-hidden="true">${ic}</span>${t}</li>`).join('')}</ul>${i === HOW.length - 1 ? '<p class="how-cheer">Cada parte es igual de importante. Juntos, la ayuda llega.</p><div class="how-cycle" aria-hidden="true">🧭<i>➜</i>📦<i>➜</i>' + RUNNER_ICON + '<i>➜</i>🏠</div>' : ''}</section>`).join('')}</div></div><div class="how-foot"><button type="button" class="how-btn how-back" data-how="-1">Atrás</button><div class="how-dots">${HOW.map((_, i) => `<button type="button" data-how-go="${i}" aria-label="Paso ${i + 1}"></button>`).join('')}</div><button type="button" class="how-btn how-next" data-how="1">Siguiente</button></div></dialog>`);
+      d = document.getElementById('howDlg');
+      d.addEventListener('click', e => {
+        if (e.target === d || e.target.closest('[data-how-close]')) return d.close();
+        const step = e.target.closest('[data-how]'), go = e.target.closest('[data-how-go]');
+        if (go) return show(+go.dataset.howGo);
+        if (!step) return;
+        if (+step.dataset.how > 0 && d._i === HOW.length - 1) { d.close(); if (!user() && d._splash) location.href = '/signup.html'; return; }
+        show(d._i + +step.dataset.how);
+      });
+      let x0 = null;
+      d.addEventListener('touchstart', e => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, {passive: true});
+      d.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) show(d._i + (dx < 0 ? 1 : -1)); }, {passive: true});
+    }
+    function show(i) {
+      d._i = Math.max(0, Math.min(HOW.length - 1, i));
+      d.querySelector('.how-track').style.transform = `translateX(-${d._i * 100}%)`;
+      d.querySelectorAll('[data-how-go]').forEach((b, k) => b.setAttribute('aria-current', String(k === d._i)));
+      d.querySelector('.how-back').hidden = d._i === 0;
+      d.querySelector('.how-next').textContent = d._i < HOW.length - 1 ? 'Siguiente' : !user() && d._splash ? '¡Quiero ayudar!' : '¡Entendido!';
+      d.querySelector('.how-viewport').scrollTop = 0;
+    }
+    d._splash = false;
+    show(start);
+    if (!d.open) d.showModal();
+  }
+  document.addEventListener('click', e => { if (e.target.closest('[data-how-open]')) { e.preventDefault(); showSheet(false); howItWorks(); } });
+  // Bienvenida: la primera vez que alguien sin sesión abre el inicio, se le muestra una sola vez (recordado en este navegador).
+  function howSplash() {
+    if (location.pathname !== '/' && location.pathname !== '/index.html') return;
+    try { if (user() || localStorage.getItem('howSeen')) return; localStorage.setItem('howSeen', '1'); } catch { return; }
+    setTimeout(() => { howItWorks(); const d = document.getElementById('howDlg'); if (d) d._splash = true; }, 600);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', howSplash); else howSplash();
+  window.AppNav = {howItWorks,swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
   mountSearch();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { draw(); mountTextSize(); mountMobileBar(); mountSearch(); document.querySelector('header input[type=search]')?._tsSync?.(); }); else { draw(); mountTextSize(); mountMobileBar(); document.querySelector('header input[type=search]')?._tsSync?.(); }

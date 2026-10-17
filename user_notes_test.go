@@ -17,9 +17,12 @@ func TestUserNotesAndImportedUsers(t *testing.T) {
 	s.team("Norte", mia, leo)
 	s.team("Sur", out)
 	s.expect("PATCH", "/api/admin/users/"+mia, `{"roles":["runner","teammanager"]}`, 200)
-	// «Mi equipo» is for the team manager (and the Admin role) only: a plain member gets 403 and can't edit notes.
-	if w := s.as(s.viewerCookie("LEO123"), "GET", "/api/full/team", ""); w.Code != 403 {
-		t.Fatalf("member can't open Mi equipo: %d %s", w.Code, w.Body.String())
+	// «Mi equipo» is for everyone on the team: a plain member sees teammates and notes, but no roles, and can't edit notes.
+	if w := s.as(s.viewerCookie("LEO123"), "GET", "/api/full/team", ""); w.Code != 200 || !strings.Contains(w.Body.String(), "Tiene pickup 4x4") || strings.Contains(w.Body.String(), `"roles"`) || !strings.Contains(w.Body.String(), `"manager":false`) {
+		t.Fatalf("member opens Mi equipo without roles: %d %s", w.Code, w.Body.String())
+	}
+	if w := s.as(s.viewerCookie("OTRO12"), "GET", "/api/full/team", ""); w.Code != 200 || strings.Contains(w.Body.String(), "Leo Runner") {
+		t.Fatalf("another team sees only its own: %d %s", w.Code, w.Body.String())
 	}
 	if w := s.as(s.viewerCookie("MIA123"), "GET", "/api/full/team", ""); w.Code != 200 || !strings.Contains(w.Body.String(), "Tiene pickup 4x4") || !strings.Contains(w.Body.String(), `"manager":true`) {
 		t.Fatalf("manager sees members with notes: %d %s", w.Code, w.Body.String())

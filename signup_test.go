@@ -143,3 +143,38 @@ func TestSignupSameNameGetsANumber(t *testing.T) {
 		t.Fatalf("three separate users: %d", len(users))
 	}
 }
+
+// A scout who opens Runners can become a runner in one tap: runner role, no team, signed into Runners. /api/full/me
+// then counts the runs they are carrying, for the menu to show «en curso».
+func TestScoutBecomesRunner(t *testing.T) {
+	s := newServiceHarness(t)
+	w := s.call("POST", "/api/session/signup", `{"name":"Lola Scout","telephone":"6222-1111","consent":true}`, false)
+	var got map[string]any
+	json.Unmarshal(w.Body.Bytes(), &got)
+	code := got["accessCode"].(string)
+	vc := s.viewerCookie(code)
+	if w := s.as(vc, "POST", "/api/full/become-runner", `{}`); w.Code != 200 || !strings.Contains(w.Body.String(), `"roles":["scout","runner"]`) && !strings.Contains(w.Body.String(), `"roles":["runner","scout"]`) || !strings.Contains(w.Body.String(), "/runner.html") {
+		t.Fatalf("become runner: %d %s", w.Code, w.Body.String())
+	}
+	var users []adminUser
+	json.Unmarshal(s.call("GET", "/api/admin/users", "", true).Body.Bytes(), &users)
+	id := ""
+	for _, u := range users {
+		if u.Name == "Lola Scout" {
+			id = u.ID
+			if u.TeamID != "" || !slicesContains(u.Roles, "runner") {
+				t.Fatalf("runner without a team: %+v", u)
+			}
+		}
+	}
+	if w := s.as(vc, "GET", "/api/full/me", ""); !strings.Contains(w.Body.String(), `"activeRuns":0`) {
+		t.Fatalf("no runs yet: %s", w.Body.String())
+	}
+	s.call("POST", "/api/admin/camps/"+s.camp+"/needs", `{"need":"Agua","urgency":"normal","status":"IN_PROGRESS","runnerId":"`+id+`"}`, true)
+	if w := s.as(vc, "GET", "/api/full/me", ""); !strings.Contains(w.Body.String(), `"activeRuns":1`) {
+		t.Fatalf("one run in progress: %s", w.Body.String())
+	}
+	if w := s.call("POST", "/api/full/become-runner", `{}`, false); w.Code != 401 {
+		t.Fatalf("needs a session: %d", w.Code)
+	}
+}

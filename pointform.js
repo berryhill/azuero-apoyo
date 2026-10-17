@@ -63,7 +63,7 @@
   };
   const style = `.pf-thumb{position:relative;margin:0;width:76px}.pf-thumb a{display:grid;place-items:center;width:76px;height:76px;border-radius:9px;overflow:hidden;background:#e7eef0;border:1px solid #d5e0e2;text-decoration:none}.pf-thumb img{width:100%;height:100%;object-fit:cover}.pf-thumb-icon{font-size:26px;color:#173c46}
 .pfp{border:0;border-radius:14px;padding:0;width:min(460px,calc(100% - 24px));max-height:calc(92dvh / var(--text-zoom,1));color:#173c46;font:inherit}@media(max-width:760px){.pfp{inset:0;width:auto;height:auto;max-width:none;max-height:none;margin:0;border-radius:0}.pfp-box{height:100%;box-sizing:border-box;padding:max(14px,env(safe-area-inset-top)) 14px 14px}.pfp-pick{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}.pfp-pick:has(+.pfp-qty:not([hidden])),.pfp-pick[hidden]{flex:none}.pfp .pfp-options{max-height:none;flex:1 1 auto;min-height:140px}.pfp-actions{margin-top:auto;padding-top:10px;background:#fff}}.pfp::backdrop{background:#10263ab8}.pfp-box{padding:20px;display:flex;flex-direction:column;gap:6px}.pfp h2{margin:0;font-size:20px}#pfPackTitle,.pfp-pick>label{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.pfp-for{display:none}.pfp-pick input{margin-top:0}.pfp h3{margin:6px 0 0;font-size:16px}.pfp-options .pfp-cat{display:flex;align-items:center;gap:8px;width:100%;margin:0;padding:12px;border:0;border-bottom:1px solid #eef3f3;background:#fff;color:#173c46;font:inherit;font-weight:750;text-align:left;cursor:pointer}.pfp-cat span:first-child{flex:1}.pfp-cat small{min-width:22px;padding:1px 7px;border-radius:999px;background:#eef3f2;color:#5d7680;font-size:12px;text-align:center}.pfp-crumbs{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#f7fafa;border-bottom:1px solid #eef3f3;font-size:13px;color:#5d7680}.pfp-options .pfp-crumb{width:auto;padding:4px 8px;border:1px solid #cad9d9;border-radius:8px;background:#fff;color:#173c46;font-weight:800}.tlmount{padding:10px 12px 14px}.tlmount[hidden]{display:none}.pf-tl-banner{display:flex;align-items:center;gap:8px;width:100%;margin:0 0 10px;padding:11px 14px;border:1px solid #f0c48a;border-radius:12px;background:#fff6e5;color:#7a4a00;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;text-align:left}.pf-tl-banner b{font-size:16px}.pf-tl-banner span{margin-left:auto;color:#a35c00;font-weight:800}
-.pf-tl{border:0;border-radius:16px;padding:0;width:min(560px,calc(94vw / var(--text-zoom,1)));max-height:calc(92dvh / var(--text-zoom,1));overflow:auto;font-family:Inter,system-ui,sans-serif;color:#173c46}.pf-tl::backdrop{background:#10263ab8}.pf-tl-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid #e1e9ea}.pf-tl-top b{font-size:16px}.pf-tl-body{padding:12px 14px 18px}.pf-tl-help{margin:0 0 12px;color:#5d7680;font-size:13px;line-height:1.45}.pf-tl-card{margin:0 0 12px;padding:12px;border:1px solid #e1e9ea;border-radius:12px;background:#fbfdfd}.pf-tl-head b{display:block;font-size:15px}.pf-tl-head small{color:#667982;font-size:12px}.pf-tl-extra{margin:6px 0 0;font-size:12px;color:#5d7680}.pf-tl-dl{margin:8px 0 0;padding:0 0 0 2px;list-style:none;font-size:12px;color:#36505a;display:grid;gap:6px}.pf-tl-dl span{color:#5d7680}.pf-tl-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.pf-tl-btn{border:1px solid #cad9d9;border-radius:10px;background:#fff;color:#173c46;font:800 13px Inter,system-ui,sans-serif;padding:9px 12px;cursor:pointer}.pf-tl-btn.go{background:#19745f;border-color:#19745f;color:#fff}.pf-tl-form{display:grid;gap:8px;margin-top:10px}.pf-tl-form label{display:grid;gap:4px;font-size:12px;font-weight:800;color:#5d7680}.pf-tl-form input{padding:10px;border:1px solid #cad9d9;border-radius:9px;font:inherit;font-size:15px;font-weight:500;color:#173c46}.pf-tl-gps{display:flex;gap:6px}.pf-tl-gps input{flex:1;min-width:0}.pf-tl-results{display:grid;gap:4px;max-height:calc(40dvh / var(--text-zoom,1));overflow:auto}.pf-tl-hit{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 10px;border:1px solid #e1e9ea;border-radius:9px;background:#fff;text-align:left;cursor:pointer;font:inherit}.pf-tl-hit small{color:#7a8d94}.pf-tl-msg{margin:6px 0 0;font-size:12px;color:#a33527}.pf-tl-msg:empty{display:none}
+.pf-tl{border:0;border-radius:16px;padding:0;width:min(560px,calc(94vw / var(--text-zoom,1)));max-height:calc(92dvh / var(--text-zoom,1));overflow:auto;font-family:Inter,system-ui,sans-serif;color:#173c46}.pf-tl::backdrop{background:#10263ab8}.pf-tl-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid #e1e9ea}.pf-tl-top b{font-size:16px}.pf-tl-body{padding:12px 14px 18px}.pf-tl-help{margin:0 0 12px;color:#5d7680;font-size:13px;line-height:1.45}.pf-tl-card{margin:0 0 12px;padding:12px;border:1px solid #e1e9ea;border-radius:12px;background:#fbfdfd}.pf-tl-head b{display:block;font-size:15px}.pf-tl-head small{color:#667982;font-size:12px}.pf-tl-extra{margin:6px 0 0;font-size:12px;color:#5d7680}.pf-tl-dl{margin:8px 0 0;padding:0 0 0 2px;list-style:none;font-size:12px;color:#36505a;display:grid;gap:6px}.pf-tl-dl span{color:#5d7680}.pf-tl-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.pf-tl-btn{border:1px solid #cad9d9;border-radius:10px;background:#fff;color:#173c46;font:800 13px Inter,system-ui,sans-serif;padding:9px 12px;cursor:pointer}.pf-tl-btn.go{background:#19745f;border-color:#19745f;color:#fff}.pf-tl-form{display:grid;gap:8px;margin-top:10px}.pf-tl-form label{display:grid;gap:4px;font-size:12px;font-weight:800;color:#5d7680}.pf-tl-form input{padding:10px;border:1px solid #cad9d9;border-radius:9px;font:inherit;font-size:15px;font-weight:500;color:#173c46}.pf-tl-gps{display:flex;gap:6px}.pf-tl-gps input{flex:1;min-width:0}.pf-tl-results{display:grid;gap:4px;max-height:calc(40dvh / var(--text-zoom,1));overflow:auto}.pf-tl-hit{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 10px;border:1px solid #e1e9ea;border-radius:9px;background:#fff;text-align:left;cursor:pointer;font:inherit}.pf-tl-hit small{color:#7a8d94}.pf-tl-msg{margin:6px 0 0;font-size:12px;color:#a33527}.pf-tl-msg:empty{display:none}.pf-tl-card.open{border-color:#9fcfb8;background:#fff}.pf-tl-back{justify-self:start;border:0;background:none;padding:2px 0;color:#126e7c;font:800 13px Inter,system-ui,sans-serif;cursor:pointer}.pf-tl-find input[type=search]{padding:11px 12px;font-size:16px}.pf-tl-new{padding:11px 12px;border:1.5px dashed #ed7654;border-radius:10px;background:#fff6f1;color:#a8431f;font:800 14px Inter,system-ui,sans-serif;cursor:pointer;text-align:left}.pf-tl-new small{font-weight:600}.pf-tl-sel{display:grid;gap:6px;margin-top:10px;padding:12px;border:1px solid #9fcfb8;border-radius:12px;background:#eef6f2}.pf-tl-selname{font-size:16px}.pf-tl-selname small{color:#7a8d94}.pf-tl-mini{height:160px;border-radius:10px;overflow:hidden;border:1px solid #cfe1d8}.pf-tl-pickmap{height:220px;border-radius:10px;overflow:hidden;border:1px solid #cad9d9}.pf-tl-pin{margin:0;font-size:12px;color:#5d7680}.pf-tl-nogps{margin:0;padding:8px 10px;border-radius:9px;background:#fff1f1;color:#b3412b;font-size:13px}.pf-tl-maps{justify-self:start;color:#126e7c;font-weight:800;font-size:13px;text-decoration:none}.pf-tl-facts{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:13px;color:#36505a}.pf-tl-sub{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#a63a4c}
 @media(max-width:760px){.pf-tl{width:calc(100vw / var(--text-zoom,1));max-width:calc(100vw / var(--text-zoom,1));height:calc(100dvh / var(--text-zoom,1));max-height:calc(100dvh / var(--text-zoom,1));margin:0;border-radius:0}}
 .pfp-group{padding:8px 12px 4px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#5d7680;background:#f7fafa;border-bottom:1px solid #eef3f3}.pfp-needs{margin:2px 0 6px;padding:8px 10px;border:1px solid #e1e9ea;border-radius:10px;background:#f7fafa}.pfp-needs-h{display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#5d7680}.pfp-needs-chips{display:flex;flex-wrap:wrap;gap:6px}.pfp-need{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid #d5e0e2;border-radius:16px;background:#fff;color:#1f3a46;font-size:12px;font-weight:700}.pfp-need svg{width:15px;height:15px;color:#2d7f86}.pfp-need.done{background:#eef1f1;color:#98a6aa;border-color:#e2e8e9;text-decoration:line-through}.pfp-need.done svg{color:#b5c0c3}
 .pfp-for,.pfp-hint{margin:0;color:#667982;font-size:13px}
@@ -80,7 +80,7 @@
 .pf label{display:block;margin:0;font-size:12px;font-weight:700;color:#36505a}.pf .pf-ico{display:flex;align-items:center;gap:5px}.pf .pf-ico svg{color:#2d7f86;flex:none}
 .pf input,.pf textarea,.pf select{display:block;width:100%;max-width:none;min-height:0;margin-top:4px;padding:9px 10px;border:1px solid #d5e0e2;border-radius:8px;background:#fff;font:inherit;font-weight:400;color:#152b3a}
 .pf textarea{min-height:64px;resize:vertical}.pf input:focus,.pf textarea:focus,.pf select:focus{outline:2px solid #2d7f8655;border-color:#2d7f86}
-.pf-hint{font-size:12px;color:#5b6f76;margin:2px 0 10px;line-height:1.4}.pf-hint b{color:#9a4c2f}.pf-sub{font-size:12px;font-weight:800;color:#2d7f86;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px}
+.pf-more{display:block;margin:4px 0 0;padding:6px 0;border:0;background:none;color:#1f63c6;font:800 13px Inter,system-ui,sans-serif;cursor:pointer;text-decoration:underline}.pf-more[hidden]{display:none}.pf-hint{font-size:12px;color:#5b6f76;margin:2px 0 10px;line-height:1.4}.pf-hint b{color:#9a4c2f}.pf-sub{font-size:12px;font-weight:800;color:#2d7f86;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px}
 .pf .pf-gps{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:2px 0 0;padding:13px;border:0;border-radius:10px;background:#1d6f7a;color:#fff;font-size:15px;font-weight:800}
 .pf .pf-gps:hover{background:#175d66}.pf .pf-gps:disabled{opacity:.6;cursor:wait}.pf-gpsthumb{height:140px;margin:8px 0 0;border-radius:10px;overflow:hidden;border:1px solid #cad9d9;cursor:pointer;background:#dfe8e8}.pf-gpsthumb[hidden]{display:none}.pf-gpsthumb .leaflet-control-attribution{font-size:9px}.pf-thumbpin{width:24px;height:24px;background:#c62828;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 7px #0006}.pf-gpsmsg{font-size:12px;color:#36505a;margin:6px 0 0}.pf-gpsmsg:empty{display:none}
 .pf-me-btns{display:inline-flex;gap:4px;margin-left:auto}.pf .pf-ico:has(.pf-me-btns){width:100%}.pf .pf-yo{margin:0;padding:2px 9px;border:1px solid #2d7f86;border-radius:12px;background:#eaf6f3;color:#1d6f7a;font:inherit;font-size:11px;font-weight:800;cursor:pointer}.pf .pf-clearcoord{display:inline-flex;margin:0;padding:3px;border:0;border-radius:6px;background:none;color:#8a9ca1;cursor:pointer}.pf .pf-clearcoord svg{width:14px;height:14px}.pf .pf-clearcoord:hover{background:#f2e7e3;color:#9a4536}.pf-members{margin-top:8px}.pf label[hidden]{display:none!important}.pf-coordme{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid #b9d3d8;border-radius:12px;background:#f3faf9}.pf-cm-ico{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#e3f4ec;color:#19745f;flex:none}.pf-cm-txt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}.pf-cm-txt small{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#64808a}.pf-cm-txt b{font-size:16px;color:#173c46}.pf-cm-sub{font-size:13px;color:#4b6670}.pf .pf-cm-change{flex:none;margin:0;padding:8px 12px;border:1px solid #cad9d9;border-radius:9px;background:#fff;color:#173c46;font-weight:800;font-size:13px;cursor:pointer}.pf .pf-backme{margin-left:8px;padding:2px 8px;border:1px solid #b9d3d8;border-radius:999px;background:#fff;color:#19745f;font-size:12px;font-weight:800;cursor:pointer}.pf-member{display:grid;grid-template-columns:22px 2fr 1.4fr .7fr 1.3fr 26px;grid-template-areas:'num name phone age ced del';gap:6px;align-items:center;padding:4px 0}.pf-mnum{grid-area:num;font-size:13px;font-weight:800;color:#2d7f86;text-align:right}.pf-m-name{grid-area:name}.pf-m-phone{grid-area:phone}.pf-m-age{grid-area:age}.pf-m-cedula{grid-area:ced}.pf-member .pf-remove{grid-area:del}.pf-member:last-child .pf-remove{visibility:hidden}.pf .pf-member input{min-width:0;margin-top:0}.pf-mf{position:relative;display:block;min-width:0}.pf .pf-hold,.pf-hold{display:flex;align-items:flex-start;gap:12px;margin:14px 0 4px;padding:12px 14px;border:1.5px solid #e9c46a;border-radius:12px;background:#fff8e1;cursor:pointer}.pf-hold input{position:absolute;opacity:0;width:1px;height:1px}.pf-hold-sw{display:block;position:relative;flex:none;width:40px;height:24px;margin-top:2px;border-radius:999px;background:#cad9d9;transition:background .15s}.pf-hold-sw:after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:left .15s}.pf-hold input:checked+.pf-hold-sw{background:#a87400}.pf-hold input:checked+.pf-hold-sw:after{left:19px}.pf-hold input:focus-visible+.pf-hold-sw{outline:2px solid #1f63c6;outline-offset:2px}.pf-hold-txt{display:flex;flex-direction:column;gap:2px;font-size:14px;color:#4a3a10}.pf-hold-txt small{font-size:12px;color:#7a5600}.pf .pf-addmember{display:inline-flex;align-items:center;gap:6px;margin:8px 0 0 28px;padding:8px 12px;border:1px dashed #9fb6bb;border-radius:9px;background:#f7fafa;color:#19745f;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.pf .pf-mf input{width:100%;padding-left:32px}.pf-mi{position:absolute;left:9px;top:50%;transform:translateY(-50%);display:flex;color:#7a9298;pointer-events:none}.pf-mi svg{width:16px;height:16px}
@@ -139,7 +139,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     'Combustible para generador': {key: 'fuel', label: 'Combustible', other: 'Otro', otherPh: 'Escribe cuál', def: 'Gasolina', brands: [['Gasolina', 'gasolina', 'Gasolina'], ['Diésel', 'diesel', 'Diésel']]},
     'Tarjeta de datos prepago': {key: 'net', label: 'Red', other: 'Otra', otherPh: 'Escribe la red', brands: [['Tigo', 'tigo', 'tigo'], ['+Móvil', 'masmovil', '+móvil', /^(mas|\+) ?movil$|^claro$/]]},
     'Gas de cocina': {key: 'gas', label: 'Empresa', other: 'Otra', otherPh: 'Escribe la empresa', brands: [['Tropigas', 'tropigas', 'Tropigas'], ['Panagas', 'panagas', 'Panagas']]},
-    'Reparación de casa': {key: 'repair', label: 'Materiales (opcional)', other: 'Otro', otherPh: 'Escribe el material', brands: [['Hojas de zinc', 'mat', 'hojas de zinc'], ['Carriola', 'mat', 'carriola'], ['Varilla', 'mat', 'varilla'], ['Tubo de hierro', 'mat', 'tubo de hierro'], ['Bolsas de cemento', 'mat', 'bolsas de cemento'], ['Bloques', 'mat', 'bloques'], ['Tornillos', 'mat', 'tornillos'], ['Clavos', 'mat', 'clavos'], ['Soldadura', 'mat', 'soldadura']]}
+    'Reparación de casa': {key: 'repair', collapsed: true, label: 'Materiales (opcional)', other: 'Otro', otherPh: 'Escribe el material', brands: [['Hojas de zinc', 'mat', 'hojas de zinc'], ['Carriola', 'mat', 'carriola'], ['Varilla', 'mat', 'varilla'], ['Tubo de hierro', 'mat', 'tubo de hierro'], ['Bolsas de cemento', 'mat', 'bolsas de cemento'], ['Bloques', 'mat', 'bloques'], ['Tornillos', 'mat', 'tornillos'], ['Clavos', 'mat', 'clavos'], ['Soldadura', 'mat', 'soldadura']]}
   };
   const DATA_NEED = 'Tarjeta de datos prepago';
   const brandedRe = new RegExp(`^\\s*(${Object.keys(BRANDED).map(l => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\s*(?:\\(([^)]*)\\))?\\s*$`, 'i');
@@ -403,7 +403,10 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     pills.forEach(p => on(p, known.includes(p.dataset.pill)));
     if (otherPill) { on(otherPill, unknown.length > 0); otherIn.value = unknown.join(' '); otherIn.hidden = !unknown.length; }
     compose();
-    const sync = () => { box.hidden = !check.checked; };
+    // Reparación de casa: la lista de materiales queda escondida tras «🧱 Especificar materiales (opcional)».
+    let more = b.collapsed ? box.parentElement.querySelector('.pf-more') : null;
+    if (b.collapsed && !more) { more = document.createElement('button'); more.type = 'button'; more.className = 'pf-more'; more.textContent = '🧱 Especificar materiales (opcional)'; box.before(more); more.onclick = () => { box.dataset.open = '1'; sync(); }; }
+    const sync = () => { box.hidden = !check.checked || !!b.collapsed && !box.dataset.open && !input.value; if (more) more.hidden = !check.checked || !box.hidden; };
     sync();
     if (box.dataset.wired) return; box.dataset.wired = '1';
     check.addEventListener('change', () => { sync(); if (check.checked && b.def && !input.value) { on(pills.find(p => p.dataset.pill === b.def), true); compose(); } });
@@ -637,7 +640,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     labels.forEach(l => { l.hidden = false; });
     // Equipo: casilla para retener la publicación unas horas (el equipo lo abastece primero); sin equipo, no aparece.
     root.querySelector('.pf-hold')?.remove();
-    if (me && me.team) root.insertAdjacentHTML('beforeend', `<label class="pf-hold"><input type="checkbox" name="holdTeam"><span class="pf-hold-sw" aria-hidden="true"></span><span class="pf-hold-txt"><b>Nuestro equipo lo abastece</b><small>No se publica por ${HOLD_HOURS} horas: mientras tanto solo lo ve ${esc(me.team)}. Después se publica solo.</small></span></label>`);
+    if (me && me.team) root.insertAdjacentHTML('beforeend', `<label class="pf-hold"><input type="checkbox" name="holdTeam"><span class="pf-hold-sw" aria-hidden="true"></span><span class="pf-hold-txt"><b>¿Mantenerlo privado para tu equipo un rato?</b><small>Mientras preparan el despacho, solo lo ve ${esc(me.team)} por ${HOLD_HOURS} horas; después se publica solo.</small></span></label>`);
     if (!me || !me.name || !me.team) return;
     const set = (name, phone) => { for (const [el, v] of [[coordEl, name], [phoneEl, phone]]) { el.value = v; el.dispatchEvent(new Event('input', {bubbles: true})); } };
     const backLink = () => { const span = labels[0].querySelector('span'); span.insertAdjacentHTML('beforeend', '<button type="button" class="pf-backme" title="Ponerme como quien reporta">↺ Soy yo</button>'); span.querySelector('.pf-backme').onclick = e => { e.preventDefault(); setMe(root, me); }; };
@@ -677,6 +680,58 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     };
     warmSubs.add(update);
     if (warmBest) update(warmBest, null);
+  }
+
+  // «Completar entrega» (Runners: «📍 Llegué»; Supply → Historial: completar por el runner): asistente a pantalla entera.
+  // 1) fotos de la entrega (opcional, pero ayuda), 2) ¿qué necesitan ahora? («No necesitan nada más» o marcar lo que
+  // falta) y recién entonces submit({files, need, urgency}) — cada página sube las fotos y completa a su manera.
+  const cw = {files: [], step: 1, choice: '', opts: null};
+  function cwStyle() {
+    if (document.getElementById('pf-cw-style')) return;
+    document.head.insertAdjacentHTML('beforeend', `<style id="pf-cw-style">.pfcw{border:0;border-radius:18px;padding:0;width:min(480px,calc(94vw / var(--text-zoom,1)));max-height:calc(94dvh / var(--text-zoom,1));font-family:Inter,system-ui,sans-serif;color:#173c46}.pfcw::backdrop{background:#10263acc}.pfcw-box{padding:18px 20px 0}.pfcw-top b{display:block;font-size:19px}.pfcw-top small{color:#5d7680;font-weight:700}.pfcw-bar{height:5px;margin:10px 0 12px;border-radius:3px;background:#e6eeee;overflow:hidden}.pfcw-bar i{display:block;height:100%;background:#19745f;transition:width .25s}.pfcw h3{margin:6px 0 2px;font-size:18px}.pfcw .note{margin:2px 0 8px;color:#667982;font-size:13px}.pfcw .where{margin:0 0 6px;color:#35505e}.pfcw-btns{display:flex;flex-direction:column;gap:8px;margin-top:10px}.pfcw-btn{padding:12px;border:1px solid #cad9d9;border-radius:12px;background:#fff;color:#173c46;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.pfcw-opt{display:block;width:100%;text-align:left;margin-top:8px;padding:12px 14px;border:2px solid #e1eaea;border-radius:12px;background:#fff;cursor:pointer;font:inherit}.pfcw-opt b{display:block;font-size:15px;color:#173c46}.pfcw-opt small{color:#667982}.pfcw-opt.on{border-color:#ed7654;background:#fff4ef}.pfcw-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.pfcw-thumb{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;background:#e7eef0}.pfcw-thumb img,.pfcw-thumb video{width:100%;height:100%;object-fit:cover}.pfcw-thumb button{position:absolute;top:2px;right:2px;width:22px;height:22px;border:0;border-radius:50%;background:#9a4536;color:#fff;font-size:11px;cursor:pointer}.pfcw-urg{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px;border:2px solid #e1eaea;border-radius:12px;cursor:pointer}.pfcw-urg input{position:absolute;opacity:0;pointer-events:none}.pfcw-sw{flex:none;position:relative;width:46px;height:28px;border-radius:14px;background:#cfdcdc}.pfcw-sw:after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}.pfcw-urg input:checked+.pfcw-sw{background:#d64a2c}.pfcw-urg input:checked+.pfcw-sw:after{transform:translateX(18px)}.pfcw-urg:has(input:checked){border-color:#d64a2c;background:#fff1ec}.pfcw-urg b{display:block}.pfcw-urg small{color:#667982}.pfcw-msg{margin:8px 0 0;color:#a83c1f;font-weight:700;font-size:13px}.pfcw-msg:empty{display:none}.pfcw-foot{position:sticky;bottom:0;display:flex;gap:10px;margin:12px -20px 0;padding:12px 20px max(14px,env(safe-area-inset-bottom));background:#fff;box-shadow:0 -6px 16px #10263a14}.pfcw-foot button{flex:1;padding:13px;border:0;border-radius:12px;font:800 15px Inter,system-ui,sans-serif;cursor:pointer}.pfcw-foot .back{background:#eef3f3;color:#35505e}.pfcw-foot .go{background:#19745f;color:#fff}.pfcw-foot .go:disabled{opacity:.5}@media(max-width:760px){.pfcw{inset:0;width:auto;max-width:none;height:calc(100dvh / var(--text-zoom,1));max-height:none;margin:0;border-radius:0}}</style>`);
+  }
+  function cwPick(kind) {
+    const input = document.createElement('input');
+    input.type = 'file'; input.hidden = true;
+    input.accept = kind === 'video' ? 'video/*' : kind === 'photo' ? 'image/*' : 'image/*,video/*';
+    if (kind !== 'gallery') input.setAttribute('capture', 'environment'); else input.multiple = true;
+    document.body.appendChild(input);
+    input.onchange = () => { cw.files.push(...input.files); input.remove(); cwDraw(); };
+    input.click();
+  }
+  function cwDraw() {
+    const d = document.getElementById('pfDone'), o = cw.opts, s = cw.step;
+    const thumbs = cw.files.length ? `<div class="pfcw-thumbs">${cw.files.map((f, i) => { const u = URL.createObjectURL(f); return `<span class="pfcw-thumb">${f.type.startsWith('video') ? `<video src="${u}" muted></video>` : `<img src="${u}" alt="">`}<button type="button" data-cw-unpick="${i}" aria-label="Quitar">✕</button></span>`; }).join('')}</div>` : '';
+    const body = s === 1
+      ? `<p class="where">📍 <b>${esc(o.place || '')}</b></p><h3>📷 Documenta la entrega</h3><p class="note">Opcional, pero ayuda mucho: una foto o un video de lo que se entregó deja constancia para todos.</p>${o.mediaOn === false ? '<p class="note">📷 Las fotos no están disponibles ahora.</p>' : `${thumbs}<div class="pfcw-btns"><button type="button" class="pfcw-btn" data-cw-pick="photo">📷 Tomar foto</button><button type="button" class="pfcw-btn" data-cw-pick="video">🎥 Grabar video</button><button type="button" class="pfcw-btn" data-cw-pick="gallery">🖼️ Elegir de la galería</button></div>`}`
+      : `<h3>📝 ¿Qué necesitan ahora?</h3><p class="note">Pregúntales antes de irte.</p><button type="button" class="pfcw-opt${cw.choice === 'none' ? ' on' : ''}" data-cw-choice="none"><b>✓ No necesitan nada más</b><small>Todo quedó cubierto.</small></button><button type="button" class="pfcw-opt${cw.choice === 'needs' ? ' on' : ''}" data-cw-choice="needs"><b>📝 Necesitan algo más</b><small>Marca qué: queda abierto para que otro runner lo lleve.</small></button>${cw.choice === 'needs' ? `<div class="pf" id="pfcwNeeds" style="margin-top:10px">${needsHtml()}</div><label class="pfcw-urg"><input type="checkbox" id="pfcwUrg"><span class="pfcw-sw" aria-hidden="true"></span><span><b>🚨 ¿Es urgente?</b><small>Márcalo si no puede esperar.</small></span></label>` : ''}`;
+    d.innerHTML = `<div class="pfcw-box"><div class="pfcw-top"><b>${esc(o.title || '✓ Completar entrega')}</b><small>Paso ${s} de 2 · ${s === 1 ? 'Fotos de la entrega' : '¿Qué necesitan ahora?'}</small></div><div class="pfcw-bar"><i style="width:${s * 50}%"></i></div>${body}<p class="pfcw-msg" role="status"></p><div class="pfcw-foot">${s === 1 ? `<button type="button" class="back" data-cw="cancel">Cancelar</button><button type="button" class="go" data-cw="next">${cw.files.length ? 'Siguiente ›' : 'Siguiente (sin fotos) ›'}</button>` : `<button type="button" class="back" data-cw="back">‹ Atrás</button><button type="button" class="go" data-cw="submit"${cw.choice ? '' : ' disabled'}>✓ Completar entrega</button>`}</div></div>`;
+    if (s === 2 && cw.choice === 'needs') fillNeeds(d.querySelector('#pfcwNeeds'), '');
+  }
+  function completeWizard(opts) {
+    cwStyle();
+    let d = document.getElementById('pfDone');
+    if (!d) {
+      document.body.insertAdjacentHTML('beforeend', '<dialog id="pfDone" class="pfcw" aria-label="Completar entrega"></dialog>');
+      d = document.getElementById('pfDone');
+      d.addEventListener('click', async e => {
+        const pick = e.target.closest('[data-cw-pick]'); if (pick) return cwPick(pick.dataset.cwPick);
+        const un = e.target.closest('[data-cw-unpick]'); if (un) { cw.files.splice(+un.dataset.cwUnpick, 1); return cwDraw(); }
+        const c = e.target.closest('[data-cw-choice]'); if (c) { cw.choice = c.dataset.cwChoice; return cwDraw(); }
+        const a = e.target.closest('[data-cw]')?.dataset.cw; if (!a) return;
+        if (a === 'cancel') return d.close();
+        if (a === 'next' || a === 'back') { cw.step = a === 'next' ? 2 : 1; return cwDraw(); }
+        const b = e.target.closest('[data-cw]'), msg = d.querySelector('.pfcw-msg');
+        let need = '';
+        if (cw.choice === 'needs') { need = readNeeds(d.querySelector('#pfcwNeeds')); if (!need) { msg.textContent = 'Marca lo que necesitan o elige «No necesitan nada más».'; return; } }
+        b.disabled = true; msg.textContent = cw.files.length ? 'Subiendo fotos…' : 'Completando…';
+        try { await cw.opts.submit({files: cw.files, need, urgency: d.querySelector('#pfcwUrg')?.checked ? 'urgente' : 'normal'}); d.close(); }
+        catch (err) { msg.textContent = err.message || 'No se pudo completar.'; b.disabled = false; }
+      });
+    }
+    Object.assign(cw, {files: [], step: 1, choice: '', opts});
+    cwDraw();
+    d.showModal();
   }
   // Zona con sugerencias mientras se escribe: las zonas de los puntos publicados, una por zona (la forma más usada:
   // «Tonosí» aunque alguien escribió «Tonosi»). Una sola lista <datalist id="pf-areas"> por página, cargada una vez.
@@ -1000,6 +1055,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
       const forMe = data.forMe || [], sent = showSent ? data.sent || [] : [];
       box.hidden = !forMe.length && !sent.length;
       const waiting = sent.filter(r => r.status === 'pending').length;
+      dispatchEvent(new CustomEvent('changereqs', {detail: {forMe: forMe.length, sent: sent.length, waiting}}));
       box.innerHTML = (forMe.length ? `<h3>📝 Cambios propuestos <b>${forMe.length}</b></h3><p class="crq-help">Alguien de otro equipo propone cambiar algo que tú actualizaste. Tú estuviste ahí: acepta solo si es correcto.</p>` +
         forMe.map(r => `<div class="crq" data-crq="${esc(r.id)}"><div class="crq-who"><b>${esc(r.fromName)}</b> · ${r.fromTeam ? 'Equipo ' + esc(r.fromTeam) : 'sin equipo'} · ${where(r)}</div><div class="crq-need">${esc(r.need)}</div><ul>${(r.changes || []).map(line).join('')}</ul><div class="crq-acts"><button type="button" class="crq-yes" data-crq-yes>✓ Aceptar</button><button type="button" class="crq-no" data-crq-no>✗ Rechazar</button></div></div>`).join('') : '') +
         (sent.length ? `<details class="crq-sent"${sentOpen ? ' open' : ''}><summary>📤 Cambios que pediste${waiting ? ` · ${waiting} esperando respuesta` : ''}</summary>` +
@@ -1067,7 +1123,10 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     try { const r = await fetch('/api/full/tolocate', {credentials: 'same-origin', cache: 'no-store'}); tl.list = r.ok ? await r.json() : []; } catch { tl.list = []; }
     tlBanner();
   }
+  // Cuántas entregas quedan por ubicar (Supply las muestra dentro de su pestaña ✏️ en vez del aviso).
+  const toLocateCount = () => tl.list.length;
   function tlBanner() {
+    dispatchEvent(new CustomEvent('tolocate', {detail: tl.list.length}));
     if (!tl.mount) return;
     const n = tl.list.length;
     tl.mount.hidden = !n;
@@ -1075,14 +1134,30 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
   }
   const tlTitle = x => x.place && x.place !== x.area ? x.place : (x.members || []).map(m => m.name).filter(Boolean).join(', ') || 'Entrega sin nombre';
   const tlDate = v => { const d = new Date(v); return isNaN(d) ? '' : d.toLocaleDateString('es-PA', {day: 'numeric', month: 'short'}); };
+  // Cada entrega: «📍 Ubicar» abre la búsqueda (como el destino de «Nuevo despacho»): escribe zona, lugar o código y ve
+  // cada punto con sus datos; al tocarlo, una vista previa con mini mapa, indicaciones y lo que necesita, y «✓ Unir a
+  // este punto». Si no existe, «＋ Lugar nuevo»: zona, lugar, indicaciones y un mapa donde tocas para poner el pin (o
+  // «📍 Usar mi ubicación», o pegar un enlace de Maps).
   function tlCard(x) {
     const zone = x.area && x.area !== 'Por ubicar' ? x.area : '', open = tl.open === x.id;
     const items = ds => (ds.items || []).slice(0, 8).map(i => `${esc(i.item)} ×${i.quantity}`).join(' · ') + ((ds.items || []).length > 8 ? ` · y ${(ds.items || []).length - 8} más` : '');
-    return `<article class="pf-tl-card" data-tl-id="${esc(x.id)}"><div class="pf-tl-head"><b>${esc(tlTitle(x))}</b><small>${[zone && '📍 ' + esc(zone) + ' (sin confirmar)', x.people && esc(x.people) + ' personas', tlDate(x.created)].filter(Boolean).join(' · ')}</small></div>${x.extra ? `<p class="pf-tl-extra">${esc(x.extra)}</p>` : ''}<ul class="pf-tl-dl">${x.deliveries.map(d => `<li><b>🏃 ${esc(d.runnerName || 'Runner')}</b>${d.at ? ' · ' + tlDate(d.at) : ''}<br><span>${items(d) || esc(d.need)}</span></li>`).join('')}</ul>${open ? tlForm(x, zone) : `<div class="pf-tl-acts"><button type="button" class="pf-tl-btn go" data-tl-new="${esc(x.id)}">📍 Lugar nuevo</button><button type="button" class="pf-tl-btn" data-tl-pick="${esc(x.id)}">🔎 Es un punto que ya existe</button></div>`}<p class="pf-tl-msg" role="status"></p></article>`;
+    return `<article class="pf-tl-card${open ? ' open' : ''}" data-tl-id="${esc(x.id)}"><div class="pf-tl-head"><b>${esc(tlTitle(x))}</b><small>${[zone && '📍 ' + esc(zone) + ' (sin confirmar)', x.people && esc(x.people) + ' personas', tlDate(x.created)].filter(Boolean).join(' · ')}</small></div>${x.extra ? `<p class="pf-tl-extra">${esc(x.extra)}</p>` : ''}<ul class="pf-tl-dl">${x.deliveries.map(d => `<li><b>🏃 ${esc(d.runnerName || 'Runner')}</b>${d.at ? ' · ' + tlDate(d.at) : ''}<br><span>${items(d) || esc(d.need)}</span></li>`).join('')}</ul>${open ? tlForm(x, zone) : `<div class="pf-tl-acts"><button type="button" class="pf-tl-btn go" data-tl-pick="${esc(x.id)}">📍 Ubicar esta entrega</button></div>`}<p class="pf-tl-msg" role="status"></p></article>`;
   }
+  const tlPlace = p => [p.area, p.place].filter(Boolean).join(' · ') || 'Punto';
+  const tlHasGps = p => Array.isArray(p.coords) && p.coords.length === 2;
   function tlForm(x, zone) {
-    if (tl.mode === 'pick') return `<div class="pf-tl-form"><label>Buscar el punto<input type="search" data-tl-q value="${esc(zone)}" placeholder="Zona, lugar o código" autocomplete="off"></label><div class="pf-tl-results" data-tl-results></div><button type="button" class="pf-tl-btn" data-tl-cancel>Cancelar</button></div>`;
-    return `<form class="pf-tl-form" data-tl-form="${esc(x.id)}"><label>Zona (pueblo o comunidad)<input name="area" required maxlength="80" value="${esc(zone)}" list="pf-areas" autocomplete="off" placeholder="Ej. Río Viejo"></label><label>Lugar<input name="place" maxlength="200" value="${esc(x.place && x.place !== x.area ? x.place : '')}" placeholder="Ej. Casa de la familia Nieto"></label><label>Indicaciones<input name="directions" maxlength="300" placeholder="Ej. después de la iglesia"></label><label>Enlace de Google Maps<span class="pf-tl-gps"><input name="gps" maxlength="1000" placeholder="https://maps.app.goo.gl/…"><button type="button" class="pf-tl-btn" data-tl-here>📍 Usar mi ubicación</button></span></label><div class="pf-tl-acts"><button type="button" class="pf-tl-btn" data-tl-cancel>Cancelar</button><button type="submit" class="pf-tl-btn go">Guardar ubicación</button></div></form>`;
+    if (tl.mode === 'preview') {
+      const p = (tl.points || []).find(y => y.id === tl.sel);
+      if (p) {
+        const maps = tlHasGps(p) ? `https://www.google.com/maps/search/?api=1&query=${p.coords.join(',')}` : p.gps || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([p.place, p.area, 'Panamá'].filter(Boolean).join(', '))}`;
+        let chips = '';
+        try { chips = p.needs ? needChipsHtml(p.needs) : ''; } catch { chips = esc(p.needs || ''); }
+        return `<div class="pf-tl-sel"><button type="button" class="pf-tl-back" data-tl-find>‹ Elegir otro lugar</button><b class="pf-tl-selname">📍 ${esc(tlPlace(p))}${p.code ? ` <small>${esc(p.code)}</small>` : ''}</b>${tlHasGps(p) ? '<div class="pf-tl-mini" data-tl-mini></div>' : `<p class="pf-tl-nogps">Sin GPS: no sale en el mapa. ${p.gps ? 'Tiene un enlace de Maps.' : 'Búsqueda aproximada por nombre.'}</p>`}<a class="pf-tl-maps" href="${esc(maps)}" target="_blank" rel="noopener noreferrer">Abrir en Maps ↗</a><ul class="pf-tl-facts">${[p.directions && `🧭 ${esc(p.directions)}`, p.coordinator && `📣 ${esc(p.coordinator)}`, p.people && `👥 ${esc(p.people)} personas`].filter(Boolean).map(v => `<li>${v}</li>`).join('')}</ul>${chips ? `<b class="pf-tl-sub">🙌 Necesita</b><div class="pf-tl-chips">${chips}</div>` : ''}<p class="pf-tl-help">Sus entregas y contactos pasan a este punto.</p><div class="pf-tl-acts"><button type="button" class="pf-tl-btn go" data-tl-target="${esc(p.id)}">✓ Unir a este punto</button></div></div>`;
+      }
+      tl.mode = 'find';
+    }
+    if (tl.mode === 'find') return `<div class="pf-tl-form pf-tl-find"><input type="search" data-tl-q value="${esc(tl.q ?? zone)}" placeholder="🔎 ¿A dónde fue? Zona, lugar o código" autocomplete="off" aria-label="Buscar el lugar"><div class="pf-tl-results" data-tl-results><p class="pf-tl-help">Cargando puntos…</p></div><div class="pf-tl-acts"><button type="button" class="pf-tl-btn" data-tl-cancel>Cancelar</button></div></div>`;
+    return `<form class="pf-tl-form" data-tl-form="${esc(x.id)}"><button type="button" class="pf-tl-back" data-tl-find>‹ Volver a buscar</button><p class="pf-tl-help">Lugar nuevo: solo la zona es obligatoria. Toca el mapa para poner el pin donde fue la entrega.</p><label>Zona (pueblo o comunidad)<input name="area" required maxlength="80" value="${esc(tl.q || zone)}" list="pf-areas" autocomplete="off" placeholder="Ej. Río Viejo"></label><label>Lugar<input name="place" maxlength="200" value="${esc(x.place && x.place !== x.area ? x.place : '')}" placeholder="Ej. Casa de la familia Nieto"></label><label>Indicaciones<input name="directions" maxlength="300" placeholder="Ej. después de la iglesia"></label><div class="pf-tl-pickmap" data-tl-pickmap></div><p class="pf-tl-pin" data-tl-pin>Sin pin todavía: toca el mapa o usa tu ubicación.</p><label>o un enlace de Google Maps<span class="pf-tl-gps"><input name="gps" maxlength="1000" placeholder="https://maps.app.goo.gl/…"><button type="button" class="pf-tl-btn" data-tl-here>📍 Usar mi ubicación</button></span></label><div class="pf-tl-acts"><button type="button" class="pf-tl-btn" data-tl-cancel>Cancelar</button><button type="submit" class="pf-tl-btn go">Guardar ubicación</button></div></form>`;
   }
   function tlDialog() {
     let d = document.getElementById('pfToLocate');
@@ -1090,22 +1165,69 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
       document.body.insertAdjacentHTML('beforeend', '<dialog id="pfToLocate" class="pf-tl" aria-labelledby="pfTlTitle"></dialog>');
       d = document.getElementById('pfToLocate');
       d.addEventListener('click', tlClick);
-      d.addEventListener('input', e => { if (e.target.matches('[data-tl-q]')) tlResults(e.target); });
+      d.addEventListener('input', e => { if (e.target.matches('[data-tl-q]')) { tl.q = e.target.value; tlResults(e.target); } if (e.target.matches('[name=gps]')) tlPinFromLink(e.target); });
       d.addEventListener('submit', tlSubmit);
+      d.addEventListener('close', tlMapsOff);
     }
     return d;
   }
   function tlDraw() {
     const d = tlDialog();
-    d.innerHTML = `<div class="pf-tl-top"><button type="button" class="pf-tl-btn" data-tl-close>‹ Atrás</button><b id="pfTlTitle">📍 Entregas por ubicar</b></div><div class="pf-tl-body"><p class="pf-tl-help">Entregas que llevaste o despachó tu equipo sin saber a qué lugar fueron. Elige el lugar: un punto nuevo o uno que ya existe. Hasta entonces no salen en el mapa.</p>${tl.list.map(tlCard).join('') || '<p class="pf-tl-help">No queda ninguna por ubicar. ¡Gracias!</p>'}</div>`;
+    tlMapsOff();
+    d.innerHTML = `<div class="pf-tl-top"><button type="button" class="pf-tl-btn" data-tl-close>‹ Atrás</button><b id="pfTlTitle">📍 Entregas por ubicar</b></div><div class="pf-tl-body"><p class="pf-tl-help">Entregas que llevaste o despachó tu equipo sin saber a qué lugar fueron. Busca el lugar: si ya existe, únelas; si no, créalo con su pin. Hasta entonces no salen en el mapa.</p>${tl.list.map(tlCard).join('') || '<p class="pf-tl-help">No queda ninguna por ubicar. ¡Gracias!</p>'}</div>`;
     const q = d.querySelector('[data-tl-q]');
     if (q) tlResults(q);
+    tlMapsOn(d);
+  }
+  async function tlLoadPoints() {
+    if (tl.points) return tl.points;
+    for (const url of ['/api/full/points', '/api/points']) {
+      try { const r = await fetch(url, {credentials: 'same-origin', cache: 'no-store'}); if (r.ok) { tl.points = await r.json(); return tl.points; } } catch {}
+    }
+    return (tl.points = []);
   }
   async function tlResults(input) {
-    if (!tl.points) { try { tl.points = await (await fetch('/api/points', {cache: 'no-store'})).json(); } catch { tl.points = []; } }
-    const q = fold(input.value || ''), box = input.closest('.pf-tl-form').querySelector('[data-tl-results]');
-    const hits = tl.points.filter(p => p.status === 'approved' && (!q || fold([p.code, p.area, p.place].join(' ')).includes(q))).slice(0, 25);
-    box.innerHTML = hits.map(p => `<button type="button" class="pf-tl-hit" data-tl-target="${esc(p.id)}"><b>${esc([p.area, p.place].filter(Boolean).join(' · '))}</b><small>${esc(p.code || '')}${p.coords ? '' : ' · sin GPS'}</small></button>`).join('') || '<p class="pf-tl-help">Ningún punto coincide.</p>';
+    await tlLoadPoints();
+    const q = fold(String(input.value || '')), box = input.closest('.pf-tl-form')?.querySelector('[data-tl-results]');
+    if (!box) return;
+    const hits = tl.points.filter(p => p.status === 'approved' && !p.toLocate && (!q || fold(String([p.code, p.area, p.place, p.directions, p.coordinator].join(' '))).includes(q))).slice(0, 25);
+    const typed = String(input.value || '').trim();
+    box.innerHTML = (hits.map(p => `<button type="button" class="pf-tl-hit" data-tl-see="${esc(p.id)}"><b>${esc(tlPlace(p))}</b><small>${esc([p.code, p.directions, p.people && p.people + ' personas', p.needs && ((k => k + (k === 1 ? ' necesidad' : ' necesidades'))(String(p.needs).split(/[,\n]+/).filter(v => v.trim()).length)), tlHasGps(p) ? '' : 'sin GPS'].filter(Boolean).join(' · '))}</small></button>`).join('') || `<p class="pf-tl-help">${q ? 'Ningún punto coincide.' : 'Escribe la zona o el lugar.'}</p>`) + `<button type="button" class="pf-tl-new" data-tl-new>＋ Lugar nuevo${typed ? ` «${esc(typed)}»` : ''} <small>con su pin en el mapa</small></button>`;
+  }
+  // Mapas del cuadro: la vista previa (fija) y el de lugar nuevo (tocar pone el pin y llena el enlace).
+  const tlMaps = [];
+  function tlMapsOff() { while (tlMaps.length) { try { tlMaps.pop().remove(); } catch {} } }
+  const tlTiles = m => L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap'}).addTo(m);
+  function tlMapsOn(d) {
+    if (typeof L === 'undefined') { d.querySelectorAll('[data-tl-mini],[data-tl-pickmap]').forEach(el => el.hidden = true); return; }
+    const mini = d.querySelector('[data-tl-mini]'), p = (tl.points || []).find(y => y.id === tl.sel);
+    if (mini && p && tlHasGps(p)) {
+      const m = L.map(mini, {zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false}).setView(p.coords, 15);
+      tlTiles(m); L.circleMarker(p.coords, {radius: 9, weight: 3, color: '#fff', fillColor: '#ed7654', fillOpacity: 1}).addTo(m);
+      tlMaps.push(m); setTimeout(() => m.invalidateSize(), 60);
+    }
+    const pick = d.querySelector('[data-tl-pickmap]');
+    if (pick) {
+      const form = pick.closest('form'), x = tl.list.find(y => y.id === tl.open), zone = fold(String(form.elements.area.value || x?.area || ''));
+      const near = zone && (tl.points || []).find(y => tlHasGps(y) && fold(String(y.area || '')) === zone);
+      const m = L.map(pick, {zoomControl: true, attributionControl: false}).setView(near ? near.coords : [7.75, -80.35], near ? 14 : 9);
+      tlTiles(m); tlMaps.push(m); tl.pickMap = m; tl.pin = null;
+      m.on('click', e => tlSetPin(form, e.latlng.lat, e.latlng.lng, false));
+      setTimeout(() => m.invalidateSize(), 60);
+    }
+  }
+  function tlSetPin(form, lat, lon, center) {
+    const m = tl.pickMap;
+    if (!m) return;
+    if (tl.pin) tl.pin.setLatLng([lat, lon]); else tl.pin = L.circleMarker([lat, lon], {radius: 10, weight: 3, color: '#fff', fillColor: '#ed7654', fillOpacity: 1}).addTo(m);
+    if (center) m.setView([lat, lon], 16);
+    form.elements.gps.value = `https://maps.google.com/?q=${lat.toFixed(6)},${lon.toFixed(6)}`;
+    const t = form.querySelector('[data-tl-pin]');
+    if (t) t.textContent = `📍 Pin puesto (${lat.toFixed(5)}, ${lon.toFixed(5)}). Toca otra parte del mapa para moverlo.`;
+  }
+  function tlPinFromLink(input) {
+    const mm = String(input.value).match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
+    if (mm && tl.pickMap) tlSetPin(input.closest('form'), +mm[1], +mm[2], true);
   }
   async function tlSend(id, body, card) {
     const msg = card.querySelector('.pf-tl-msg');
@@ -1114,7 +1236,7 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
       const r = await fetch('/api/full/camps/' + encodeURIComponent(id) + '/locate', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
       const res = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(res.error || 'No se pudo guardar.');
-      tl.list = tl.list.filter(x => x.id !== id); tl.open = null; tl.mode = '';
+      tl.list = tl.list.filter(x => x.id !== id); tl.open = null; tl.mode = ''; tl.q = undefined; tl.sel = null;
       tlDraw(); tlBanner(); tl.onDone?.(res);
     } catch (err) { msg.textContent = err.message; }
   }
@@ -1122,22 +1244,20 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     const d = tlDialog(), b = e.target.closest('button');
     if (!b) return;
     if (b.matches('[data-tl-close]')) return d.close();
-    if (b.matches('[data-tl-cancel]')) { tl.open = null; tl.mode = ''; return tlDraw(); }
-    if (b.matches('[data-tl-new]')) { tl.open = b.dataset.tlNew; tl.mode = 'new'; tlDraw(); return d.querySelector('[data-tl-form] [name=area]')?.focus(); }
-    if (b.matches('[data-tl-pick]')) { tl.open = b.dataset.tlPick; tl.mode = 'pick'; tlDraw(); return d.querySelector('[data-tl-q]')?.focus(); }
+    if (b.matches('[data-tl-cancel]')) { tl.open = null; tl.mode = ''; tl.q = undefined; return tlDraw(); }
+    if (b.matches('[data-tl-pick]')) { tl.open = b.dataset.tlPick; tl.mode = 'find'; tl.q = undefined; tlDraw(); return d.querySelector('[data-tl-q]')?.focus(); }
+    if (b.matches('[data-tl-find]')) { tl.mode = 'find'; tl.sel = null; tlDraw(); return d.querySelector('[data-tl-q]')?.focus(); }
+    if (b.matches('[data-tl-see]')) { tl.sel = b.dataset.tlSee; tl.mode = 'preview'; tlDraw(); return d.querySelector('.pf-tl-card.open')?.scrollIntoView({block: 'nearest'}); }
+    if (b.matches('[data-tl-new]')) { tl.mode = 'new'; tlDraw(); return d.querySelector('[data-tl-form] [name=place]')?.focus(); }
     if (b.matches('[data-tl-here]')) {
       const f = b.closest('form');
       if (!navigator.geolocation) return;
       b.disabled = true; b.textContent = 'Buscando…';
-      navigator.geolocation.getCurrentPosition(pos => { f.elements.gps.value = `https://maps.google.com/?q=${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`; b.disabled = false; b.textContent = '📍 Usar mi ubicación'; }, () => { b.disabled = false; b.textContent = '📍 Usar mi ubicación'; }, {enableHighAccuracy: true, timeout: 15000});
+      navigator.geolocation.getCurrentPosition(pos => { tlSetPin(f, pos.coords.latitude, pos.coords.longitude, true); if (!tl.pickMap) f.elements.gps.value = `https://maps.google.com/?q=${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`; b.disabled = false; b.textContent = '📍 Usar mi ubicación'; }, () => { b.disabled = false; b.textContent = '📍 Usar mi ubicación'; }, {enableHighAccuracy: true, timeout: 15000});
       return;
     }
     const t = b.closest('[data-tl-target]');
-    if (t) {
-      const card = t.closest('[data-tl-id]'), p = (tl.points || []).find(x => x.id === t.dataset.tlTarget);
-      if (!window.confirm(`¿Unir esta entrega a «${[p?.area, p?.place].filter(Boolean).join(' · ')}»? Sus entregas y contactos pasan a ese punto.`)) return;
-      tlSend(card.dataset.tlId, {targetId: t.dataset.tlTarget}, card);
-    }
+    if (t) tlSend(t.closest('[data-tl-id]').dataset.tlId, {targetId: t.dataset.tlTarget}, t.closest('[data-tl-id]'));
   }
   function tlSubmit(e) {
     const f = e.target.closest('[data-tl-form]');
@@ -1146,5 +1266,5 @@ dialog.pf-mapdialog{inset:0;width:auto;height:auto;max-width:none;max-height:non
     tlSend(f.dataset.tlForm, {area: f.elements.area.value.trim(), place: f.elements.place.value.trim(), directions: f.elements.directions.value.trim(), gps: f.elements.gps.value.trim()}, f.closest('[data-tl-id]'));
   }
   if (typeof document.addEventListener === 'function') document.addEventListener('click', e => { if (e.target.closest('[data-tl-open]')) { tl.open = null; tl.mode = ''; tlDraw(); tlDialog().showModal(); } });
-  window.PointForm = {areaList, toLocate, covers,trailHtml, watchTrails, changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
+  window.PointForm = {completeWizard, areaList, toLocate, toLocateCount, covers,trailHtml, watchTrails, changeRequests, needChipsHtml, verifiedBadge, verifiedTitle, BRANDED, DATA_NEED, brandOf, brandBadge, dataNet, netBadge, needBase, needChip, render, values, html, nearest, meters, lastAdded, linkCoords, needsHtml, fillNeeds, readNeeds, membersOf, parseNeeds, needsText, filters, validPhone, hasPhone, NEEDS, icons, PACKING, packIcon, packingTotals, packingHtml, openPacking, prepareMedia, uploadMedia, mediaThumbs, setMe, locationNotice, sendOrQueue, setQueue, queuePoint, flushQueue, enterOffline, SERVICES, serviceIcon, serviceStatus, serviceScheduled};
 })();
