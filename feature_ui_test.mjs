@@ -2821,7 +2821,8 @@ test('«Reportado por» (megaphone) replaces «Coordinador» in labels; the stor
   assert.match(sup, /🙋 Necesito runner<\/button>`\}\$\{needButtons\(n\)\}<\/div><\/article>`\}/, 'share button in the same row as «Despachar» / «Necesito runner»');
   assert.match(sup, /<div class="dispatchrow"><button class="btn dispatch" type="button" data-dispatch="\$\{id\}">🚚 Despachar<\/button>\$\{needButtons\(n\)\}<\/div>/, 'Despachando: share next to Despachada');
   assert.match(sup, /\$\{needDetails\(\{\.\.\.n,packing:null,noWhat:split\},true,false\)\}\$\{addedByLine\(n\)\}/, '«Agregado por» on Despachando too');
-  assert.match(sup, /match=n=>teamOk\(n\)&&\(!q\|\|foldNeed\(\[n\.runnerName,n\.runnerPhone,n\.addedByName,/, 'search finds who added it');
+  assert.match(sup, /textOk=n=>!q\|\|foldNeed\(\[n\.runnerName,n\.runnerPhone,n\.addedByName,[^\n]*?,match=n=>teamOk\(n\)&&textOk\(n\);/, 'search finds who added it');
+  assert.match(sup, /out=teamOnly&&q&&src\?src\(\)\.filter\(n=>!teamOk\(n\)&&textOk\(n\)\)\.length:0,t=\$\('#teamToggle'\)/, '«Solo mi equipo» with a search counts the matches it hides on the 👥 badge');
   assert.match(sup, /const addedByLine=n=>n\.addedByName\?`<p class="reqby">🧭 Agregado por <b>\$\{clean\(n\.addedByName\)\}<\/b>\$\{verifiedOf\(n\)\}\$\{n\.addedByPhone\?` <button type="button" class="telbtn" data-tel=/, '«Agregado por» with a tappable phone (sent only to team members)');
   assert.match(sup, /href="tel:\$\{clean\(d\)\}">📞 Llamar<\/a><a class="btn small wa"[^>]*>💬 WhatsApp<\/a>/);
   assert.match(readFileSync(new URL('./runner.html', import.meta.url), 'utf8'), /title="Reportado por \$\{n\}: ver teléfono"/, 'Runners: the reporter is the tappable name');
