@@ -3386,7 +3386,8 @@ test('«¿Cómo funciona?» closes with its last button, shows the runner icon i
   assert.match(nav, /\.howdlg\[open\]\{display:flex\}/);
   assert.doesNotMatch(nav, /border-radius:0;display:flex;flex-direction:column\}\.howdlg\[open\]/, 'closing hides it on phones too');
   assert.match(nav, /if \(\+step\.dataset\.how > 0 && d\._i === HOW\.length - 1\) \{ d\.close\(\);/);
-  assert.match(nav, /localStorage\.getItem\('howSeen'\)\) return; localStorage\.setItem\('howSeen', '1'\);/, 'splash once');
+  assert.doesNotMatch(nav, /howSplash|howSeen/, 'never opens by itself (not even after signing out): only from a button');
+  assert.match(nav, /if \(e\.target\.closest\('\[data-how-open\]'\)\) \{ e\.preventDefault\(\); showSheet\(false\); howItWorks\(\); \}/, 'opens on click');
 });
 
 test('Runners «Yo»: a step already done (green ✓) is folded to its header; tapping opens it', () => {

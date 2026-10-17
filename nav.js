@@ -906,7 +906,7 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
         const step = e.target.closest('[data-how]'), go = e.target.closest('[data-how-go]');
         if (go) return show(+go.dataset.howGo);
         if (!step) return;
-        if (+step.dataset.how > 0 && d._i === HOW.length - 1) { d.close(); if (!user() && d._splash) location.href = '/signup.html'; return; }
+        if (+step.dataset.how > 0 && d._i === HOW.length - 1) { d.close(); return; }
         show(d._i + +step.dataset.how);
       });
       let x0 = null;
@@ -918,21 +918,14 @@ html{zoom:var(--text-zoom,1)}.leaflet-container{zoom:calc(1 / var(--text-zoom,1)
       d.querySelector('.how-track').style.transform = `translateX(-${d._i * 100}%)`;
       d.querySelectorAll('[data-how-go]').forEach((b, k) => b.setAttribute('aria-current', String(k === d._i)));
       d.querySelector('.how-back').hidden = d._i === 0;
-      d.querySelector('.how-next').textContent = d._i < HOW.length - 1 ? 'Siguiente' : !user() && d._splash ? '¡Quiero ayudar!' : '¡Entendido!';
+      d.querySelector('.how-next').textContent = d._i < HOW.length - 1 ? 'Siguiente' : '¡Entendido!';
       d.querySelector('.how-viewport').scrollTop = 0;
     }
-    d._splash = false;
     show(start);
     if (!d.open) d.showModal();
   }
   document.addEventListener('click', e => { if (e.target.closest('[data-how-open]')) { e.preventDefault(); showSheet(false); howItWorks(); } });
-  // Bienvenida: la primera vez que alguien sin sesión abre el inicio, se le muestra una sola vez (recordado en este navegador).
-  function howSplash() {
-    if (location.pathname !== '/' && location.pathname !== '/index.html') return;
-    try { if (user() || localStorage.getItem('howSeen')) return; localStorage.setItem('howSeen', '1'); } catch { return; }
-    setTimeout(() => { howItWorks(); const d = document.getElementById('howDlg'); if (d) d._splash = true; }, 600);
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', howSplash); else howSplash();
+  // «¿Cómo funciona?» nunca se abre solo (ni la primera vez ni al salir): solo al tocar un botón [data-how-open].
   window.AppNav = {consentText: CONSENT, howItWorks,swipeTabs, draw: drawAll, openGlobalSearch, endSessions, logoutAll, confirm, choose, phone, shortName, codeIntro, isCode, codeOf, codeSignedIn, prefillCode, signinMode, createAccount, showNewCode, watchAccess};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', devMark); else devMark();
   mountSearch();
